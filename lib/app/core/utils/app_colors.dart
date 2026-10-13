@@ -1,22 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+
 import '../theme/theme_controller.dart';
 
 class AppColors {
   // Brand & Corporate Navy Primary
   static const Color primary = Color(0xFF012B43); // Deep Corporate Navy
-  static const Color litePrimary = Color(0xFFE6EEF3); // Soft Navy Tint
+  static const Color litePrimary = Color(0xFF99BBD6); // Soft Navy Tint
 
   // Secondary & Accents
-  static const Color secondary = Color(0xFFF59E0B);
-  static const Color liteSecondary = Color(0xFFFEF3C7);
+  static const Color secondary = Color(0xFF0DA6A3);
+  static const Color liteSecondary = Color(0xFFB4E3E4);
   static const Color accentNavy = Color(0xFF023E61);
 
   // Status & Attendance Accents
   static const Color success = Color(0xFF10B981); // On-time Green
   static const Color warning = Color(0xFFF59E0B); // Late Amber
-  static const Color error = Color(0xFFEF4444);   // Absent Red
-  static const Color info = Color(0xFF3B82F6);    // Corporate Blue
+  static const Color error = Color(0xFFEF4444); // Absent Red
+  static const Color info = Color(0xFF3B82F6); // Corporate Blue
   static const Color blue = Color(0xFF3B82F6);
 
   // Attendance Specific Aliases
@@ -33,7 +34,7 @@ class AppColors {
   static const Color lightBackground = Color(0xFFF8FAFC);
   static const Color lightCardBackground = Color(0xFFFFFFFF);
   static const Color lightInputFill = Color(0xFFF3F4F6); // Cool Grey
-  static const Color lightTextColor = Color(0xFF0F172A);
+  static const Color lightTextColor = Color(0xFF012B43);
   static const Color lightSubTextColor = Color(0xFF64748B);
   static const Color lightBorderColor = Color(0xFFE2E8F0);
   static const Color lightHintColor = Color(0xFF94A3B8);
@@ -63,7 +64,8 @@ class AppColors {
 
   // Dynamic Theme Getters (Enforces zero inline ternaries in UI views)
   static Color get primaryColor => primary;
-  static Color get litePrimaryColor => _isDarkMode ? darkSurfaceColor : litePrimary;
+  static Color get litePrimaryColor =>
+      _isDarkMode ? darkSurfaceColor : litePrimary;
   static Color get textColor => _isDarkMode ? darkTextColor : lightTextColor;
   static Color get subTextColor =>
       _isDarkMode ? darkSubTextColor : lightSubTextColor;
@@ -71,8 +73,7 @@ class AppColors {
       _isDarkMode ? darkBackground : lightBackground;
   static Color get cardBackground =>
       _isDarkMode ? darkCardBackground : lightCardBackground;
-  static Color get inputFill =>
-      _isDarkMode ? darkInputFill : lightInputFill;
+  static Color get inputFill => _isDarkMode ? darkInputFill : lightInputFill;
   static Color get borderColor =>
       _isDarkMode ? darkBorderColor : lightBorderColor;
   static Color get surfaceColor =>

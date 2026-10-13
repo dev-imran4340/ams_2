@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+
 import '../utils/app_colors.dart';
 import '../utils/app_text_styles.dart';
 
@@ -57,9 +58,10 @@ class CustomButton extends StatelessWidget {
     // Corporate Navy gradient fallback
     Gradient? finalGradient;
     if (!isOutlined && isGradient) {
-      finalGradient = gradient ??
+      finalGradient =
+          gradient ??
           const LinearGradient(
-            colors: [Color(0xFF012B43), Color(0xFF023E61)],
+            colors: [AppColors.primary, AppColors.secondary],
             begin: Alignment.centerLeft,
             end: Alignment.centerRight,
           );
@@ -107,15 +109,13 @@ class CustomButton extends StatelessWidget {
         child: SizedBox(
           width: 24.w,
           height: 24.w,
-          child: CircularProgressIndicator(
-            color: color,
-            strokeWidth: 2.5,
-          ),
+          child: CircularProgressIndicator(color: color, strokeWidth: 2.5),
         ),
       );
     }
 
-    final effectiveStyle = textStyle ??
+    final effectiveStyle =
+        textStyle ??
         AppTextStyles.text16.copyWith(
           fontWeight: FontWeight.w600,
           color: color,
@@ -128,10 +128,7 @@ class CustomButton extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (icon != null) ...[
-            icon!,
-            SizedBox(width: 8.w),
-          ],
+          if (icon != null) ...[icon!, SizedBox(width: 8.w)],
           Flexible(
             child: Text(
               text,

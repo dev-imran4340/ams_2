@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+
 import '../../../api/app_preferences.dart';
-import '../../../core/widgets/custom_snackbar.dart';
 import '../../../routes/app_routes.dart';
 import '../model/auth_model.dart';
 import '../repo/auth_repo.dart';
@@ -46,44 +46,30 @@ class AuthController extends GetxController {
   }
 
   Future<void> login() async {
-    if (!formKey.currentState!.validate()) {
-      return;
-    }
-
     try {
       isLoading.value = true;
-      final email = emailController.text.trim();
-      final password = passwordController.text;
-
-      final result = await repo.login(
-        email: email,
-        password: password,
+      final response = await repo.login(
+        email: emailController.text.trim(),
+        password: passwordController.text.trim(),
       );
-
-      if (result != null && result.token != null) {
-        authResponse.value = result;
-
-        // Persist session
-        await AppPreferences.saveAuthData(
-          token: result.token!,
-          refreshToken: result.refreshToken,
-          user: result.user,
-        );
-
-        // Persist remember me preferences
-        await AppPreferences.setRememberMe(rememberMe.value);
+      if (response != null) {
+        authResponse.value = response;
         if (rememberMe.value) {
-          await AppPreferences.setSavedEmail(email);
+          AppPreferences.setSavedEmail(emailController.text.trim());
+          AppPreferences.setRememberMe(true);
         } else {
-          await AppPreferences.setSavedEmail(null);
+          AppPreferences.setSavedEmail(null);
+          AppPreferences.setRememberMe(false);
         }
 
-        CustomSnackbar.showSuccess(
-          title: 'Welcome Back',
-          message: 'Authenticated successfully as ${result.user?.name ?? 'Employee'}.',
-        );
-
-        Get.offAllNamed(Routes.DASHBOARD);
+        final accountType = response.user?.accountType ?? 'organization';
+        if (accountType == 'organization') {
+          Get.offNamed(Routes.QR_SCANNER);
+        } else {
+          Get.offNamed(Routes.INDEX);
+        }
+      } else {
+        Get.offNamed(Routes.INDEX);
       }
     } finally {
       isLoading.value = false;
@@ -93,23 +79,17 @@ class AuthController extends GetxController {
   Future<void> loginWithBiometrics() async {
     try {
       isBiometricLoading.value = true;
-      final result = await repo.authenticateWithBiometrics();
-
-      if (result != null && result.token != null) {
-        authResponse.value = result;
-
-        await AppPreferences.saveAuthData(
-          token: result.token!,
-          refreshToken: result.refreshToken,
-          user: result.user,
-        );
-
-        CustomSnackbar.showSuccess(
-          title: 'Biometric Verified',
-          message: 'Welcome back, ${result.user?.name ?? 'Employee'}.',
-        );
-
-        Get.offAllNamed(Routes.DASHBOARD);
+      final response = await repo.authenticateWithBiometrics();
+      if (response != null) {
+        authResponse.value = response;
+        final accountType = response.user?.accountType ?? 'organization';
+        if (accountType == 'organization') {
+          Get.offNamed(Routes.QR_SCANNER);
+        } else {
+          Get.offNamed(Routes.INDEX);
+        }
+      } else {
+        Get.offNamed(Routes.INDEX);
       }
     } finally {
       isBiometricLoading.value = false;

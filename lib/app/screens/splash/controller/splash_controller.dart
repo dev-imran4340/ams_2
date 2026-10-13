@@ -1,79 +1,51 @@
-import 'package:flutter/foundation.dart';
+import 'dart:async';
 import 'package:get/get.dart';
+
 import '../../../api/app_preferences.dart';
+import '../../../api/exception_handler.dart';
 import '../../../routes/app_routes.dart';
-import '../model/splash_session_model.dart';
-import '../repo/splash_repo.dart';
 
 class SplashController extends GetxController {
-  final SplashRepo repo;
+  static const String _tag = 'SplashController';
 
-  SplashController({required this.repo});
-
+  // Observables
   final RxBool isLoading = true.obs;
-  final Rxn<SplashSessionModel> sessionData = Rxn<SplashSessionModel>();
 
   @override
   void onInit() {
     super.onInit();
-    checkAuthentication();
+    checkSessionAndRoute();
   }
 
-  /// Verifies active session with backend and routes accordingly
-  Future<void> checkAuthentication() async {
-    const minDelayDuration = Duration(milliseconds: 1200);
-
+  /// Evaluates authentication state from AppPreferences and redirects smoothly
+  Future<void> checkSessionAndRoute() async {
     try {
       isLoading.value = true;
-      final minDelay = Future.delayed(minDelayDuration);
-      final storedToken = AppPreferences.token;
 
-      // 1. If no token exists, navigate to Login
-      if (storedToken == null || storedToken.trim().isEmpty) {
-        await minDelay;
-        if (kDebugMode) {
-          Get.log('ℹ️ [Splash] No token found in AppPreferences. Redirecting to LOGIN.');
-        }
-        Get.offAllNamed(Routes.LOGIN);
-        return;
-      }
+      // Allow animations and executive brand presentation to complete gracefully
+      await Future.delayed(const Duration(milliseconds: 2200));
 
-      // 2. Verify token against backend
-      final session = await repo.verifySession();
-      await minDelay;
+      // Read authentication credentials strictly through AppPreferences abstraction
+      final String? token = AppPreferences.token;
+      final bool isLoggedIn = AppPreferences.isLoggedIn;
 
-      final currentToken = AppPreferences.token;
-      if (session != null && currentToken != null && currentToken.isNotEmpty) {
-        sessionData.value = session;
-        if (kDebugMode) {
-          Get.log(
-            '✅ [Splash] Session valid for user: ${session.email}. Redirecting to DASHBOARD.',
-          );
-        }
-        Get.offAllNamed(Routes.DASHBOARD);
+      if (token != null && token.trim().isNotEmpty && isLoggedIn) {
+        // Active verified session: route to authenticated Main Shell (Index)
+        Get.offAllNamed(Routes.INDEX);
       } else {
-        if (kDebugMode) {
-          Get.log(
-            '⚠️ [Splash] Session revoked or invalid. Clearing session and redirecting to LOGIN.',
-          );
-        }
-        await AppPreferences.clearSession();
+        // No valid token: route to Login
         Get.offAllNamed(Routes.LOGIN);
       }
-    } catch (e) {
-      if (kDebugMode) {
-        Get.log('❌ [Splash Error] Verification failed ($e). Redirecting to LOGIN.');
-      }
-      await AppPreferences.clearSession();
+    } catch (e, stackTrace) {
+      ExceptionHandler.handle(
+        ApiException(message: 'Failed to verify session during splash: $e'),
+        tag:
+            '$_tag -> checkSessionAndRoute() [${stackTrace.toString().split('\n').first}]',
+      );
+      // Fallback securely to Login screen
       Get.offAllNamed(Routes.LOGIN);
     } finally {
       isLoading.value = false;
     }
-  }
-
-  @override
-  void onClose() {
-    // Clean up any listeners or resources
-    super.onClose();
   }
 }

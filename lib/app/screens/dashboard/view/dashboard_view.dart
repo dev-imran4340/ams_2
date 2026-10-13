@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+
 import '../../../api/app_preferences.dart';
 import '../../../core/utils/app_colors.dart';
 import '../../../core/utils/app_spaces.dart';
 import '../../../core/utils/app_text_styles.dart';
 import '../../../core/widgets/custom_state_view.dart';
 import '../../../core/widgets/network_boundary_wrapper.dart';
-import '../../../routes/app_routes.dart';
-import '../components/dashboard_stat_card.dart';
 import '../controller/dashboard_controller.dart';
+import 'components/dashboard_quick_actions.dart';
+import 'components/live_shift_clock_card.dart';
+import 'components/monthly_summary_card.dart';
+import 'components/recent_activity_timeline.dart';
+import 'components/today_stats_grid.dart';
 
 class DashboardView extends GetView<DashboardController> {
   const DashboardView({super.key});
@@ -17,135 +21,345 @@ class DashboardView extends GetView<DashboardController> {
   @override
   Widget build(BuildContext context) {
     final user = AppPreferences.getUser();
+    final String userName = user?.name ?? 'Malik Muhammad Imran';
+    final String designation = user?.designation ?? 'Senior Software Engineer';
 
     return NetworkBoundaryWrapper(
       onRetry: controller.loadDashboard,
       child: Scaffold(
         backgroundColor: AppColors.backgroundColor,
-        appBar: AppBar(
-          title: Text(
-            'AMS 2 Dashboard',
-            style: AppTextStyles.text18.copyWith(
-              fontWeight: FontWeight.bold,
-              color: AppColors.textColor,
-            ),
-          ),
-          actions: [
-            IconButton(
-              icon: Icon(Icons.logout_rounded, color: AppColors.textColor, size: 22.sp),
-              onPressed: () async {
-                await AppPreferences.clearSession();
-                Get.offAllNamed(Routes.LOGIN);
-              },
-            ),
-          ],
-        ),
-        body: SafeArea(
-          child: Obx(() {
-            if (controller.isLoading.value) {
-              return Center(
-                child: CircularProgressIndicator(color: AppColors.primary),
-              );
-            }
+        body: Obx(() {
+          if (controller.isLoading.value) {
+            return Center(
+              child: CircularProgressIndicator(
+                color: AppColors.primary,
+                strokeWidth: 2.5.w,
+              ),
+            );
+          }
 
-            final data = controller.dashboardData.value;
-            if (data == null) {
-              return CustomStateView.empty(
-                title: 'No Attendance Data',
-                message: 'No attendance records available for today.',
-                buttonText: 'Refresh',
-                onAction: controller.loadDashboard,
-              );
-            }
+          final data = controller.dashboardData.value;
+          if (data == null) {
+            return CustomStateView.empty(
+              title: 'No Attendance Data',
+              message: 'No attendance records available for today.',
+              buttonText: 'Refresh',
+              onAction: controller.loadDashboard,
+            );
+          }
 
-            return RefreshIndicator(
-              onRefresh: controller.loadDashboard,
-              child: ListView(
-                padding: AppSpaces.defaultPadding,
-                children: [
-                  // User Welcome Banner
-                  Container(
-                    padding: AppSpaces.defaultPadding,
-                    decoration: BoxDecoration(
-                      color: AppColors.primary,
-                      borderRadius: BorderRadius.circular(16.r),
+          return Stack(
+            children: [
+              // 1. Curved Ambient Gradient Header (Identical to Login Screen Language)
+              Container(
+                width: double.infinity,
+                height: 280.h,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AppColors.liteSecondary,
+                      AppColors.liteSecondary,
+                      AppColors.liteSecondary,
+                      AppColors.liteSecondary,
+                      AppColors.secondary,
+                      AppColors.primary,
+                    ],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(20.r),
+                    bottomRight: Radius.circular(20.r),
+                  ),
+                ),
+                child: Stack(
+                  children: [
+                    // Ambient Decorative Top-Right Ring
+                    Positioned(
+                      top: -70.r,
+                      right: -45.r,
+                      child: Container(
+                        width: 160.r,
+                        height: 160.r,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppColors.primary.withValues(alpha: 0.05),
+                        ),
+                      ),
                     ),
-                    child: Row(
+                    // Ambient Decorative Bottom-Left Glow
+                    Positioned(
+                      bottom: 45.r,
+                      left: -65.r,
+                      child: Container(
+                        width: 130.r,
+                        height: 130.r,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppColors.secondary.withValues(alpha: 0.05),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // 2. Main Scrollable Content Overlapping the Header
+              SafeArea(
+                child: RefreshIndicator(
+                  onRefresh: controller.loadDashboard,
+                  color: AppColors.primary, 
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 14.w, 
+                      vertical: 10.h,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        CircleAvatar(
-                          radius: 24.r,
-                          backgroundColor: AppColors.white.withValues(alpha: 0.15),
-                          child: Icon(Icons.person, color: AppColors.white, size: 26.sp),
-                        ),
-                        AppSpaces.hSpace14,
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                user?.name ?? 'Welcome Back',
-                                style: AppTextStyles.text16.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.white,
+                        // Top Executive Header (Avatar, Name, Greeting, Location Pill, Notification Bell)
+                        _buildTopHeader(userName, designation),
+
+                        AppSpaces.vSpace12,
+
+                        // 1. Floating Live Shift & Running Clock Hero Card (Overlaps curved header)
+                        const LiveShiftClockCard(),
+
+                        AppSpaces.vSpace12,
+
+                        // 2. Executive Quick Services Hub
+                        const DashboardQuickActions(),
+
+                        AppSpaces.vSpace12,
+
+                        // 3. Section: Today's Metrics Overview
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 4.w,
+                                  height: 16.h,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.secondary,
+                                    borderRadius: BorderRadius.circular(2.r),
+                                  ),
+                                ),
+                                AppSpaces.hSpace8,
+                                Text(
+                                  "Today's Overview",
+                                  style: AppTextStyles.text16.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.textColor,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 10.w,
+                                vertical: 4.h,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.secondary.withValues(
+                                  alpha: 0.1,
+                                ),
+                                borderRadius: BorderRadius.circular(12.r),
+                                border: Border.all(
+                                  color: AppColors.secondary.withValues(
+                                    alpha: 0.25,
+                                  ),
+                                  width: 1.w,
                                 ),
                               ),
-                              AppSpaces.vSpace4,
-                              Text(
-                                user?.designation ?? 'Attendance Management Lead',
-                                style: AppTextStyles.text12.copyWith(
-                                  color: AppColors.white.withValues(alpha: 0.8),
-                                ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 6.r,
+                                    height: 6.r,
+                                    decoration: const BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: AppColors.secondary,
+                                    ),
+                                  ),
+                                  AppSpaces.hSpace6,
+                                  Text(
+                                    'Live Metrics',
+                                    style: AppTextStyles.text10.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.secondary,
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
+
+                        AppSpaces.vSpace12,
+
+                        // 4-Card Mini Grid
+                        const TodayStatsGrid(),
+
+                        AppSpaces.vSpace20,
+
+                        // 4. Section: Monthly Performance Summary
+                        Row(
+                          children: [
+                            Container(
+                              width: 4.w,
+                              height: 16.h,
+                              decoration: BoxDecoration(
+                                color: AppColors.primary,
+                                borderRadius: BorderRadius.circular(2.r),
+                              ),
+                            ),
+                            AppSpaces.hSpace8,
+                            Text(
+                              'Attendance Analytics',
+                              style: AppTextStyles.text16.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textColor,
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        AppSpaces.vSpace12,
+
+                        // Monthly Summary Card
+                        const MonthlySummaryCard(),
+
+                        AppSpaces.vSpace20,
+
+                        // 5. Section: Today's Punch Activity Log
+                        const RecentActivityTimeline(),
+
+                        AppSpaces.vSpace24,
+
+                        // Bottom spacing to clear floating navigation bar
+                        SizedBox(height: 76.h),
                       ],
                     ),
                   ),
-                  AppSpaces.vSpace20,
+                ),
+              ),
+            ],
+          );
+        }),
+      ),
+    );
+  }
 
-                  Text(
-                    "Today's Attendance Overview",
-                    style: AppTextStyles.text16.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textColor,
+  /// Top executive header showing user greeting, designation, and notification badge
+  Widget _buildTopHeader(String name, String designation) {
+    final hour = DateTime.now().hour;
+    final greeting = hour < 12
+        ? 'Good Morning'
+        : (hour < 17 ? 'Good Afternoon' : 'Good Evening');
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        // User Profile & Greeting
+        Expanded(
+          child: Row(
+            children: [
+              // User Avatar with Online Status Indicator
+              Stack(
+                children: [
+                  Container(
+                    width: 46.r,
+                    height: 46.r,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppColors.white, width: 2.w),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withValues(alpha: 0.15),
+                          blurRadius: 10.r,
+                          offset: Offset(0, 4.h),
+                        ),
+                      ],
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      name.isNotEmpty ? name[0].toUpperCase() : 'M',
+                      style: AppTextStyles.text18.copyWith(
+                        color: AppColors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
-                  AppSpaces.vSpace12,
-
-                  DashboardStatCard(
-                    title: 'Total Workforce',
-                    value: '${data.totalEmployees} Employees',
-                    icon: Icons.groups_rounded,
-                    color: AppColors.primary,
-                  ),
-                  AppSpaces.vSpace12,
-                  DashboardStatCard(
-                    title: 'On-Time (Present)',
-                    value: '${data.onTimeToday} Check-ins',
-                    icon: Icons.check_circle_rounded,
-                    color: AppColors.onTimeColor,
-                  ),
-                  AppSpaces.vSpace12,
-                  DashboardStatCard(
-                    title: 'Late Arrivals',
-                    value: '${data.lateToday} Flagged',
-                    icon: Icons.alarm_on_rounded,
-                    color: AppColors.lateColor,
-                  ),
-                  AppSpaces.vSpace12,
-                  DashboardStatCard(
-                    title: 'Absent / Unrecorded',
-                    value: '${data.absentToday} Missing',
-                    icon: Icons.cancel_rounded,
-                    color: AppColors.absentColor,
+                  Positioned(
+                    bottom: 1.r,
+                    right: 1.r,
+                    child: Container(
+                      width: 12.r,
+                      height: 12.r,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: AppColors.onTimeColor,
+                        border: Border.all(color: AppColors.white, width: 2.w),
+                      ),
+                    ),
                   ),
                 ],
               ),
-            );
-          }),
+              AppSpaces.hSpace12,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.text16.copyWith(
+                        color: AppColors.textColor,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    AppSpaces.vSpace2,
+                    Text(
+                      '$greeting,',
+                      style: AppTextStyles.text12.copyWith(
+                        color: AppColors.textColor.withValues(alpha: 0.75),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
+
+        AppSpaces.hSpace8,
+
+        // Circular Glass Refresh Sync Button
+
+        // Circular Glass Notification Button
+        IconButton(
+          style: IconButton.styleFrom(
+            backgroundColor: AppColors.white,
+            shape: CircleBorder(),
+            shadowColor: AppColors.primary.withValues(alpha: 0.08),
+            elevation: 10,
+          ),
+          icon: Icon(
+            Icons.notifications_none_rounded,
+            color: AppColors.textColor,
+            size: 24.sp,
+          ),
+          onPressed: () {
+            // Handle notification button press
+          },
+        ),
+      ],
     );
   }
 }

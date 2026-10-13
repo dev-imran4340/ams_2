@@ -24,11 +24,11 @@ class LoginForm extends GetView<AuthController> {
             labelText: 'Email Address',
             hintText: 'Enter Email Address',
             controller: controller.emailController,
-            focusNode: controller.emailFocusNode,
+
             keyboardType: TextInputType.emailAddress,
+
             textInputAction: TextInputAction.next,
-            fillColor: AppColors.inputFill,
-            borderRadius: 16.r,
+
             prefixIcon: Icon(
               Icons.mail_outline_rounded,
               color: AppColors.hintColor,
@@ -41,7 +41,7 @@ class LoginForm extends GetView<AuthController> {
               return null;
             },
           ),
-          AppSpaces.vSpace18,
+          AppSpaces.vSpace12,
 
           // Password Field
           Obx(
@@ -49,12 +49,12 @@ class LoginForm extends GetView<AuthController> {
               labelText: 'Password',
               hintText: 'Enter Your Password',
               controller: controller.passwordController,
-              focusNode: controller.passwordFocusNode,
+              keyboardType: TextInputType.visiblePassword,
+
               obscureText: !controller.isPasswordVisible.value,
-              textInputAction: TextInputAction.done,
+
               onFieldSubmitted: (_) => controller.login(),
-              fillColor: AppColors.inputFill,
-              borderRadius: 16.r,
+
               prefixIcon: Icon(
                 Icons.lock_outline_rounded,
                 color: AppColors.hintColor,
@@ -89,9 +89,8 @@ class LoginForm extends GetView<AuthController> {
             children: [
               Obx(
                 () => InkWell(
-                  onTap: () => controller.toggleRememberMe(
-                    !controller.rememberMe.value,
-                  ),
+                  onTap: () =>
+                      controller.toggleRememberMe(!controller.rememberMe.value),
                   borderRadius: BorderRadius.circular(6.r),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -116,7 +115,7 @@ class LoginForm extends GetView<AuthController> {
                       Text(
                         'Remember Me',
                         style: AppTextStyles.text12.copyWith(
-                          color: AppColors.subTextColor,
+                          color: AppColors.textColor,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -133,7 +132,7 @@ class LoginForm extends GetView<AuthController> {
                   child: Text(
                     'Forgot Password ?',
                     style: AppTextStyles.text12.copyWith(
-                      color: AppColors.subTextColor,
+                      color: AppColors.textColor,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -146,15 +145,10 @@ class LoginForm extends GetView<AuthController> {
           // Pill-shaped Corporate "Sign In" Button
           Obx(
             () => CustomButton(
+              isGradient: true,
               text: 'Sign In',
               isLoading: controller.isLoading.value,
-              backgroundColor: AppColors.primary,
-              borderRadius: 26.r,
-              height: 52.h,
-              textStyle: AppTextStyles.text16.copyWith(
-                fontWeight: FontWeight.w600,
-                color: AppColors.white,
-              ),
+
               onPressed: controller.login,
             ),
           ),

@@ -21,6 +21,10 @@ class ApiEndpoints {
   static const String dashboard = '/dashboard';
   static const String dashboardOverview = '/dashboard/overview';
 
+  // 4. Attendance & Punches
+  static const String attendancePunch = '/attendance/punch';
+  static const String attendanceToday = '/attendance/today';
+
   // 4. Notifications & Settings
   static const String notifications = '/notifications';
   static String notificationItem(String id) => '/notifications/$id';

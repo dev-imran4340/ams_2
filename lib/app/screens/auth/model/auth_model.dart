@@ -6,6 +6,7 @@ class UserModel {
   final String? designation;
   final String? department;
   final String? avatarUrl;
+  final String? accountType; // 'organization' or 'individual'
 
   UserModel({
     this.id,
@@ -15,6 +16,7 @@ class UserModel {
     this.designation,
     this.department,
     this.avatarUrl,
+    this.accountType,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -26,6 +28,7 @@ class UserModel {
       designation: json['designation']?.toString(),
       department: json['department']?.toString(),
       avatarUrl: json['avatar_url']?.toString(),
+      accountType: json['account_type']?.toString() ?? 'organization',
     );
   }
 
@@ -38,6 +41,7 @@ class UserModel {
       'designation': designation,
       'department': department,
       'avatar_url': avatarUrl,
+      'account_type': accountType,
     };
   }
 }

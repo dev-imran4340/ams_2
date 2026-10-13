@@ -45,6 +45,14 @@ lib/app/screens/
 
 ## 3. Strict API & Network Integration Standard
 
+> [!IMPORTANT]
+> **CURRENT DEVELOPMENT PHASE: UI & PROTOTYPING ONLY (NO LIVE APIs)**
+> Abhi backend APIs implement nahi karni hain. Sirf modern UI screens aur interactive components banaye ja rahe hain.
+> - Kisi bhi controller ya repository mein real remote HTTP / ApiClient calls execute **nahi** karni hain.
+> - Repositories sirf local mock data models return karengi.
+> - Screen transitions (jaise Login -> Dashboard) directly navigate karengi bina backend validation wait kiye.
+> - APIs baad mein future backend phase mein connect ki jayengi.
+
 ### 3.1 Network Layer Organization (`lib/app/api/`)
 ```text
 lib/app/api/
@@ -253,10 +261,116 @@ class FeatureView extends GetView<FeatureController> {
 
 ---
 
-## 5. Theming, Colors & Dark Mode (Strict Policy)
+## 5. Theming, Colors & Design System (Strict Standard)
+
+### 5.1 Corporate Brand Palette (`AppColors`)
+The project utilizes a distinct **Corporate Navy & Modern Teal** theme. All screens and components must strictly adhere to these color definitions:
+
+| Token | Hex Value | Purpose / Semantics |
+| :--- | :--- | :--- |
+| `AppColors.primary` | `0xFF012B43` | Deep Corporate Navy (Primary brand color, headers, main actions) |
+| `AppColors.litePrimary` | `0xFF99BBD6` | Soft Slate / Navy tint (Secondary highlights & soft states) |
+| `AppColors.secondary` | `0xFF0DA6A3` | Modern Teal (Brand accent, gradient endpoints, card bottom borders) |
+| `AppColors.liteSecondary`| `0xFFB4E3E4` | Pastel Teal tint (Header top gradient, ambient accents) |
+| `AppColors.accentNavy` | `0xFF023E61` | Intermediate Navy accent |
+| `AppColors.lightTextColor` | `0xFF012B43` | Deep Navy (Light mode default text - ensures strong brand contrast) |
+| `AppColors.lightSubTextColor` | `0xFF64748B` | Slate Grey (Subtitles, helper text, and secondary labels) |
+| `AppColors.lightInputFill` | `0xFFF3F4F6` | Cool grey fill for text input fields |
+| `AppColors.lightCardBackground` | `0xFFFFFFFF` | Pure white background for floating cards |
+| `AppColors.lightBorderColor` | `0xFFE2E8F0` | Subtle grey for dividers, input borders, and outline strokes |
+
 - **Centralized `AppColors` ONLY:** All colors **MUST** strictly come from the dynamic getters in `AppColors` (e.g., `AppColors.backgroundColor`, `AppColors.cardBackground`, `AppColors.textColor`, `AppColors.subTextColor`, `AppColors.borderColor`, `AppColors.primary`, `AppColors.litePrimary`, `AppColors.secondary`, `AppColors.success`, `AppColors.error`).
 - **NO Inline Theme Checks:** Do **NOT** write `Get.isDarkMode ? colorA : colorB` or `Theme.of(context)` ternaries inside UI widgets. The dark/light mode switching logic is already encapsulated inside `AppColors`.
-- **NO Hardcoded Hex Colors:** Never hardcode raw hex values (`const Color(0xFF...)`) inside widget files or models. If a new semantic color is required, define it inside `AppColors`.
+- **NO Hardcoded Hex Colors:** Never hardcode raw hex values (`const Color(0xFF...)`) inside widget files or models.
+
+---
+
+### 5.2 Signature Brand Gradients
+1. **Primary Action Gradient (`CustomButton`):**
+   - Direction: `Alignment.centerLeft` to `Alignment.centerRight`
+   - Colors: `[AppColors.primary, AppColors.secondary]` (Corporate Navy to Modern Teal)
+   - Usage: `CustomButton(isGradient: true, ...)` automatically uses this signature gradient.
+
+2. **Ambient Header Gradient:**
+   - Direction: `Alignment.topCenter` to `Alignment.bottomCenter`
+   - Colors:
+     ```dart
+     LinearGradient(
+       colors: [
+         AppColors.liteSecondary,
+         AppColors.liteSecondary,
+         AppColors.liteSecondary,
+         AppColors.liteSecondary,
+         AppColors.secondary,
+         AppColors.primary,
+       ],
+       begin: Alignment.topCenter,
+       end: Alignment.bottomCenter,
+     )
+     ```
+   - Transitions smoothly from soft pastel teal at the top down to corporate teal and finishes in deep navy.
+   - Ambient decorative circles inside header use:
+     - `AppColors.primary.withValues(alpha: 0.05)`
+     - `AppColors.secondary.withValues(alpha: 0.05)`
+
+---
+
+### 5.3 Screen Layout & Card Blueprint (Login Screen Pattern)
+Whenever designing auth, profile, or feature overview screens with header & card layouts, strictly follow this pattern:
+
+1. **Curved Header Container:**
+   - Standard Height: `290.h`
+   - Curvature: `borderRadius: BorderRadius.only(bottomLeft: Radius.circular(10.r), bottomRight: Radius.circular(10.r))`
+   - Top Center Logo: `Image.asset(AppImages.logo1, height: 60.h, fit: BoxFit.cover)`
+   - Spacing: Top `AppSpaces.vSpace20`, Space between logo and card: `AppSpaces.vSpace40`
+
+2. **Floating Overlap Card Container:**
+   - Horizontal Padding inside: strictly `12.w` (`padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 14.h)`)
+   - Border Radius: `15.r`
+   - **Signature Bottom Border Accent:**
+     ```dart
+     border: Border(
+       bottom: BorderSide(
+         color: AppColors.secondary,
+         width: 3.w,
+       ),
+     )
+     ```
+     *(Every main card must feature this 3.w Teal bottom accent border)*
+   - Shadow: `BoxShadow(color: AppColors.primary.withValues(alpha: 0.08), blurRadius: 24.r, offset: Offset(0, 10.h))`
+
+3. **Card Typography & Spacing Rhythm:**
+   - **Card Heading:** `AppTextStyles.text30.copyWith(color: AppColors.textColor, fontWeight: FontWeight.bold)`
+   - Spacing to subtitle: `AppSpaces.vSpace2`
+   - **Card Subtitle:** `AppTextStyles.text12.copyWith(color: AppColors.textColor, fontWeight: FontWeight.w400)`
+   - Spacing to form/body content: `AppSpaces.vSpace20`
+   - Spacing between form fields/inputs: `AppSpaces.vSpace12`
+   - Checkboxes & helper links use `AppColors.textColor` for high-contrast corporate identity.
+
+4. **Button Hierarchy:**
+   - **Primary Action:** `CustomButton(isGradient: true, text: '...', ...)`
+   - **Secondary / Outlined Actions (e.g. Social / SSO):**
+     ```dart
+     CustomButton(
+       borderRadius: 25.r,
+       isOutlined: true,
+       icon: Image.asset(AppImages.google, height: 18.h, width: 18.w),
+       text: "Sign in with Google",
+       borderColor: AppColors.primary,
+       textColor: AppColors.primary,
+       backgroundColor: AppColors.white,
+       onPressed: () {},
+     )
+     ```
+
+---
+
+### 5.4 Centralized Assets Catalog (`AppImages`)
+All image paths must be accessed through `AppImages` (`lib/app/core/assets/app_images.dart`):
+- `AppImages.logo1`: Brand header logo (active display).
+- `AppImages.whiteLogo`: Monochrome white logo for dark/solid navy backgrounds.
+- `AppImages.logo`: Original transparent black logo.
+- `AppImages.google`: Google auth provider icon.
 
 ---
 
@@ -324,12 +438,12 @@ class FeatureView extends GetView<FeatureController> {
   * Har button par spinning indicator show karein (`CustomButton(isLoading: controller.isLoading.value)` ya `CircularProgressIndicator`).
   * Dialog actions ke andar action button loader spinner show kare aur progress status text (e.g. "Signing out...", "Saving...") update kare.
   * Screen-level data loading par proper skeleton/shimmer ya centered spinner render karein.
-- **Strick Rule must implemntation:**
- * always use horizontal padding insiode padding is 12.w
- * always left ya right padding must b 12.w
- * Always use AppSpaces.defaultPadding for the main padding of the screen.
- *  Always use existing resources  existing theme , app colors , app spaces , app pading , app text styles , app fonts , app icons , app images , app strings , app icons , app images , app strings      
- * never use hardcoded hex colors  
- * always  use existing  flutter resources existing theme , app colors , app spaces , app pading , app text styles , app fonts , app icons , app images , app strings , app icons , app images , app strings      
- * never use hardcoded hex colors  
- * always  use existing  flutter resources
+---
+
+## 11. Strict Invariant UI Rules (Zero Deviation)
+- **Inside Horizontal Padding:** Hamesha inside horizontal padding `12.w` (`padding: EdgeInsets.symmetric(horizontal: 12.w, ...)` ya `AppSpaces.horizontalPadding12`) use karein.
+- **Screen Root Padding:** Screen root layout ke liye `AppSpaces.defaultPadding` ya `horizontal: 16.w` use karein.
+- **Card Bottom Accent Border:** Tamam major floating cards par `border: Border(bottom: BorderSide(color: AppColors.secondary, width: 3.w))` ka brand signature bottom border use karna mandatory hai.
+- **Primary Buttons:** Primary actions par hamesha `CustomButton(isGradient: true)` use karein jo automatic `[AppColors.primary, AppColors.secondary]` gradient render karega.
+- **Text & Brand Contrast:** Light mode mein titles, headings aur standard text ke liye `AppColors.textColor` (Corporate Navy `0xFF012B43`) use karein, slate ya black nahi.
+- **Resource Reusability:** Sirf existing Flutter tokens use karein (`AppColors`, `AppSpaces`, `AppTextStyles`, `AppImages`). Kabhi bhi hardcoded hex colors, arbitrary raw font sizes, ya inline pixel paddings use na karein.
