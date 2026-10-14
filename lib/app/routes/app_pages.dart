@@ -39,6 +39,22 @@ import '../screens/verification/face_recognition/view/face_recognition_view.dart
 import '../screens/verification/face_recognition/controller/face_recognition_controller.dart';
 import '../screens/verification/face_recognition/repo/face_recognition_repo.dart';
 
+import '../screens/tasks/view/task_view.dart';
+import '../screens/tasks/controller/task_controller.dart';
+import '../screens/tasks/repo/task_repo.dart';
+
+import '../screens/evaluation/view/evaluation_view.dart';
+import '../screens/evaluation/controller/evaluation_controller.dart';
+import '../screens/evaluation/repo/evaluation_repo.dart';
+
+import '../screens/employee_card/view/employee_card_view.dart';
+import '../screens/employee_card/controller/employee_card_controller.dart';
+import '../screens/employee_card/repo/employee_card_repo.dart';
+
+import '../screens/organization/org_hub/view/org_hub_view.dart';
+import '../screens/organization/org_hub/controller/org_hub_controller.dart';
+import '../screens/organization/org_hub/repo/org_hub_repo.dart';
+
 class AppPages {
   // Initial Entry Route
   static const INITIAL = Routes.SPLASH;
@@ -146,6 +162,58 @@ class AppPages {
         Get.lazyPut(() => FaceRecognitionRepo(), fenix: true);
         Get.lazyPut(
           () => FaceRecognitionController(repo: Get.find()),
+          fenix: true,
+        );
+      }),
+    ),
+
+    // 9. Daily Task Management Screen
+    GetPage(
+      name: Routes.TASKS,
+      page: () => const TaskView(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => TaskRepo(), fenix: true);
+        Get.lazyPut(
+          () => TaskController(repo: Get.find()),
+          fenix: true,
+        );
+      }),
+    ),
+
+    // 10. Employee Performance & Evaluation Screen
+    GetPage(
+      name: Routes.EVALUATION,
+      page: () => const EvaluationView(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => EvaluationRepo(), fenix: true);
+        Get.lazyPut(
+          () => EvaluationController(repo: Get.find()),
+          fenix: true,
+        );
+      }),
+    ),
+
+    // 11. Digital Smart Employee ID Card Screen
+    GetPage(
+      name: Routes.EMPLOYEE_CARD,
+      page: () => const EmployeeCardView(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => EmployeeCardRepo(), fenix: true);
+        Get.lazyPut(
+          () => EmployeeCardController(repo: Get.find()),
+          fenix: true,
+        );
+      }),
+    ),
+
+    // 12. Organization Portal Hub (Gateway to Visitor Management, Gate Terminal & Staff Onboarding)
+    GetPage(
+      name: Routes.ORG_HUB,
+      page: () => const OrgHubView(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => OrgHubRepo(), fenix: true);
+        Get.lazyPut(
+          () => OrgHubController(repo: Get.find()),
           fenix: true,
         );
       }),

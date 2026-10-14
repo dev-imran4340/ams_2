@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/utils/app_colors.dart';
 
 /// Represents leave quota entitlement and usage for a specific category
 class LeaveBalanceModel {
@@ -24,17 +25,17 @@ class LeaveBalanceModel {
   double get remainingRatio =>
       totalQuota > 0 ? (remainingCount / totalQuota).clamp(0.0, 1.0) : 0.0;
 
-  /// Parsed accent color from hex string
+  /// Resolved brand accent color strictly from AppColors tokens
   Color get accentColor {
-    try {
-      final hex = colorHex.replaceAll('#', '').replaceAll('0x', '');
-      if (hex.length == 6) {
-        return Color(int.parse('FF$hex', radix: 16));
-      } else if (hex.length == 8) {
-        return Color(int.parse(hex, radix: 16));
-      }
-    } catch (_) {}
-    return const Color(0xFF012B43);
+    final type = leaveType.toLowerCase();
+    if (type.contains('casual')) {
+      return AppColors.secondary;
+    } else if (type.contains('annual')) {
+      return AppColors.primary;
+    } else if (type.contains('medical') || type.contains('sick')) {
+      return AppColors.warning;
+    }
+    return AppColors.primary;
   }
 
   factory LeaveBalanceModel.fromJson(Map<String, dynamic> json) {

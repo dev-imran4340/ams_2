@@ -9,6 +9,7 @@ import '../../dashboard/view/dashboard_view.dart';
 import '../../leaves/view/leave_requests_view.dart';
 import '../../profile/view/profile_view.dart';
 import '../controller/index_controller.dart';
+import 'components/executive_app_drawer.dart';
 import 'components/floating_bottom_nav_bar.dart';
 
 class IndexView extends GetView<IndexController> {
@@ -28,6 +29,8 @@ class IndexView extends GetView<IndexController> {
           }
         },
         child: Scaffold(
+          key: controller.scaffoldKey,
+          endDrawer: const ExecutiveAppDrawer(),
           backgroundColor: AppColors.backgroundColor,
           body: Stack(
             children: [

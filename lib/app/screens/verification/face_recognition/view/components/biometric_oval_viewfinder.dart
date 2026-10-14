@@ -1,9 +1,9 @@
+import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
 import '../../../../../core/utils/app_colors.dart';
-import '../../../../../core/utils/app_text_styles.dart';
 import '../../controller/face_recognition_controller.dart';
 
 class BiometricOvalViewfinder extends GetView<FaceRecognitionController> {
@@ -11,225 +11,281 @@ class BiometricOvalViewfinder extends GetView<FaceRecognitionController> {
 
   @override
   Widget build(BuildContext context) {
-    final ovalWidth = 240.w;
-    final ovalHeight = 310.h;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final screenW = constraints.maxWidth;
+        final screenH = constraints.maxHeight;
 
-    return Center(
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          // 1. Concentric Animated Pulsing Radar Rings
-          Obx(() {
-            if (controller.matchSuccess.value) {
-              return const SizedBox.shrink();
-            }
+        final ovalWidth = 240.w;
+        final ovalHeight = 310.h;
 
-            return AnimatedBuilder(
-              animation: controller.pulseAnimation,
-              builder: (context, child) {
-                final scale = controller.pulseAnimation.value;
-                return Container(
-                  width: ovalWidth * scale + 24.w,
-                  height: ovalHeight * scale + 24.h,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.all(
-                      Radius.elliptical(
-                        (ovalWidth * scale + 24.w) / 2,
-                        (ovalHeight * scale + 24.h) / 2,
+        // Centered in visible window below header
+        final centerX = screenW / 2;
+        final centerY = screenH * 0.43;
+
+        final ovalRect = Rect.fromCenter(
+          center: Offset(centerX, centerY),
+          width: ovalWidth,
+          height: ovalHeight,
+        );
+
+        return Stack(
+          children: [
+            // 1. Dark Surround Mask with Oval Cutout
+            Positioned.fill(
+              child: CustomPaint(
+                painter: _OvalCutoutOverlayPainter(
+                  ovalRect: ovalRect,
+                  overlayColor: AppColors.primary.withValues(alpha: 0.65),
+                ),
+              ),
+            ),
+
+            // 2. Concentric Animated Pulsing Radar Rings
+            Obx(() {
+              if (controller.isMatchSuccess.value) {
+                return const SizedBox.shrink();
+              }
+
+              return AnimatedBuilder(
+                animation: controller.pulseAnimation,
+                builder: (context, child) {
+                  final scale = controller.pulseAnimation.value;
+                  final ringWidth = ovalWidth * scale + 24.w;
+                  final ringHeight = ovalHeight * scale + 24.h;
+
+                  return Positioned(
+                    left: centerX - (ringWidth / 2),
+                    top: centerY - (ringHeight / 2),
+                    width: ringWidth,
+                    height: ringHeight,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.all(
+                          Radius.elliptical(ringWidth / 2, ringHeight / 2),
+                        ),
+                        border: Border.all(
+                          color: AppColors.secondary.withValues(
+                            alpha: (0.35 * (1.15 - scale)).clamp(0.06, 0.4),
+                          ),
+                          width: 1.5.w,
+                        ),
                       ),
                     ),
+                  );
+                },
+              );
+            }),
+
+            // 3. Main Oval Viewfinder Interior & Live Camera Feed
+            Positioned.fromRect(
+              rect: ovalRect,
+              child: Obx(() {
+                final isSuccess = controller.isMatchSuccess.value;
+                final borderColor =
+                    isSuccess ? AppColors.success : AppColors.secondary;
+
+                return AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.all(
+                      Radius.elliptical(ovalWidth / 2, ovalHeight / 2),
+                    ),
                     border: Border.all(
-                      color: AppColors.secondary.withValues(
-                        alpha: (0.35 * (1.2 - scale)).clamp(0.05, 0.4),
+                      color: borderColor,
+                      width: isSuccess ? 3.5.w : 2.5.w,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: isSuccess
+                            ? AppColors.success.withValues(alpha: 0.5)
+                            : AppColors.secondary.withValues(alpha: 0.3),
+                        blurRadius: isSuccess ? 24.r : 16.r,
+                        spreadRadius: isSuccess ? 3.r : 1.r,
                       ),
-                      width: 1.5.w,
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.all(
+                      Radius.elliptical(ovalWidth / 2, ovalHeight / 2),
+                    ),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        // Live Camera Feed if Hardware Initialized, else ambient fallback
+                        Positioned.fill(
+                          child: controller.isCameraInitialized.value &&
+                                  controller.cameraController != null
+                              ? FittedBox(
+                                  fit: BoxFit.cover,
+                                  child: SizedBox(
+                                    width: controller.cameraController!.value
+                                        .previewSize?.height ??
+                                        ovalWidth,
+                                    height: controller.cameraController!.value
+                                        .previewSize?.width ??
+                                        ovalHeight,
+                                    child: CameraPreview(
+                                      controller.cameraController!,
+                                    ),
+                                  ),
+                                )
+                              : Container(
+                                  decoration: BoxDecoration(
+                                    gradient: RadialGradient(
+                                      colors: [
+                                        AppColors.accentNavy,
+                                        AppColors.primary,
+                                      ],
+                                    ),
+                                  ),
+                                  child: Center(
+                                    child: Icon(
+                                      Icons.face_retouching_natural_rounded,
+                                      size: 72.sp,
+                                      color: AppColors.liteSecondary
+                                          .withValues(alpha: 0.35),
+                                    ),
+                                  ),
+                                ),
+                        ),
+
+                        // Subtle Face Geometry Mesh Grid Overlay
+                        Positioned.fill(
+                          child: CustomPaint(
+                            painter: _FaceMeshGridPainter(
+                              color: AppColors.white.withValues(alpha: 0.08),
+                            ),
+                          ),
+                        ),
+
+                        // Animated Center Verified Checkmark on Biometric Match
+                        if (isSuccess)
+                          Center(
+                            child: AnimatedScale(
+                              scale: isSuccess ? 1.0 : 0.4,
+                              duration: const Duration(milliseconds: 350),
+                              curve: Curves.easeOutBack,
+                              child: Container(
+                                padding: EdgeInsets.all(18.r),
+                                decoration: BoxDecoration(
+                                  color: AppColors.success
+                                      .withValues(alpha: 0.25),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: AppColors.success,
+                                    width: 3.w,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppColors.success
+                                          .withValues(alpha: 0.5),
+                                      blurRadius: 24.r,
+                                    ),
+                                  ],
+                                ),
+                                child: Icon(
+                                  Icons.check_rounded,
+                                  size: 42.sp,
+                                  color: AppColors.success,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 );
-              },
-            );
-          }),
-
-          // 2. Main Oval Viewfinder Frame
-          Obx(() {
-            final isSuccess = controller.matchSuccess.value;
-            final borderColor = isSuccess ? AppColors.success : AppColors.secondary;
-
-            return AnimatedContainer(
-              duration: const Duration(milliseconds: 350),
-              width: ovalWidth,
-              height: ovalHeight,
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.18),
-                borderRadius: BorderRadius.all(
-                  Radius.elliptical(ovalWidth / 2, ovalHeight / 2),
-                ),
-                border: Border.all(
-                  color: borderColor,
-                  width: isSuccess ? 3.5.w : 2.w,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: isSuccess
-                        ? AppColors.success.withValues(alpha: 0.5)
-                        : AppColors.secondary.withValues(alpha: 0.25),
-                    blurRadius: isSuccess ? 24.r : 16.r,
-                    spreadRadius: isSuccess ? 4.r : 1.r,
-                  ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.all(
-                  Radius.elliptical(ovalWidth / 2, ovalHeight / 2),
-                ),
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    // Subtle background gradient representing live optical camera
-                    Positioned.fill(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              AppColors.primary.withValues(alpha: 0.3),
-                              const Color(0xFF071F33).withValues(alpha: 0.4),
-                              AppColors.primary.withValues(alpha: 0.6),
-                            ],
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    // Biometric Face Silhouette Landmark
-                    Icon(
-                      Icons.face_retouching_natural_rounded,
-                      size: 110.sp,
-                      color: isSuccess
-                          ? AppColors.success.withValues(alpha: 0.7)
-                          : AppColors.white.withValues(alpha: 0.25),
-                    ),
-
-                    // Biometric Crosshair Mesh Target Painter
-                    Positioned.fill(
-                      child: CustomPaint(
-                        painter: _BiometricMeshPainter(
-                          color: isSuccess
-                              ? AppColors.success
-                              : AppColors.secondary,
-                          progress: controller.matchProgress.value,
-                        ),
-                      ),
-                    ),
-
-                    // Success Celebration Overlay
-                    if (isSuccess)
-                      Positioned(
-                        bottom: 30.h,
-                        child: AnimatedScale(
-                          scale: 1.0,
-                          duration: const Duration(milliseconds: 300),
-                          child: Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 14.w,
-                              vertical: 6.h,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.success,
-                              borderRadius: BorderRadius.circular(20.r),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppColors.success.withValues(alpha: 0.6),
-                                  blurRadius: 12.r,
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.verified_rounded,
-                                  size: 14.sp,
-                                  color: AppColors.white,
-                                ),
-                                SizedBox(width: 6.w),
-                                Text(
-                                  '99.4% MATCH',
-                                  style: AppTextStyles.text10.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.white,
-                                    letterSpacing: 0.5,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            );
-          }),
-        ],
-      ),
+              }),
+            ),
+          ],
+        );
+      },
     );
   }
 }
 
-/// Custom painter for AI facial landmark scanning mesh
-class _BiometricMeshPainter extends CustomPainter {
-  final Color color;
-  final double progress;
+/// Paints the dark surround mask with transparent elliptical cutout
+class _OvalCutoutOverlayPainter extends CustomPainter {
+  final Rect ovalRect;
+  final Color overlayColor;
 
-  const _BiometricMeshPainter({
-    required this.color,
-    required this.progress,
+  _OvalCutoutOverlayPainter({
+    required this.ovalRect,
+    required this.overlayColor,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
+    final backgroundPath = Path()
+      ..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
+
+    final holePath = Path()..addOval(ovalRect);
+
+    final combinedPath = Path.combine(
+      PathOperation.difference,
+      backgroundPath,
+      holePath,
+    );
+
+    final paint = Paint()..color = overlayColor;
+    canvas.drawPath(combinedPath, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _OvalCutoutOverlayPainter oldDelegate) {
+    return oldDelegate.ovalRect != ovalRect ||
+        oldDelegate.overlayColor != overlayColor;
+  }
+}
+
+/// Subtle concentric elliptical mesh grid simulating biometric depth mapping
+class _FaceMeshGridPainter extends CustomPainter {
+  final Color color;
+
+  const _FaceMeshGridPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = color.withValues(alpha: 0.35)
+      ..color = color
       ..strokeWidth = 1.0
       ..style = PaintingStyle.stroke;
 
-    final cx = size.width / 2;
-    final cy = size.height / 2;
+    final center = Offset(size.width / 2, size.height / 2);
+
+    // Draw inner concentric face target ovals
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: center,
+        width: size.width * 0.75,
+        height: size.height * 0.75,
+      ),
+      paint,
+    );
+
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: center,
+        width: size.width * 0.5,
+        height: size.height * 0.5,
+      ),
+      paint,
+    );
 
     // Crosshairs
-    canvas.drawLine(Offset(cx - 20, cy), Offset(cx + 20, cy), paint);
-    canvas.drawLine(Offset(cx, cy - 20), Offset(cx, cy + 20), paint);
-
-    // Eye target boxes
-    final eyePaint = Paint()
-      ..color = color.withValues(alpha: 0.6)
-      ..strokeWidth = 1.2
-      ..style = PaintingStyle.stroke;
-
-    // Left Eye Target Box
-    canvas.drawRect(
-      Rect.fromCenter(center: Offset(cx - 40, cy - 35), width: 28, height: 20),
-      eyePaint,
-    );
-
-    // Right Eye Target Box
-    canvas.drawRect(
-      Rect.fromCenter(center: Offset(cx + 40, cy - 35), width: 28, height: 20),
-      eyePaint,
-    );
-
-    // Mouth / Chin line
     canvas.drawLine(
-      Offset(cx - 24, cy + 50),
-      Offset(cx + 24, cy + 50),
-      eyePaint,
+      Offset(center.dx - 18, center.dy),
+      Offset(center.dx + 18, center.dy),
+      paint,
+    );
+    canvas.drawLine(
+      Offset(center.dx, center.dy - 18),
+      Offset(center.dx, center.dy + 18),
+      paint,
     );
   }
 
   @override
-  bool shouldRepaint(covariant _BiometricMeshPainter oldDelegate) {
-    return oldDelegate.color != color || oldDelegate.progress != progress;
-  }
+  bool shouldRepaint(covariant _FaceMeshGridPainter oldDelegate) => false;
 }

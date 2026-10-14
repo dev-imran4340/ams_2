@@ -8,8 +8,8 @@ import '../../../../core/utils/app_spaces.dart';
 import '../../../../core/utils/app_text_styles.dart';
 import '../../../../core/widgets/network_boundary_wrapper.dart';
 import '../controller/face_recognition_controller.dart';
-import 'components/ai_matching_telemetry_card.dart';
 import 'components/biometric_oval_viewfinder.dart';
+import 'components/face_matching_telemetry_card.dart';
 
 class FaceRecognitionView extends GetView<FaceRecognitionController> {
   const FaceRecognitionView({super.key});
@@ -18,37 +18,36 @@ class FaceRecognitionView extends GetView<FaceRecognitionController> {
   Widget build(BuildContext context) {
     return NetworkBoundaryWrapper(
       child: Scaffold(
-        backgroundColor: const Color(0xFF031422), // Deep corporate dark backdrop
+        backgroundColor: AppColors.primary,
         body: Stack(
           children: [
-            // 1. Full-screen Camera Simulator Ambient Radial Background
+            // 1. Full-screen Camera Ambient Background
             Positioned.fill(
               child: Container(
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   gradient: RadialGradient(
                     center: Alignment.center,
-                    radius: 1.0,
+                    radius: 1.2,
                     colors: [
-                      Color(0xFF0A2238),
-                      Color(0xFF031422),
-                      Color(0xFF010A12),
+                      AppColors.accentNavy,
+                      AppColors.primary,
                     ],
                   ),
                 ),
               ),
             ),
 
-            // 2. Center Biometric Oval Viewfinder with Concentric Pulse Rings
+            // 2. Center Biometric Oval Viewfinder with Live Front Camera & Radar Rings
             const Positioned.fill(
               child: BiometricOvalViewfinder(),
             ),
 
-            // 3. Signature Ambient Curved Header
+            // 3. Signature Curved Ambient Gradient Header (240.h) with Floating Rings
             Positioned(
               top: 0,
               left: 0,
               right: 0,
-              child: _buildCurvedHeader(context),
+              child: _buildCurvedAmbientHeader(context),
             ),
 
             // 4. Floating Bottom AI Telemetry & Progress Card
@@ -58,7 +57,7 @@ class FaceRecognitionView extends GetView<FaceRecognitionController> {
               right: 0,
               child: SafeArea(
                 top: false,
-                child: AiMatchingTelemetryCard(),
+                child: FaceMatchingTelemetryCard(),
               ),
             ),
           ],
@@ -67,121 +66,186 @@ class FaceRecognitionView extends GetView<FaceRecognitionController> {
     );
   }
 
-  /// Signature Ambient Curved Header with Back Button & Step Capsule
-  Widget _buildCurvedHeader(BuildContext context) {
+  /// Executive Signature Curved Ambient Gradient Header with Floating Translucent Rings
+  Widget _buildCurvedAmbientHeader(BuildContext context) {
+    final topPadding = MediaQuery.of(context).padding.top;
+
     return Container(
-      padding: EdgeInsets.only(
-        top: MediaQuery.of(context).padding.top + 8.h,
-        left: 16.w,
-        right: 16.w,
-        bottom: 18.h,
-      ),
+      height: 240.h,
       decoration: BoxDecoration(
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(24.r),
+          bottomRight: Radius.circular(24.r),
+        ),
         gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
           colors: [
             AppColors.primary,
             AppColors.primary.withValues(alpha: 0.95),
-            AppColors.primary.withValues(alpha: 0.75),
+            AppColors.accentNavy.withValues(alpha: 0.85),
+            AppColors.primary.withValues(alpha: 0.4),
             Colors.transparent,
           ],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
         ),
       ),
-      child: Row(
-        children: [
-          // Glass Back Button Pill
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: () {
-                HapticFeedback.lightImpact();
-                Get.back();
-              },
-              borderRadius: BorderRadius.circular(20.r),
+      child: ClipRRect(
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(24.r),
+          bottomRight: Radius.circular(24.r),
+        ),
+        child: Stack(
+          children: [
+            // Ambient Floating Translucent Ring 1 (Top Right)
+            Positioned(
+              top: -30.h,
+              right: -35.w,
               child: Container(
-                width: 36.r,
-                height: 36.r,
+                width: 150.r,
+                height: 150.r,
                 decoration: BoxDecoration(
-                  color: AppColors.white.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
+                  color: AppColors.secondary.withValues(alpha: 0.05),
                   border: Border.all(
-                    color: AppColors.white.withValues(alpha: 0.3),
-                    width: 1.w,
-                  ),
-                ),
-                child: Center(
-                  child: Icon(
-                    Icons.arrow_back_ios_new_rounded,
-                    size: 15.sp,
-                    color: AppColors.white,
+                    color: AppColors.liteSecondary.withValues(alpha: 0.12),
+                    width: 1.5.w,
                   ),
                 ),
               ),
             ),
-          ),
 
-          AppSpaces.hSpace12,
-
-          // Title & Step Progress Capsule
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Step Capsule Badge
-                Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 8.w,
-                    vertical: 3.h,
+            // Ambient Floating Translucent Ring 2 (Left)
+            Positioned(
+              top: 25.h,
+              left: -40.w,
+              child: Container(
+                width: 120.r,
+                height: 120.r,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.primary.withValues(alpha: 0.08),
+                  border: Border.all(
+                    color: AppColors.secondary.withValues(alpha: 0.1),
+                    width: 1.2.w,
                   ),
-                  decoration: BoxDecoration(
-                    color: AppColors.success.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(12.r),
-                    border: Border.all(
-                      color: AppColors.success.withValues(alpha: 0.4),
-                      width: 0.8.w,
+                ),
+              ),
+            ),
+
+            // Header Content Layout
+            Padding(
+              padding: EdgeInsets.only(
+                top: topPadding + 8.h,
+                left: 16.w,
+                right: 16.w,
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Back Glass Pill Button
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        Get.back();
+                      },
+                      borderRadius: BorderRadius.circular(20.r),
+                      child: Container(
+                        width: 38.r,
+                        height: 38.r,
+                        decoration: BoxDecoration(
+                          color: AppColors.white.withValues(alpha: 0.14),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: AppColors.white.withValues(alpha: 0.28),
+                            width: 1.w,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.primary.withValues(alpha: 0.2),
+                              blurRadius: 8.r,
+                            ),
+                          ],
+                        ),
+                        child: Center(
+                          child: Icon(
+                            Icons.arrow_back_ios_new_rounded,
+                            size: 16.sp,
+                            color: AppColors.white,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 6.r,
-                        height: 6.r,
-                        decoration: BoxDecoration(
-                          color: AppColors.success,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      AppSpaces.hSpace6,
-                      Text(
-                        'Step 2 of 2 • Liveness Check',
-                        style: AppTextStyles.text10.copyWith(
-                          color: AppColors.liteSecondary,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.3,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
 
-                AppSpaces.vSpace4,
+                  AppSpaces.hSpace14,
 
-                Text(
-                  'Facial Biometric Match',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.text18.copyWith(
-                    color: AppColors.white,
-                    fontWeight: FontWeight.bold,
+                  // Title and Subtitle Capsule Column
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Subtitle Capsule: Step 2 of 2 • Liveness Check
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 10.w,
+                            vertical: 4.h,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.success.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(16.r),
+                            border: Border.all(
+                              color: AppColors.success.withValues(alpha: 0.45),
+                              width: 1.w,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 6.r,
+                                height: 6.r,
+                                decoration: const BoxDecoration(
+                                  color: AppColors.success,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              AppSpaces.hSpace6,
+                              Text(
+                                'Step 2 of 2 • Liveness Check',
+                                style: AppTextStyles.text10.copyWith(
+                                  color: AppColors.liteSecondary,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.3,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        AppSpaces.vSpace6,
+
+                        // Title: Facial Biometric Match
+                        Text(
+                          'Facial Biometric Match',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTextStyles.text22.copyWith(
+                            color: AppColors.white,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: -0.3,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

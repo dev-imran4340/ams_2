@@ -14,11 +14,13 @@ class ApplyLeaveBottomSheet extends GetView<LeaveController> {
 
   @override
   Widget build(BuildContext context) {
-
-    return Container(
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.88,
-      ),
+    return Obx(
+      () => PopScope(
+        canPop: !controller.isSubmitting.value,
+        child: Container(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.88,
+          ),
       decoration: BoxDecoration(
         color: AppColors.cardBackground,
         borderRadius: BorderRadius.only(
@@ -75,7 +77,9 @@ class ApplyLeaveBottomSheet extends GetView<LeaveController> {
                     ],
                   ),
                   InkWell(
-                    onTap: () => Navigator.of(context).pop(),
+                    onTap: controller.isSubmitting.value
+                        ? null
+                        : () => Navigator.of(context).pop(),
                     borderRadius: BorderRadius.circular(20.r),
                     child: Container(
                       padding: EdgeInsets.all(6.r),
@@ -483,20 +487,20 @@ class ApplyLeaveBottomSheet extends GetView<LeaveController> {
                     AppSpaces.vSpace20,
 
                     // Submit CTA Button
-                    Obx(
-                      () => CustomButton(
-                        text: 'Submit Leave Request',
-                        isLoading: controller.isSubmitting.value,
-                        onPressed: () => controller.applyLeave(context),
-                        icon: Icon(
-                          Icons.send_rounded,
-                          size: 16.sp,
-                          color: AppColors.white,
-                        ),
-                        backgroundColor: AppColors.primary,
-                        height: 48.h,
-                        borderRadius: 14.r,
+                    CustomButton(
+                      text: 'Submit Leave Request',
+                      isLoading: controller.isSubmitting.value,
+                      onPressed: controller.isSubmitting.value
+                          ? null
+                          : () => controller.applyLeave(context),
+                      icon: Icon(
+                        Icons.send_rounded,
+                        size: 16.sp,
+                        color: AppColors.white,
                       ),
+                      backgroundColor: AppColors.primary,
+                      height: 48.h,
+                      borderRadius: 14.r,
                     ),
 
                     AppSpaces.vSpace16,
@@ -507,6 +511,8 @@ class ApplyLeaveBottomSheet extends GetView<LeaveController> {
           ],
         ),
       ),
+    ),
+    ),
     );
   }
 }

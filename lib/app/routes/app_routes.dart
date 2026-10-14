@@ -12,4 +12,10 @@ abstract class Routes {
   static const REGULARIZATION = '/regularization';
   static const QR_SCANNER = '/qr_scanner';
   static const FACE_RECOGNITION = '/face_recognition';
+  static const TASKS = '/tasks';
+  static const EVALUATION = '/evaluation';
+  static const EMPLOYEE_CARD = '/employee-card';
+  static const ORG_HUB = '/org-hub';
+  static const VISITOR_MANAGEMENT = '/visitor-management';
+  static const ADD_EMPLOYEE = '/add-employee';
 }

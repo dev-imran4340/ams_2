@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import '../../index/controller/index_controller.dart';
 
 import '../../../api/app_preferences.dart';
 import '../../../core/utils/app_colors.dart';
@@ -340,23 +342,44 @@ class DashboardView extends GetView<DashboardController> {
 
         AppSpaces.hSpace8,
 
-        // Circular Glass Refresh Sync Button
-
         // Circular Glass Notification Button
         IconButton(
           style: IconButton.styleFrom(
             backgroundColor: AppColors.white,
-            shape: CircleBorder(),
+            shape: const CircleBorder(),
             shadowColor: AppColors.primary.withValues(alpha: 0.08),
             elevation: 10,
           ),
           icon: Icon(
             Icons.notifications_none_rounded,
             color: AppColors.textColor,
-            size: 24.sp,
+            size: 22.sp,
           ),
           onPressed: () {
             // Handle notification button press
+          },
+        ),
+
+        AppSpaces.hSpace8,
+
+        // Menu / Drawer Trigger Button (Right Side)
+        IconButton(
+          style: IconButton.styleFrom(
+            backgroundColor: AppColors.white,
+            shape: const CircleBorder(),
+            shadowColor: AppColors.primary.withValues(alpha: 0.08),
+            elevation: 10,
+          ),
+          icon: Icon(
+            Icons.menu_rounded,
+            color: AppColors.primary,
+            size: 22.sp,
+          ),
+          onPressed: () {
+            HapticFeedback.lightImpact();
+            if (Get.isRegistered<IndexController>()) {
+              Get.find<IndexController>().openDrawer();
+            }
           },
         ),
       ],

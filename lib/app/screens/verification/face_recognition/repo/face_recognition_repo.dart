@@ -1,25 +1,28 @@
 import 'dart:async';
+
 import '../../../../api/exception_handler.dart';
 import '../model/face_recognition_model.dart';
 
 class FaceRecognitionRepo {
-  static const String _tag = 'FaceRecognitionRepo';
+  final String _tag = 'FaceRecognitionRepo / FaceScreen';
 
-  /// Verifies facial biometric embeddings against enrolled corporate template
-  Future<FaceMatchResultModel?> verifyFaceBiometric({
-    required String employeeId,
+  /// Verifies facial biometric embeddings and 3D liveness against enrolled template
+  Future<FaceBiometricMatchModel?> verifyFacialMatch({
+    required String employeeCode,
+    String? imagePath,
   }) async {
     try {
-      // Simulate biometric embedding vector matching and liveness anti-spoofing verification
-      await Future.delayed(const Duration(milliseconds: 700));
+      // Simulate realistic neural biometric embedding vector matching and 3D liveness check
+      await Future.delayed(const Duration(milliseconds: 1200));
 
-      final matchResult = FaceMatchResultModel(
+      final matchResult = FaceBiometricMatchModel(
         matched: true,
         confidenceScore: 99.4,
         employeeName: 'Muhammad Imran',
-        employeeId: employeeId.isNotEmpty ? employeeId : 'EMP-0428',
+        employeeId: employeeCode.isNotEmpty ? employeeCode : 'SFT-094',
         livenessVerified: true,
-        timestamp: DateTime.now().toIso8601String(),
+        verificationTimestamp: DateTime.now(),
+        matchAlgorithm: 'DeepBiometrics Net-50 (ISO/IEC 19794-5)',
       );
 
       return matchResult;
@@ -27,9 +30,16 @@ class FaceRecognitionRepo {
       ExceptionHandler.handle(
         ApiException(message: 'Biometric verification error: $e'),
         tag:
-            '$_tag -> verifyFaceBiometric() [${stackTrace.toString().split('\n').first}]',
+            '$_tag -> verifyFacialMatch() [${stackTrace.toString().split('\n').first}]',
       );
       return null;
     }
+  }
+
+  /// Backwards-compatible alias
+  Future<FaceBiometricMatchModel?> verifyFaceBiometric({
+    required String employeeId,
+  }) {
+    return verifyFacialMatch(employeeCode: employeeId);
   }
 }

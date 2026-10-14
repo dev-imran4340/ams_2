@@ -335,7 +335,9 @@ class OvertimeClaimFormCard extends GetView<RegularizationController> {
             () => CustomButton(
               text: 'Submit Overtime Claim',
               isLoading: controller.isSubmitting.value,
-              onPressed: () => controller.submitForm(context),
+              onPressed: controller.isSubmitting.value
+                  ? null
+                  : () => controller.submitForm(context),
               icon: Icon(
                 Icons.send_rounded,
                 size: 15.sp,

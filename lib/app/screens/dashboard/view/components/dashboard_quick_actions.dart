@@ -103,13 +103,11 @@ class DashboardQuickActions extends StatelessWidget {
             AppSpaces.hSpace10,
             Expanded(
               child: _buildActionTile(
-                icon: Icons.calendar_month_rounded,
-                title: 'Shift\nRoster',
+                icon: Icons.checklist_rounded,
+                title: 'Daily\nTasks',
                 color: AppColors.info,
                 onTap: () {
-                  CustomSnackbar.showInfo(
-                    message: 'Shift Schedule & Rosters view.',
-                  );
+                  Get.toNamed(Routes.TASKS);
                 },
               ),
             ),

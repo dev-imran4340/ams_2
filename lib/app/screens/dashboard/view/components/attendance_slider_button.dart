@@ -151,7 +151,7 @@ class _AttendanceSliderButtonState extends State<AttendanceSliderButton>
                           colors: isCheckedIn
                               ? [
                                   AppColors.absentColor,
-                                  const Color(0xFFDC2626),
+                                  AppColors.error,
                                 ]
                               : [
                                   AppColors.secondary,

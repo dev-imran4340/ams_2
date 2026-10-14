@@ -406,7 +406,9 @@ class MissedPunchFormCard extends GetView<RegularizationController> {
             () => CustomButton(
               text: 'Submit Regularization Request',
               isLoading: controller.isSubmitting.value,
-              onPressed: () => controller.submitForm(context),
+              onPressed: controller.isSubmitting.value
+                  ? null
+                  : () => controller.submitForm(context),
               icon: Icon(
                 Icons.send_rounded,
                 size: 15.sp,

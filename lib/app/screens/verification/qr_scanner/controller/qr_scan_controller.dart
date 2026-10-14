@@ -2,11 +2,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 
+import '../../../../api/exception_handler.dart';
 import '../../../../core/widgets/custom_snackbar.dart';
 import '../../../../routes/app_routes.dart';
 import '../model/qr_scan_model.dart';
 import '../repo/qr_scan_repo.dart';
+import '../view/components/manual_code_bottom_sheet.dart';
 
 class QRScanController extends GetxController
     with GetSingleTickerProviderStateMixin {
@@ -14,35 +17,51 @@ class QRScanController extends GetxController
 
   QRScanController({required this.repo});
 
-  // Observables
-  final RxBool isScanning = true.obs;
-  final RxBool isVerifying = false.obs;
-  final RxBool torchEnabled = false.obs;
-  final RxBool scanSuccess = false.obs;
-  final RxBool cameraFacingFront = false.obs;
-  final Rxn<EmployeeCardQrModel> verifiedCard = Rxn<EmployeeCardQrModel>();
-  final RxString statusMessage =
-      'Align the QR code on your employee badge within the frame'.obs;
+  // Hardware Scanner Controller
+  late final MobileScannerController scannerController;
 
-  // Scanning laser animation
+  // Animation Controller for smooth laser sweep line
   late final AnimationController laserAnimationController;
   late final Animation<double> laserAnimation;
 
-  // Manual entry controllers
+  // Manual code input controllers
   late final TextEditingController manualCodeController;
   late final FocusNode manualCodeFocusNode;
 
-  // Auto-scan demo timer for seamless developer testing
-  Timer? _autoDetectionDemoTimer;
+  // Observables
+  final RxBool isScanning = true.obs;
+  final RxBool isProcessing = false.obs;
+  final RxBool isLoading = false.obs;
+  final RxBool isTorchOn = false.obs;
+  final RxBool isFrontCamera = false.obs;
+  final RxBool scanSuccess = false.obs;
+  final RxString scanFeedbackMessage =
+      'Align employee card QR inside the box'.obs;
+  final Rxn<EmployeeCardQrModel> verifiedCard = Rxn<EmployeeCardQrModel>();
+
+  // Aliases for component & test compatibility
+  RxString get statusMessage => scanFeedbackMessage;
+  RxBool get torchEnabled => isTorchOn;
+  RxBool get cameraFacingFront => isFrontCamera;
+  RxBool get isVerifying => isProcessing;
 
   @override
   void onInit() {
     super.onInit();
 
+    // 1. Initialize text editing & focus node
     manualCodeController = TextEditingController();
     manualCodeFocusNode = FocusNode();
 
-    // Laser sweep animation setup (sweeps from top to bottom continuously)
+    // 2. Initialize hardware MobileScannerController
+    scannerController = MobileScannerController(
+      detectionSpeed: DetectionSpeed.normal,
+      detectionTimeoutMs: 300,
+      facing: CameraFacing.back,
+      torchEnabled: false,
+    );
+
+    // 3. Initialize laser line sweep animation (sweeps top-to-bottom continuously)
     laserAnimationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1800),
@@ -60,56 +79,47 @@ class QRScanController extends GetxController
 
   @override
   void onClose() {
-    _autoDetectionDemoTimer?.cancel();
+    // Strict resource disposal contract to prevent camera & animation memory leaks
     laserAnimationController.dispose();
     manualCodeController.dispose();
     manualCodeFocusNode.dispose();
+    scannerController.dispose();
     super.onClose();
   }
 
-  /// Toggles flashlight torch state
-  void toggleTorch() {
-    HapticFeedback.selectionClick();
-    torchEnabled.toggle();
-    CustomSnackbar.showInfo(
-      message: torchEnabled.value ? 'Torch turned ON' : 'Torch turned OFF',
-    );
+  /// Debounced QR Barcode detection callback from MobileScanner
+  void onBarcodeDetected(BarcodeCapture capture) {
+    if (isProcessing.value || !isScanning.value || scanSuccess.value) {
+      return;
+    }
+
+    if (capture.barcodes.isEmpty) return;
+
+    final rawPayload = capture.barcodes.first.rawValue?.trim();
+    if (rawPayload == null || rawPayload.isEmpty) return;
+
+    _processCardPayload(rawPayload);
   }
 
-  /// Toggles camera lens between back and front
-  void toggleCamera() {
-    HapticFeedback.selectionClick();
-    cameraFacingFront.toggle();
-    CustomSnackbar.showInfo(
-      message: cameraFacingFront.value
-          ? 'Switched to Front Lens'
-          : 'Switched to Rear Lens',
-    );
-  }
-
-  /// Simulates instant scan detection for testing
-  void simulateSampleScan() {
-    handleBarcodeDetection(
-      'AMS:EMP-0428:ORG-SOFTGENIE-88:SEC_VERIFIED',
-    );
-  }
-
-  /// Primary barcode detection handler
-  Future<void> handleBarcodeDetection(String rawCode) async {
-    if (isVerifying.value || scanSuccess.value) return;
+  /// Main card payload verification pipeline with lock & loading safety
+  Future<void> _processCardPayload(String rawPayload) async {
+    if (isProcessing.value || scanSuccess.value) return;
 
     try {
-      isVerifying.value = true;
+      // Lock scanner to prevent duplicate triggers
+      isProcessing.value = true;
+      isLoading.value = true;
       isScanning.value = false;
+
       HapticFeedback.mediumImpact();
-      statusMessage.value = 'Verifying cryptographic badge signature...';
+      scanFeedbackMessage.value = 'Verifying card cryptographic signature...';
 
-      final result = await repo.verifyScannedCard(rawCode);
+      final result = await repo.verifyCardPayload(rawPayload);
 
-      if (result != null) {
+      if (result != null && result.isValid) {
         verifiedCard.value = result;
         scanSuccess.value = true;
-        statusMessage.value = 'Identity Confirmed • ${result.employeeName}';
+        scanFeedbackMessage.value = 'Identity Confirmed • ${result.employeeCode}';
         HapticFeedback.heavyImpact();
 
         // Pause laser sweep on success
@@ -118,24 +128,66 @@ class QRScanController extends GetxController
         CustomSnackbar.showSuccess(
           title: 'Card Verified',
           message:
-              'Badge #${result.employeeId} authenticated. Proceeding to facial biometrics.',
+              'Badge #${result.employeeCode} verified. Proceeding to face recognition.',
         );
 
         // Smooth transition to Step 2: Facial Biometric Recognition
-        await Future.delayed(const Duration(milliseconds: 700));
+        await Future.delayed(const Duration(milliseconds: 650));
         Get.toNamed(
           Routes.FACE_RECOGNITION,
           arguments: {'card': result},
         );
       } else {
-        // Verification failed, resume scanning
+        // Verification failed, unlock scanning for retry
         isScanning.value = true;
-        statusMessage.value =
-            'Verification failed. Re-align your employee badge.';
+        scanFeedbackMessage.value =
+            'Verification failed. Re-align employee card.';
       }
+    } catch (e, stackTrace) {
+      ExceptionHandler.handle(
+        ApiException(message: 'Error during card verification: $e'),
+        tag:
+            'QRScanController / QRScannerScreen -> _processCardPayload() [${stackTrace.toString().split('\n').first}]',
+      );
+      isScanning.value = true;
+      scanFeedbackMessage.value = 'Verification error. Please scan again.';
     } finally {
-      isVerifying.value = false;
+      isLoading.value = false;
+      isProcessing.value = false;
     }
+  }
+
+  /// Toggles flashlight torch state on camera
+  Future<void> toggleTorch() async {
+    try {
+      HapticFeedback.selectionClick();
+      await scannerController.toggleTorch();
+      isTorchOn.toggle();
+      CustomSnackbar.showInfo(
+        message: isTorchOn.value ? 'Torch turned ON' : 'Torch turned OFF',
+      );
+    } catch (_) {
+      // Toggle state fallback for UI feedback
+      isTorchOn.toggle();
+    }
+  }
+
+  /// Camera is locked to rear lens for card QR badge scanning
+  Future<void> switchCamera() async {
+    HapticFeedback.lightImpact();
+    CustomSnackbar.showInfo(
+      message: 'Card QR scanning is optimized for the rear camera.',
+    );
+  }
+
+  /// Opens the manual code fallback bottom sheet modal
+  void openManualCodeModal(BuildContext context) {
+    HapticFeedback.lightImpact();
+    Get.bottomSheet(
+      const ManualCodeBottomSheet(),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+    );
   }
 
   /// Submits manually entered card code
@@ -144,13 +196,23 @@ class QRScanController extends GetxController
     if (code.isEmpty) {
       CustomSnackbar.showError(
         title: 'Badge ID Required',
-        message: 'Please enter your Employee ID (e.g., EMP-0428).',
+        message: 'Please enter your Employee Code (e.g. SFT-094).',
       );
       manualCodeFocusNode.requestFocus();
       return;
     }
 
-    Get.back(); // Close bottom sheet
-    handleBarcodeDetection(code);
+    // Dismiss bottom sheet and execute verification
+    Get.back();
+    _processCardPayload(code);
   }
+
+  /// Simulates instant scan detection for testing in simulator or demo environments
+  void simulateSampleScan() {
+    _processCardPayload('AMS:SFT-094:ORG-102:SEC-TOKEN-8849');
+  }
+
+  /// Backward-compatible alias
+  void toggleCamera() => switchCamera();
+  void handleBarcodeDetection(String rawCode) => _processCardPayload(rawCode);
 }

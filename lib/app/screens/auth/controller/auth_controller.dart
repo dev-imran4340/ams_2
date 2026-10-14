@@ -64,7 +64,7 @@ class AuthController extends GetxController {
 
         final accountType = response.user?.accountType ?? 'organization';
         if (accountType == 'organization') {
-          Get.offNamed(Routes.QR_SCANNER);
+          Get.offNamed(Routes.ORG_HUB);
         } else {
           Get.offNamed(Routes.INDEX);
         }
@@ -84,7 +84,7 @@ class AuthController extends GetxController {
         authResponse.value = response;
         final accountType = response.user?.accountType ?? 'organization';
         if (accountType == 'organization') {
-          Get.offNamed(Routes.QR_SCANNER);
+          Get.offNamed(Routes.ORG_HUB);
         } else {
           Get.offNamed(Routes.INDEX);
         }

@@ -19,6 +19,15 @@ class AppColors {
   static const Color error = Color(0xFFEF4444); // Absent Red
   static const Color info = Color(0xFF3B82F6); // Corporate Blue
   static const Color blue = Color(0xFF3B82F6);
+  static const Color successMint = Color(0xFF34D399);
+
+  // Hardware, ID Card & Executive Accents
+  static const Color darkStripe = Color(0xFF1E293B);
+  static const Color metallicGold = Color(0xFFD4AF37);
+  
+    static const Color metallicGoldDark = Color(0xFFB8860B);
+  static const Color metallicGoldPath = Color(0xFF996515);
+  static const Color deepNavyBase = Color(0xFF001524);
 
   // Attendance Specific Aliases
   static const Color onTime = success;

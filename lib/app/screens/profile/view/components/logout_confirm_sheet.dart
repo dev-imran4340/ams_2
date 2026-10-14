@@ -13,21 +13,24 @@ class LogoutConfirmSheet extends GetView<ProfileController> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
-      decoration: BoxDecoration(
-        color: AppColors.cardBackground,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(24.r),
-          topRight: Radius.circular(24.r),
-        ),
-        border: Border.all(
-          color: AppColors.borderColor,
-          width: 1.w,
-        ),
-      ),
-      child: SafeArea(
-        top: false,
+    return Obx(
+      () => PopScope(
+        canPop: !controller.isLoggingOut.value,
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
+          decoration: BoxDecoration(
+            color: AppColors.cardBackground,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(24.r),
+              topRight: Radius.circular(24.r),
+            ),
+            border: Border.all(
+              color: AppColors.borderColor,
+              width: 1.w,
+            ),
+          ),
+          child: SafeArea(
+            top: false,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -111,7 +114,9 @@ class LogoutConfirmSheet extends GetView<ProfileController> {
                     textColor: AppColors.textColor,
                     height: 46.h,
                     borderRadius: 12.r,
-                    onPressed: () => Navigator.of(context).pop(),
+                    onPressed: controller.isLoggingOut.value
+                        ? null
+                        : () => Navigator.of(context).pop(),
                   ),
                 ),
 
@@ -119,21 +124,19 @@ class LogoutConfirmSheet extends GetView<ProfileController> {
 
                 // Confirm Sign Out Button
                 Expanded(
-                  child: Obx(
-                    () => CustomButton(
-                      text: 'Sign Out',
-                      isLoading: controller.isLoggingOut.value,
-                      backgroundColor: AppColors.error,
-                      textColor: AppColors.white,
-                      height: 46.h,
-                      borderRadius: 12.r,
-                      icon: Icon(
-                        Icons.logout_rounded,
-                        size: 16.sp,
-                        color: AppColors.white,
-                      ),
-                      onPressed: controller.logout,
+                  child: CustomButton(
+                    text: 'Sign Out',
+                    isLoading: controller.isLoggingOut.value,
+                    backgroundColor: AppColors.error,
+                    textColor: AppColors.white,
+                    height: 46.h,
+                    borderRadius: 12.r,
+                    icon: Icon(
+                      Icons.logout_rounded,
+                      size: 16.sp,
+                      color: AppColors.white,
                     ),
+                    onPressed: controller.logout,
                   ),
                 ),
               ],
@@ -143,6 +146,8 @@ class LogoutConfirmSheet extends GetView<ProfileController> {
           ],
         ),
       ),
+    ),
+    ),
     );
   }
 }

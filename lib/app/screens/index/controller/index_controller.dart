@@ -1,8 +1,12 @@
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import '../../../core/widgets/custom_snackbar.dart';
 
 class IndexController extends GetxController {
+  // GlobalKey for Scaffold drawer management
+  final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
+
   // Current active navigation tab index (0: Dashboard, 1: History, 2: Leaves, 3: Profile)
   final RxInt currentIndex = 0.obs;
 
@@ -12,6 +16,16 @@ class IndexController extends GetxController {
   // Badge notification indicators
   final RxBool hasPendingLeaves = true.obs;
   final RxBool hasUnreadLogs = false.obs;
+
+  /// Opens the executive navigation drawer from right side (endDrawer)
+  void openDrawer() {
+    scaffoldKey.currentState?.openEndDrawer();
+  }
+
+  /// Closes the executive navigation drawer
+  void closeDrawer() {
+    scaffoldKey.currentState?.closeEndDrawer();
+  }
 
   /// Changes the current tab with range safety and haptic feedback
   void changeTab(int index) {
