@@ -11,7 +11,6 @@ class AuthController extends GetxController {
 
   AuthController({required this.repo});
 
-  final GlobalKey<FormState> formKey = GlobalKey<FormState>();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final FocusNode emailFocusNode = FocusNode();
@@ -46,34 +45,35 @@ class AuthController extends GetxController {
   }
 
   Future<void> login() async {
-    try {
-      isLoading.value = true;
-      final response = await repo.login(
-        email: emailController.text.trim(),
-        password: passwordController.text.trim(),
-      );
-      if (response != null) {
-        authResponse.value = response;
-        if (rememberMe.value) {
-          AppPreferences.setSavedEmail(emailController.text.trim());
-          AppPreferences.setRememberMe(true);
-        } else {
-          AppPreferences.setSavedEmail(null);
-          AppPreferences.setRememberMe(false);
-        }
+    // try {
+    //   isLoading.value = true;
+    //   final response = await repo.login(
+    //     email: emailController.text.trim(),
+    //     password: passwordController.text.trim(),
+    //   );
+    //   if (response != null) {
+    //     authResponse.value = response;
+    //     if (rememberMe.value) {
+    //       AppPreferences.setSavedEmail(emailController.text.trim());
+    //       AppPreferences.setRememberMe(true);
+    //     } else {
+    //       AppPreferences.setSavedEmail(null);
+    //       AppPreferences.setRememberMe(false);
+    //     }
 
-        final accountType = response.user?.accountType ?? 'organization';
-        if (accountType == 'organization') {
-          Get.offNamed(Routes.ORG_HUB);
-        } else {
-          Get.offNamed(Routes.INDEX);
-        }
-      } else {
-        Get.offNamed(Routes.INDEX);
-      }
-    } finally {
-      isLoading.value = false;
-    }
+    //     final accountType = response.user?.accountType ?? 'organization';
+    //     if (accountType == 'organization') {
+    //       Get.offNamed(Routes.ORG_HUB);
+    //     } else {
+    //       Get.offNamed(Routes.INDEX);
+    //     }
+    //   } else {
+    //     Get.offNamed(Routes.INDEX);
+    //   }
+    // } finally {
+    //   isLoading.value = false;
+    // }
+    Get.offNamed(Routes.ORG_MODE_SELECTION);
   }
 
   Future<void> loginWithBiometrics() async {

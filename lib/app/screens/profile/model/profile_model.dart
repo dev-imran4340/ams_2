@@ -51,7 +51,8 @@ class EmployeeProfileModel {
   factory EmployeeProfileModel.fromJson(Map<String, dynamic> json) {
     return EmployeeProfileModel(
       name: json['name'] as String? ?? 'Employee',
-      email: json['email'] as String? ?? 'employee@softgenie.com',
+      email:
+          json['email'] as String? ?? 'employee@Softech Business Services.com',
       employeeId: json['employee_id'] as String? ?? 'EMP-1024',
       designation: json['designation'] as String? ?? 'Staff Member',
       department: json['department'] as String? ?? 'Operations',
@@ -61,14 +62,14 @@ class EmployeeProfileModel {
       shiftName: json['shift_name'] as String? ?? 'General Corporate Shift',
       shiftTime: json['shift_time'] as String? ?? '09:00 AM - 06:00 PM',
       graceMinutes: json['grace_minutes'] as int? ?? 15,
-      workLocation: json['work_location'] as String? ?? 'SoftGenie HQ',
+      workLocation:
+          json['work_location'] as String? ?? 'Softech Business Services HQ',
       avatarUrl: json['avatar_url'] as String?,
       biometricEnabled: json['biometric_enabled'] as bool? ?? true,
       remindersEnabled: json['reminders_enabled'] as bool? ?? true,
       geofenceAutoCheck: json['geofence_auto_check'] as bool? ?? true,
       tenureYears: json['tenure_years'] as String? ?? '2.8 Yrs',
-      attendanceScore:
-          (json['attendance_score'] as num?)?.toDouble() ?? 98.4,
+      attendanceScore: (json['attendance_score'] as num?)?.toDouble() ?? 98.4,
     );
   }
 

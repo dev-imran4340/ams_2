@@ -15,7 +15,8 @@ class ProfileRepo {
 
       final cachedUser = AppPreferences.getUser();
       final userName = cachedUser?.name ?? 'Malik Muhammad Imran';
-      final userEmail = cachedUser?.email ?? 'imran@softgenie.com';
+      final userEmail =
+          cachedUser?.email ?? 'imran@Softech Business Services.com';
 
       return EmployeeProfileModel(
         name: userName,
@@ -28,7 +29,7 @@ class ProfileRepo {
         shiftName: 'General Corporate Shift',
         shiftTime: '09:00 AM - 06:00 PM',
         graceMinutes: 15,
-        workLocation: 'SoftGenie HQ • 4th Floor',
+        workLocation: 'Softech Business Services HQ • 4th Floor',
         biometricEnabled: true,
         remindersEnabled: true,
         geofenceAutoCheck: true,

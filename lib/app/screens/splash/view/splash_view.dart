@@ -79,7 +79,7 @@ class SplashView extends GetView<SplashController> {
             // 3. Center Animated Brand Emblem & Identity
             const Center(child: _SplashBrandContent()),
 
-            // 4. Bottom Telemetry & SoftGenie Version Tag
+            // 4. Bottom Telemetry & Softech Business Services Version Tag
             Positioned(
               bottom: 24.h,
               left: 0,

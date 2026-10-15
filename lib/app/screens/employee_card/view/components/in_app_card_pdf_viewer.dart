@@ -21,10 +21,7 @@ class InAppCardPdfViewer extends GetView<EmployeeCardController> {
       decoration: BoxDecoration(
         color: AppColors.backgroundColor,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
-        border: Border.all(
-          color: AppColors.borderColor,
-          width: 1.w,
-        ),
+        border: Border.all(color: AppColors.borderColor, width: 1.w),
         boxShadow: [
           BoxShadow(
             color: AppColors.primary.withValues(alpha: 0.25),
@@ -73,10 +70,7 @@ class InAppCardPdfViewer extends GetView<EmployeeCardController> {
         color: AppColors.cardBackground,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
         border: Border(
-          bottom: BorderSide(
-            color: AppColors.borderColor,
-            width: 1.w,
-          ),
+          bottom: BorderSide(color: AppColors.borderColor, width: 1.w),
         ),
       ),
       child: Column(
@@ -182,10 +176,7 @@ class InAppCardPdfViewer extends GetView<EmployeeCardController> {
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(
-          color: AppColors.borderColor,
-          width: 1.w,
-        ),
+        border: Border.all(color: AppColors.borderColor, width: 1.w),
         boxShadow: [
           BoxShadow(
             color: AppColors.primary.withValues(alpha: 0.12),
@@ -224,7 +215,7 @@ class InAppCardPdfViewer extends GetView<EmployeeCardController> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'SOFTGENIE SOLUTIONS',
+                        'Softech Business Services SOLUTIONS',
                         style: AppTextStyles.text12.copyWith(
                           fontWeight: FontWeight.bold,
                           color: AppColors.primary,
@@ -261,10 +252,7 @@ class InAppCardPdfViewer extends GetView<EmployeeCardController> {
           ),
 
           AppSpaces.vSpace14,
-          Container(
-            height: 1.5.h,
-            color: AppColors.primary,
-          ),
+          Container(height: 1.5.h, color: AppColors.primary),
           AppSpaces.vSpace12,
 
           // Document Title
@@ -368,7 +356,10 @@ class InAppCardPdfViewer extends GetView<EmployeeCardController> {
           _buildDocumentDataRow('Emergency Contact', card.emergencyContact),
           _buildDocumentDataRow('Official Date of Joining', card.joiningDate),
           _buildDocumentDataRow('Credential Validity Period', card.validTill),
-          _buildDocumentDataRow('Security Protocol', 'AES-256 Hardware Encrypted'),
+          _buildDocumentDataRow(
+            'Security Protocol',
+            'AES-256 Hardware Encrypted',
+          ),
 
           AppSpaces.vSpace14,
 
@@ -391,10 +382,7 @@ class InAppCardPdfViewer extends GetView<EmployeeCardController> {
           ),
 
           AppSpaces.vSpace16,
-          Container(
-            height: 1.h,
-            color: AppColors.borderColor,
-          ),
+          Container(height: 1.h, color: AppColors.borderColor),
           AppSpaces.vSpace12,
 
           // Verification Stamp & Signature
@@ -437,10 +425,7 @@ class InAppCardPdfViewer extends GetView<EmployeeCardController> {
                 padding: EdgeInsets.all(6.r),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(
-                    color: AppColors.secondary,
-                    width: 1.5.w,
-                  ),
+                  border: Border.all(color: AppColors.secondary, width: 1.5.w),
                 ),
                 child: Text(
                   'SG',
@@ -485,7 +470,31 @@ class InAppCardPdfViewer extends GetView<EmployeeCardController> {
 
   Widget _buildPdfBarcodeLines() {
     final pattern = [
-      2, 1, 3, 1, 2, 4, 1, 3, 1, 2, 4, 1, 2, 3, 1, 4, 1, 2, 3, 1, 2, 4, 1, 2, 3
+      2,
+      1,
+      3,
+      1,
+      2,
+      4,
+      1,
+      3,
+      1,
+      2,
+      4,
+      1,
+      2,
+      3,
+      1,
+      4,
+      1,
+      2,
+      3,
+      1,
+      2,
+      4,
+      1,
+      2,
+      3,
     ];
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -507,10 +516,7 @@ class InAppCardPdfViewer extends GetView<EmployeeCardController> {
       decoration: BoxDecoration(
         color: AppColors.cardBackground,
         border: Border(
-          top: BorderSide(
-            color: AppColors.borderColor,
-            width: 1.w,
-          ),
+          top: BorderSide(color: AppColors.borderColor, width: 1.w),
         ),
       ),
       child: SafeArea(
@@ -526,7 +532,8 @@ class InAppCardPdfViewer extends GetView<EmployeeCardController> {
                   Get.back();
                   CustomSnackbar.showSuccess(
                     title: 'PDF Saved to Storage',
-                    message: 'Official ID badge document saved to Downloads folder.',
+                    message:
+                        'Official ID badge document saved to Downloads folder.',
                   );
                 },
               ),

@@ -9,13 +9,21 @@ import '../../../core/widgets/custom_button.dart';
 import '../../../core/widgets/custom_text_field.dart';
 import '../controller/auth_controller.dart';
 
-class LoginForm extends GetView<AuthController> {
+class LoginForm extends StatefulWidget {
   const LoginForm({super.key});
 
   @override
+  State<LoginForm> createState() => _LoginFormState();
+}
+
+class _LoginFormState extends State<LoginForm> {
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+
+  @override
   Widget build(BuildContext context) {
+    final controller = Get.find<AuthController>();
     return Form(
-      key: controller.formKey,
+      key: _formKey,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -53,7 +61,11 @@ class LoginForm extends GetView<AuthController> {
 
               obscureText: !controller.isPasswordVisible.value,
 
-              onFieldSubmitted: (_) => controller.login(),
+              onFieldSubmitted: (_) {
+                // if (_formKey.currentState?.validate() ?? false) {
+                controller.login();
+                // }
+              },
 
               prefixIcon: Icon(
                 Icons.lock_outline_rounded,
@@ -148,8 +160,11 @@ class LoginForm extends GetView<AuthController> {
               isGradient: true,
               text: 'Sign In',
               isLoading: controller.isLoading.value,
-
-              onPressed: controller.login,
+              onPressed: () {
+                // if (_formKey.currentState?.validate() ?? false) {
+                controller.login();
+                // }
+              },
             ),
           ),
         ],

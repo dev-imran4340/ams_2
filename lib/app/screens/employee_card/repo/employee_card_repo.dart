@@ -15,8 +15,9 @@ class EmployeeCardRepo {
     emergencyContact: '+92 300 1234567',
     joiningDate: '15 Jan 2024',
     validTill: '31 Dec 2027',
-    qrPayload: 'AMS2::SFT-1024::SOFTGENIE-HQ::2027-12-31::VERIFIED',
-    pdfDocumentUrl: 'https://docs.softgenie.com/cards/SFT-1024_Official_ID.pdf',
+    qrPayload:
+        'AMS2::SFT-1024::Softech Business Services-HQ::2027-12-31::VERIFIED',
+    pdfDocumentUrl: 'https://docs.Softech Business Services.com/cards/SFT-1024_Official_ID.pdf',
     isNfcVerified: true,
   );
 
@@ -29,7 +30,8 @@ class EmployeeCardRepo {
     } catch (e, stackTrace) {
       ExceptionHandler.handle(
         ApiException(message: 'Failed to fetch employee card details: $e'),
-        tag: '$_tag -> fetchCardDetails() [${stackTrace.toString().split('\n').first}]',
+        tag:
+            '$_tag -> fetchCardDetails() [${stackTrace.toString().split('\n').first}]',
       );
       return null;
     }
@@ -43,7 +45,8 @@ class EmployeeCardRepo {
     } catch (e, stackTrace) {
       ExceptionHandler.handle(
         ApiException(message: 'Failed to prepare official card PDF: $e'),
-        tag: '$_tag -> generateOfficialCardPdf() [${stackTrace.toString().split('\n').first}]',
+        tag:
+            '$_tag -> generateOfficialCardPdf() [${stackTrace.toString().split('\n').first}]',
       );
       return null;
     }

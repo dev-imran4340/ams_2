@@ -18,7 +18,8 @@ class AssignedShiftCard extends GetView<ProfileController> {
       final shiftTime = p?.shiftTime ?? '09:00 AM - 06:00 PM';
       final graceMinutes = p?.graceMinutes ?? 15;
       final manager = p?.reportingManager ?? 'Hamza Sheikh (Lead Architect)';
-      final location = p?.workLocation ?? 'SoftGenie HQ • 4th Floor';
+      final location =
+          p?.workLocation ?? 'Softech Business Services HQ • 4th Floor';
 
       return Container(
         width: double.infinity,
@@ -30,7 +31,7 @@ class AssignedShiftCard extends GetView<ProfileController> {
             BoxShadow(
               color: AppColors.primary.withValues(alpha: 0.04),
               blurRadius: 12.r,
-              offset: Offset(0, 3.h), 
+              offset: Offset(0, 3.h),
             ),
           ],
         ),

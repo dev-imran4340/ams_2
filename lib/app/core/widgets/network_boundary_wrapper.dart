@@ -1,6 +1,8 @@
 import 'dart:async';
+
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
+
 import '../utils/app_colors.dart';
 import 'custom_state_view.dart';
 
@@ -71,7 +73,7 @@ class _NetworkBoundaryWrapperState extends State<NetworkBoundaryWrapper> {
   @override
   Widget build(BuildContext context) {
     if (_isChecking) {
-      return widget.child;
+      return SafeArea(child: widget.child);
     }
 
     if (!_isConnected) {

@@ -16,6 +16,12 @@ abstract class Routes {
   static const EVALUATION = '/evaluation';
   static const EMPLOYEE_CARD = '/employee-card';
   static const ORG_HUB = '/org-hub';
+  static const ORG_MODE_SELECTION = '/org-mode-selection';
   static const VISITOR_MANAGEMENT = '/visitor-management';
+  static const VISITOR_ENTRY = '/visitor-entry';
+  static const VISITOR_EXIT = '/visitor-exit';
   static const ADD_EMPLOYEE = '/add-employee';
+  static const EMPLOYEE_TERMINAL = '/employee-terminal';
+  static const COMPANY_DASHBOARD = '/company-dashboard';
+  static const EMPLOYEE_KIOSK_DASHBOARD = '/employee-kiosk-dashboard';
 }

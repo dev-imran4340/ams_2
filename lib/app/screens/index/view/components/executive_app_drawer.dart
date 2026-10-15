@@ -208,17 +208,11 @@ class ExecutiveAppDrawer extends StatelessWidget {
       padding: EdgeInsets.fromLTRB(16.w, 48.h, 16.w, 18.h),
       decoration: BoxDecoration(
         color: AppColors.primary,
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(24.r),
-        ),
+        borderRadius: BorderRadius.only(bottomLeft: Radius.circular(24.r)),
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            AppColors.primary,
-            AppColors.primary,
-            AppColors.accentNavy,
-          ],
+          colors: [AppColors.primary, AppColors.primary, AppColors.accentNavy],
         ),
       ),
       child: Stack(
@@ -386,10 +380,7 @@ class ExecutiveAppDrawer extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppColors.inputFill.withValues(alpha: 0.4),
             borderRadius: BorderRadius.circular(14.r),
-            border: Border.all(
-              color: AppColors.borderColor,
-              width: 1.w,
-            ),
+            border: Border.all(color: AppColors.borderColor, width: 1.w),
           ),
           child: Row(
             children: [
@@ -401,11 +392,7 @@ class ExecutiveAppDrawer extends StatelessWidget {
                   borderRadius: BorderRadius.circular(10.r),
                 ),
                 child: Center(
-                  child: Icon(
-                    icon,
-                    size: 19.sp,
-                    color: iconColor,
-                  ),
+                  child: Icon(icon, size: 19.sp, color: iconColor),
                 ),
               ),
               AppSpaces.hSpace10,
@@ -509,15 +496,18 @@ class ExecutiveAppDrawer extends StatelessWidget {
                 Icon(
                   icon,
                   size: 18.sp,
-                  color: isSelected ? AppColors.primary : AppColors.subTextColor,
+                  color: isSelected
+                      ? AppColors.primary
+                      : AppColors.subTextColor,
                 ),
                 AppSpaces.hSpace10,
                 Expanded(
                   child: Text(
                     title,
                     style: AppTextStyles.text12.copyWith(
-                      fontWeight:
-                          isSelected ? FontWeight.bold : FontWeight.w500,
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.w500,
                       color: isSelected
                           ? AppColors.primary
                           : AppColors.textColor,
@@ -542,10 +532,7 @@ class ExecutiveAppDrawer extends StatelessWidget {
   }
 
   Widget _buildDivider() {
-    return Container(
-      height: 1.h,
-      color: AppColors.borderColor,
-    );
+    return Container(height: 1.h, color: AppColors.borderColor);
   }
 
   /// Drawer Footer
@@ -555,10 +542,7 @@ class ExecutiveAppDrawer extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.inputFill.withValues(alpha: 0.3),
         border: Border(
-          top: BorderSide(
-            color: AppColors.borderColor,
-            width: 1.w,
-          ),
+          top: BorderSide(color: AppColors.borderColor, width: 1.w),
         ),
       ),
       child: SafeArea(
@@ -578,7 +562,7 @@ class ExecutiveAppDrawer extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    'SoftGenie Solutions',
+                    'Softech Business Services Solutions',
                     style: AppTextStyles.text10.copyWith(
                       color: AppColors.subTextColor,
                     ),
@@ -592,14 +576,14 @@ class ExecutiveAppDrawer extends StatelessWidget {
                 onTap: () {
                   Get.back(); // Close drawer
                   if (Get.isRegistered<ProfileController>()) {
-                    Get.find<ProfileController>()
-                        .showLogoutConfirmation(context);
+                    Get.find<ProfileController>().showLogoutConfirmation(
+                      context,
+                    );
                   }
                 },
                 borderRadius: BorderRadius.circular(8.r),
                 child: Padding(
-                  padding:
-                      EdgeInsets.symmetric(horizontal: 8.w, vertical: 6.h),
+                  padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 6.h),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [

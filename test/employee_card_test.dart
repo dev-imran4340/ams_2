@@ -18,7 +18,8 @@ void main() {
         joiningDate: '15 Jan 2024',
         validTill: '31 Dec 2027',
         qrPayload: 'AMS2::SFT-1024::ORG-HQ::SECURE_TOKEN',
-        pdfDocumentUrl: 'https://mock.softgenie.com/cards/SFT-1024.pdf',
+        pdfDocumentUrl:
+            'https://mock.Softech Business Services.com/cards/SFT-1024.pdf',
         isNfcVerified: true,
       );
 
@@ -48,7 +49,8 @@ void main() {
         joiningDate: '15 Jan 2024',
         validTill: '31 Dec 2027',
         qrPayload: 'AMS2::SFT-1024::ORG-HQ::SECURE_TOKEN',
-        pdfDocumentUrl: 'https://mock.softgenie.com/cards/SFT-1024.pdf',
+        pdfDocumentUrl:
+            'https://mock.Softech Business Services.com/cards/SFT-1024.pdf',
         isNfcVerified: true,
       );
 
@@ -80,11 +82,14 @@ void main() {
       expect(card.qrPayload.contains('SFT-1024'), true);
     });
 
-    test('generateOfficialCardPdf returns valid official document link', () async {
-      final pdfUrl = await repo.generateOfficialCardPdf();
-      expect(pdfUrl, isNotNull);
-      expect(pdfUrl!.endsWith('.pdf'), true);
-    });
+    test(
+      'generateOfficialCardPdf returns valid official document link',
+      () async {
+        final pdfUrl = await repo.generateOfficialCardPdf();
+        expect(pdfUrl, isNotNull);
+        expect(pdfUrl!.endsWith('.pdf'), true);
+      },
+    );
   });
 
   group('EmployeeCardController Logic Tests', () {
@@ -101,15 +106,18 @@ void main() {
       controller.onClose();
     });
 
-    test('initializes with flip animation controller and loads card data', () async {
-      expect(controller.flipAnimationController, isNotNull);
-      expect(controller.isFlipped.value, false);
+    test(
+      'initializes with flip animation controller and loads card data',
+      () async {
+        expect(controller.flipAnimationController, isNotNull);
+        expect(controller.isFlipped.value, false);
 
-      await controller.loadCardData();
-      expect(controller.cardData.value, isNotNull);
-      expect(controller.cardData.value!.employeeId, 'SFT-1024');
-      expect(controller.isLoading.value, false);
-    });
+        await controller.loadCardData();
+        expect(controller.cardData.value, isNotNull);
+        expect(controller.cardData.value!.employeeId, 'SFT-1024');
+        expect(controller.isLoading.value, false);
+      },
+    );
 
     test('flipCard toggles 3D flip state accurately', () {
       expect(controller.isFlipped.value, false);

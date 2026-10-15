@@ -14,8 +14,7 @@ class EvaluationRepo {
       evaluatedBy: 'Hamza Sheikh • Lead Mobile Architect',
       evaluationDate: 'Oct 01, 2026',
       appraisalStatus: 'Approved & Finalized',
-      managerFeedback:
-          'Imran has demonstrated extraordinary technical leadership in Flutter architecture, zero-leak memory discipline, and consistent punctuality. Delivered biometric facial authentication and QR verification modules with exceptional enterprise-grade precision.',
+      managerFeedback: 'Imran has demonstrated extraordinary technical leadership in Flutter architecture, zero-leak memory discipline, and consistent punctuality. Delivered biometric facial authentication and QR verification modules with exceptional enterprise-grade precision.',
       kpis: [
         KpiMetricItem(
           name: 'Code Quality & Architecture',
@@ -54,8 +53,7 @@ class EvaluationRepo {
       evaluatedBy: 'Hamza Sheikh • Lead Mobile Architect',
       evaluationDate: 'Jul 05, 2026',
       appraisalStatus: 'Approved & Finalized',
-      managerFeedback:
-          'Solid deliverables across offline punch cache, multi-factor QR security scanning, and clean MVVM component abstractions with consistent response times.',
+      managerFeedback: 'Solid deliverables across offline punch cache, multi-factor QR security scanning, and clean MVVM component abstractions with consistent response times.',
       kpis: [
         KpiMetricItem(
           name: 'Code Quality & Architecture',
@@ -94,8 +92,7 @@ class EvaluationRepo {
       evaluatedBy: 'Tariq Mahmood • VP of Engineering',
       evaluationDate: 'Jan 12, 2026',
       appraisalStatus: 'Approved & Finalized',
-      managerFeedback:
-          'Annual review highlights consistent high velocity, zero regression rate on biometric core, and valuable technical mentorship across SoftGenie engineering squads.',
+      managerFeedback: 'Annual review highlights consistent high velocity, zero regression rate on biometric core, and valuable technical mentorship across Softech Business Services engineering squads.',
       kpis: [
         KpiMetricItem(
           name: 'Code Quality & Architecture',
@@ -139,8 +136,11 @@ class EvaluationRepo {
       return report;
     } catch (e, stackTrace) {
       ExceptionHandler.handle(
-        ApiException(message: 'Failed to fetch evaluation report for $cycle: $e'),
-        tag: '$_tag -> fetchEvaluationReport() [${stackTrace.toString().split('\n').first}]',
+        ApiException(
+          message: 'Failed to fetch evaluation report for $cycle: $e',
+        ),
+        tag:
+            '$_tag -> fetchEvaluationReport() [${stackTrace.toString().split('\n').first}]',
       );
       return null;
     }

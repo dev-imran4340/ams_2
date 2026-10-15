@@ -61,12 +61,16 @@ class EmployeeCardDetails {
       designation: json['designation']?.toString() ?? 'Senior Flutter Engineer',
       department: json['department']?.toString() ?? 'Mobile & AI Solutions',
       bloodGroup: json['blood_group']?.toString() ?? 'O+',
-      emergencyContact: json['emergency_contact']?.toString() ?? '+92 300 1234567',
+      emergencyContact:
+          json['emergency_contact']?.toString() ?? '+92 300 1234567',
       joiningDate: json['joining_date']?.toString() ?? '15 Jan 2024',
       validTill: json['valid_till']?.toString() ?? '31 Dec 2027',
-      qrPayload: json['qr_payload']?.toString() ?? 'AMS2::SFT-1024::ORG-HQ::SECURE_TOKEN',
-      pdfDocumentUrl: json['pdf_document_url']?.toString() ??
-          'https://mock.softgenie.com/cards/SFT-1024.pdf',
+      qrPayload:
+          json['qr_payload']?.toString() ??
+          'AMS2::SFT-1024::ORG-HQ::SECURE_TOKEN',
+      pdfDocumentUrl:
+          json['pdf_document_url']?.toString() ??
+          'https://mock.Softech Business Services.com/cards/SFT-1024.pdf',
       isNfcVerified: json['is_nfc_verified'] == true,
     );
   }

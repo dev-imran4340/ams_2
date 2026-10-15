@@ -51,9 +51,33 @@ import '../screens/employee_card/view/employee_card_view.dart';
 import '../screens/employee_card/controller/employee_card_controller.dart';
 import '../screens/employee_card/repo/employee_card_repo.dart';
 
-import '../screens/organization/org_hub/view/org_hub_view.dart';
-import '../screens/organization/org_hub/controller/org_hub_controller.dart';
-import '../screens/organization/org_hub/repo/org_hub_repo.dart';
+import '../screens/organization/org_mode_selection/view/org_mode_selection_view.dart';
+import '../screens/organization/org_mode_selection/controller/org_mode_controller.dart';
+import '../screens/organization/org_mode_selection/repo/org_mode_repo.dart';
+
+import '../screens/organization/visitor_management/view/visitor_management_view.dart';
+import '../screens/organization/visitor_management/view/visitor_entry_view.dart';
+import '../screens/organization/visitor_management/view/visitor_exit_view.dart';
+import '../screens/organization/visitor_management/controller/visitor_controller.dart';
+import '../screens/organization/visitor_management/repo/visitor_repo.dart';
+
+
+import '../screens/organization/employee_terminal/view/employee_terminal_view.dart';
+import '../screens/organization/employee_terminal/controller/employee_terminal_controller.dart';
+import '../screens/organization/employee_terminal/repo/employee_terminal_repo.dart';
+
+
+import '../screens/organization/add_employee/view/add_employee_view.dart';
+import '../screens/organization/add_employee/controller/add_employee_controller.dart';
+import '../screens/organization/add_employee/repo/add_employee_repo.dart';
+
+import '../screens/organization/company_dashboard/view/company_dashboard_view.dart';
+import '../screens/organization/company_dashboard/controller/company_dashboard_controller.dart';
+import '../screens/organization/company_dashboard/repo/company_dashboard_repo.dart';
+
+import '../screens/organization/employee_kiosk_dashboard/view/employee_kiosk_dashboard_view.dart';
+import '../screens/organization/employee_kiosk_dashboard/controller/kiosk_employee_controller.dart';
+import '../screens/organization/employee_kiosk_dashboard/repo/kiosk_employee_repo.dart';
 
 class AppPages {
   // Initial Entry Route
@@ -207,13 +231,108 @@ class AppPages {
     ),
 
     // 12. Organization Portal Hub (Gateway to Visitor Management, Gate Terminal & Staff Onboarding)
+   
+
+    // 13. Organization Mode Selection Screen
     GetPage(
-      name: Routes.ORG_HUB,
-      page: () => const OrgHubView(),
+      name: Routes.ORG_MODE_SELECTION,
+      page: () => const OrgModeSelectionView(),
       binding: BindingsBuilder(() {
-        Get.lazyPut(() => OrgHubRepo(), fenix: true);
+        Get.lazyPut(() => OrgModeRepo(), fenix: true);
         Get.lazyPut(
-          () => OrgHubController(repo: Get.find()),
+          () => OrgModeController(repo: Get.find()),
+          fenix: true,
+        );
+      }),
+    ),
+
+    // 14. Visitor Management Kiosk Terminal (Visitor Selection Hub)
+    GetPage(
+      name: Routes.VISITOR_MANAGEMENT,
+      page: () => const VisitorManagementView(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => VisitorRepo(), fenix: true);
+        Get.lazyPut(
+          () => VisitorController(repo: Get.find()),
+          fenix: true,
+        );
+      }),
+    ),
+
+    // 14a. Visitor Check-In Entry Screen (Step Wizard, Camera Simulation, Intake Form)
+    GetPage(
+      name: Routes.VISITOR_ENTRY,
+      page: () => const VisitorEntryView(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => VisitorRepo(), fenix: true);
+        Get.lazyPut(
+          () => VisitorController(repo: Get.find()),
+          fenix: true,
+        );
+      }),
+    ),
+
+    // 14b. Visitor Check-Out Exit Screen (Active Visitors Carousel, Face Verification, Departure)
+    GetPage(
+      name: Routes.VISITOR_EXIT,
+      page: () => const VisitorExitView(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => VisitorRepo(), fenix: true);
+        Get.lazyPut(
+          () => VisitorController(repo: Get.find()),
+          fenix: true,
+        );
+      }),
+    ),
+
+
+    // 15. Employee Attendance Gate Terminal (Dual AI Face & Card QR Kiosk)
+    GetPage(
+      name: Routes.EMPLOYEE_TERMINAL,
+      page: () => const EmployeeTerminalView(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => EmployeeTerminalRepo(), fenix: true);
+        Get.lazyPut(
+          () => EmployeeTerminalController(repo: Get.find()),
+          fenix: true,
+        );
+      }),
+    ),
+
+    // 16. Staff Onboarding / Employee Registration & Facial Biometric Enrollment
+    GetPage(
+      name: Routes.ADD_EMPLOYEE,
+      page: () => const AddEmployeeView(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => AddEmployeeRepo(), fenix: true);
+        Get.lazyPut(
+          () => AddEmployeeController(repo: Get.find()),
+          fenix: true,
+        );
+      }),
+    ),
+
+    // 17. Company Analytics Dashboard (Donut Presence Chart, Recent Activities & Leaves)
+    GetPage(
+      name: Routes.COMPANY_DASHBOARD,
+      page: () => const CompanyDashboardView(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => CompanyDashboardRepo(), fenix: true);
+        Get.lazyPut(
+          () => CompanyDashboardController(repo: Get.find()),
+          fenix: true,
+        );
+      }),
+    ),
+
+    // 18. Shared Reception Kiosk Employee Dashboard (1-Min Idle Security Timeout)
+    GetPage(
+      name: Routes.EMPLOYEE_KIOSK_DASHBOARD,
+      page: () => const EmployeeKioskDashboardView(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => KioskEmployeeRepo(), fenix: true);
+        Get.lazyPut(
+          () => KioskEmployeeController(repo: Get.find()),
           fenix: true,
         );
       }),

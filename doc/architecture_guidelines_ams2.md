@@ -1,6 +1,6 @@
-# SoftGenie Architecture & Development Guidelines
+# Softech Business Services Architecture & Development Guidelines
 
-This document outlines the strict rules, architectural patterns, and development flow for the SoftGenie Flutter project. **These rules must be followed for every new feature, screen, component, and API integration.**
+This document outlines the strict rules, architectural patterns, and development flow for the Softech Business Services Flutter project. **These rules must be followed for every new feature, screen, component, and API integration.**
 
 ---
 

@@ -10,6 +10,8 @@ class SplashController extends GetxController {
 
   // Observables
   final RxBool isLoading = true.obs;
+  bool _isCheckingSession = false;
+  bool _hasNavigated = false;
 
   @override
   void onInit() {
@@ -19,11 +21,17 @@ class SplashController extends GetxController {
 
   /// Evaluates authentication state from AppPreferences and redirects smoothly
   Future<void> checkSessionAndRoute() async {
+    if (_isCheckingSession || _hasNavigated) return;
+    _isCheckingSession = true;
+
     try {
       isLoading.value = true;
 
       // Allow animations and executive brand presentation to complete gracefully
       await Future.delayed(const Duration(milliseconds: 2200));
+
+      if (_hasNavigated) return;
+      _hasNavigated = true;
 
       // Read authentication credentials strictly through AppPreferences abstraction
       final String? token = AppPreferences.token;
@@ -37,6 +45,8 @@ class SplashController extends GetxController {
         Get.offAllNamed(Routes.LOGIN);
       }
     } catch (e, stackTrace) {
+      if (_hasNavigated) return;
+      _hasNavigated = true;
       ExceptionHandler.handle(
         ApiException(message: 'Failed to verify session during splash: $e'),
         tag:
@@ -46,6 +56,7 @@ class SplashController extends GetxController {
       Get.offAllNamed(Routes.LOGIN);
     } finally {
       isLoading.value = false;
+      _isCheckingSession = false;
     }
   }
 }

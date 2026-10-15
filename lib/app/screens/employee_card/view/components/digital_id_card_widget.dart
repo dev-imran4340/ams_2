@@ -59,11 +59,7 @@ class DigitalIdCardWidget extends GetView<EmployeeCardController> {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            AppColors.primary,
-            AppColors.accentNavy,
-            AppColors.primary,
-          ],
+          colors: [AppColors.primary, AppColors.accentNavy, AppColors.primary],
         ),
         border: Border.all(
           color: AppColors.liteSecondary.withValues(alpha: 0.25),
@@ -105,7 +101,7 @@ class DigitalIdCardWidget extends GetView<EmployeeCardController> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Top Row: SoftGenie Enterprise Brand & NFC Waves
+                  // Top Row: Softech Business Services Enterprise Brand & NFC Waves
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -128,7 +124,7 @@ class DigitalIdCardWidget extends GetView<EmployeeCardController> {
                           ),
                           AppSpaces.hSpace8,
                           Text(
-                            'SOFTGENIE ENTERPRISE',
+                            'Softech Business Services ENTERPRISE',
                             style: AppTextStyles.text10.copyWith(
                               letterSpacing: 1.2,
                               fontWeight: FontWeight.bold,
@@ -338,10 +334,7 @@ class DigitalIdCardWidget extends GetView<EmployeeCardController> {
       decoration: BoxDecoration(
         color: AppColors.cardBackground,
         borderRadius: BorderRadius.circular(20.r),
-        border: Border.all(
-          color: AppColors.borderColor,
-          width: 1.2.w,
-        ),
+        border: Border.all(color: AppColors.borderColor, width: 1.2.w),
         boxShadow: [
           BoxShadow(
             color: AppColors.primary.withValues(alpha: 0.12),
@@ -356,10 +349,7 @@ class DigitalIdCardWidget extends GetView<EmployeeCardController> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // 1. Dark Magnetic Security Stripe
-            Container(
-              height: 32.h,
-              color: AppColors.darkStripe,
-            ),
+            Container(height: 32.h, color: AppColors.darkStripe),
 
             AppSpaces.vSpace10,
 
@@ -450,7 +440,7 @@ class DigitalIdCardWidget extends GetView<EmployeeCardController> {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        'SoftGenie Security',
+                        'Softech Business Services Security',
                         style: AppTextStyles.text10.copyWith(
                           fontSize: 9.sp,
                           fontStyle: FontStyle.italic,
@@ -485,10 +475,7 @@ class DigitalIdCardWidget extends GetView<EmployeeCardController> {
       decoration: BoxDecoration(
         color: AppColors.metallicGold, // Metallic gold
         borderRadius: BorderRadius.circular(6.r),
-        border: Border.all(
-          color: AppColors.metallicGoldDark,
-          width: 0.8.w,
-        ),
+        border: Border.all(color: AppColors.metallicGoldDark, width: 0.8.w),
       ),
       child: Stack(
         children: [
@@ -509,10 +496,7 @@ class DigitalIdCardWidget extends GetView<EmployeeCardController> {
             left: 0,
             right: 0,
             top: 13.h,
-            child: Container(
-              height: 0.8.h,
-              color: AppColors.metallicGoldPath,
-            ),
+            child: Container(height: 0.8.h, color: AppColors.metallicGoldPath),
           ),
         ],
       ),
@@ -525,8 +509,9 @@ class DigitalIdCardWidget extends GetView<EmployeeCardController> {
     bool alignRight = false,
   }) {
     return Column(
-      crossAxisAlignment:
-          alignRight ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+      crossAxisAlignment: alignRight
+          ? CrossAxisAlignment.end
+          : CrossAxisAlignment.start,
       children: [
         Text(
           label,
@@ -552,7 +537,29 @@ class DigitalIdCardWidget extends GetView<EmployeeCardController> {
   /// Clean procedural barcode strip
   Widget _buildBarcodeLines() {
     final pattern = [
-      3, 1, 2, 1, 4, 1, 2, 3, 1, 2, 4, 1, 3, 2, 1, 4, 2, 1, 3, 1, 2, 4, 1
+      3,
+      1,
+      2,
+      1,
+      4,
+      1,
+      2,
+      3,
+      1,
+      2,
+      4,
+      1,
+      3,
+      2,
+      1,
+      4,
+      2,
+      1,
+      3,
+      1,
+      2,
+      4,
+      1,
     ];
     return Row(
       mainAxisSize: MainAxisSize.min,

@@ -20,10 +20,7 @@ class CardSecurityInfoCard extends GetView<EmployeeCardController> {
         decoration: BoxDecoration(
           color: AppColors.cardBackground,
           borderRadius: BorderRadius.circular(16.r),
-          border: Border.all(
-            color: AppColors.borderColor,
-            width: 1.w,
-          ),
+          border: Border.all(color: AppColors.borderColor, width: 1.w),
           boxShadow: [
             BoxShadow(
               color: AppColors.primary.withValues(alpha: 0.05),
@@ -122,17 +119,14 @@ class CardSecurityInfoCard extends GetView<EmployeeCardController> {
                     ),
 
                     AppSpaces.vSpace14,
-                    Container(
-                      height: 1.h,
-                      color: AppColors.borderColor,
-                    ),
+                    Container(height: 1.h, color: AppColors.borderColor),
                     AppSpaces.vSpace12,
 
                     // Key Security Properties Grid
                     _buildSecurityRow(
                       icon: Icons.business_rounded,
                       title: 'Issuing Authority',
-                      value: 'SoftGenie Global HQ • Cryptographic Keystore',
+                      value: 'Softech Business Services Global HQ • Cryptographic Keystore',
                     ),
                     AppSpaces.vSpace10,
                     _buildSecurityRow(
@@ -157,10 +151,7 @@ class CardSecurityInfoCard extends GetView<EmployeeCardController> {
               ),
 
               // Bottom Signature Accent Strip (3.h)
-              Container(
-                height: 3.h,
-                color: AppColors.secondary,
-              ),
+              Container(height: 3.h, color: AppColors.secondary),
             ],
           ),
         ),
@@ -176,11 +167,7 @@ class CardSecurityInfoCard extends GetView<EmployeeCardController> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(
-          icon,
-          size: 15.sp,
-          color: AppColors.secondary,
-        ),
+        Icon(icon, size: 15.sp, color: AppColors.secondary),
         AppSpaces.hSpace10,
         Expanded(
           child: Column(
