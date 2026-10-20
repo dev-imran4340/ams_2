@@ -79,6 +79,10 @@ import '../screens/organization/employee_kiosk_dashboard/view/employee_kiosk_das
 import '../screens/organization/employee_kiosk_dashboard/controller/kiosk_employee_controller.dart';
 import '../screens/organization/employee_kiosk_dashboard/repo/kiosk_employee_repo.dart';
 
+import '../screens/attendance_actions/view/attendance_actions_view.dart';
+import '../screens/attendance_actions/controller/attendance_actions_controller.dart';
+import '../screens/attendance_actions/repo/attendance_actions_repo.dart';
+
 class AppPages {
   // Initial Entry Route
   static const INITIAL = Routes.SPLASH;
@@ -337,5 +341,19 @@ class AppPages {
         );
       }),
     ),
+
+    // 19. Individual Attendance Actions Hub & Break Management
+    GetPage(
+      name: Routes.ATTENDANCE_ACTIONS,
+      page: () => const AttendanceActionsView(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => AttendanceActionsRepo(), fenix: true);
+        Get.lazyPut(
+          () => AttendanceActionsController(repo: Get.find()),
+          fenix: true,
+        );
+      }),
+    ),
   ];
 }
+

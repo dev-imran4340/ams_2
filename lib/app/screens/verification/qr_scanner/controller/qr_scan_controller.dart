@@ -55,6 +55,7 @@ class QRScanController extends GetxController
 
     // 2. Initialize hardware MobileScannerController
     scannerController = MobileScannerController(
+      autoStart: false,
       detectionSpeed: DetectionSpeed.normal,
       detectionTimeoutMs: 300,
       facing: CameraFacing.back,

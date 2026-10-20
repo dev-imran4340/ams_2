@@ -92,7 +92,7 @@ class _LoginFormState extends State<LoginForm> {
                 return null;
               },
             ),
-          ),
+          ), 
           AppSpaces.vSpace12,
 
           // Remember Me & Forgot Password Row

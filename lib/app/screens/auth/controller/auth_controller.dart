@@ -73,7 +73,7 @@ class AuthController extends GetxController {
     // } finally {
     //   isLoading.value = false;
     // }
-    Get.offNamed(Routes.ORG_MODE_SELECTION);
+    Get.offNamed(Routes.INDEX);
   }
 
   Future<void> loginWithBiometrics() async {

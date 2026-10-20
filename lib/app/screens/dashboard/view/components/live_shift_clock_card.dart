@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
+import 'package:flutter/services.dart';
 import '../../../../core/utils/app_colors.dart';
 import '../../../../core/utils/app_spaces.dart';
 import '../../../../core/utils/app_text_styles.dart';
+import '../../../../routes/app_routes.dart';
 import '../../controller/dashboard_controller.dart';
 import 'attendance_slider_button.dart';
 
@@ -331,6 +333,70 @@ class LiveShiftClockCard extends GetView<DashboardController> {
 
                   // 4. Interactive Slide-to-Confirm Punch Button
                   const AttendanceSliderButton(),
+
+                  AppSpaces.vSpace10,
+
+                  // 5. Open Dedicated Attendance Actions & Break Management Portal
+                  InkWell(
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      Get.toNamed(Routes.ATTENDANCE_ACTIONS);
+                    },
+                    borderRadius: BorderRadius.circular(10.r),
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 12.w,
+                        vertical: 9.h,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.secondary.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(10.r),
+                        border: Border.all(
+                          color: AppColors.secondary.withValues(alpha: 0.25),
+                          width: 1.w,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.touch_app_rounded,
+                                size: 16.sp,
+                                color: AppColors.secondary,
+                              ),
+                              AppSpaces.hSpace8,
+                              Text(
+                                'Attendance Actions & Breaks Hub',
+                                style: AppTextStyles.text12.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textColor,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Row(
+                            children: [
+                              Text(
+                                'Breaks & More',
+                                style: AppTextStyles.text10.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.secondary,
+                                ),
+                              ),
+                              AppSpaces.hSpace4,
+                              Icon(
+                                Icons.arrow_forward_ios_rounded,
+                                size: 11.sp,
+                                color: AppColors.secondary,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
