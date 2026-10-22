@@ -57,7 +57,7 @@ class RecentActivityTimeline extends StatelessWidget {
         AppSpaces.vSpace12,
 
         // Timeline Card Container
-        Container(
+        Container(    
           decoration: BoxDecoration(
             color: AppColors.cardBackground,
             borderRadius: BorderRadius.circular(16.r),

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
@@ -5,6 +7,7 @@ import 'package:get/get.dart';
 import '../../../../core/utils/app_colors.dart';
 import '../../../../core/utils/app_spaces.dart';
 import '../../../../core/utils/app_text_styles.dart';
+import '../../../../core/widgets/custom_card.dart';
 import '../../controller/profile_controller.dart';
 
 class ProfileHeaderCard extends GetView<ProfileController> {
@@ -15,31 +18,18 @@ class ProfileHeaderCard extends GetView<ProfileController> {
     return Obx(() {
       final p = controller.profile.value;
       final name = p?.name ?? 'Malik Muhammad Imran';
-      final designation = p?.designation ?? 'Senior Software Engineer & Tech Lead';
+      final designation =
+          p?.designation ?? 'Senior Software Engineer & Tech Lead';
       final employeeId = p?.employeeId ?? 'EMP-1024';
       final department = p?.department ?? 'Engineering';
       final tenure = p?.tenureYears ?? '2.8 Yrs';
       final score = p?.attendanceScore ?? 98.4;
       final initials = p?.initials ?? 'MI';
+      final avatarPath = p?.avatarPath;
+      final hasLocalAvatar =
+          avatarPath != null && File(avatarPath).existsSync();
 
-      return Container(
-        width: double.infinity,
-        padding: EdgeInsets.all(16.r),
-        decoration: BoxDecoration(
-          color: AppColors.cardBackground,
-          borderRadius: BorderRadius.circular(18.r),
-          border: Border.all(
-            color: AppColors.borderColor,
-            width: 1.w,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primary.withValues(alpha: 0.05),
-              blurRadius: 16.r,
-              offset: Offset(0, 4.h),
-            ),
-          ],
-        ),
+      return CustomCard(
         child: Column(
           children: [
             // Avatar with Online Beacon and Profile Meta
@@ -53,14 +43,16 @@ class ProfileHeaderCard extends GetView<ProfileController> {
                       width: 62.r,
                       height: 62.r,
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            AppColors.primary,
-                            AppColors.accentNavy,
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
+                        gradient: !hasLocalAvatar
+                            ? const LinearGradient(
+                                colors: [
+                                  AppColors.primary,
+                                  AppColors.accentNavy,
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              )
+                            : null,
                         shape: BoxShape.circle,
                         border: Border.all(
                           color: AppColors.secondary.withValues(alpha: 0.4),
@@ -75,12 +67,21 @@ class ProfileHeaderCard extends GetView<ProfileController> {
                         ],
                       ),
                       alignment: Alignment.center,
-                      child: Text(
-                        initials,
-                        style: AppTextStyles.text22.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.white,
-                        ),
+                      child: ClipOval(
+                        child: hasLocalAvatar
+                            ? Image.file(
+                                File(avatarPath),
+                                width: 62.r,
+                                height: 62.r,
+                                fit: BoxFit.cover,
+                              )
+                            : Text(
+                                initials,
+                                style: AppTextStyles.text22.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.white,
+                                ),
+                              ),
                       ),
                     ),
 
@@ -177,7 +178,45 @@ class ProfileHeaderCard extends GetView<ProfileController> {
               ],
             ),
 
-            AppSpaces.vSpace16,
+            AppSpaces.vSpace14,
+
+            // Quick Action: Edit Profile Button
+            InkWell(
+              onTap: controller.navigateToEditProfile,
+              borderRadius: BorderRadius.circular(10.r),
+              child: Container(
+                width: double.infinity,
+                padding: EdgeInsets.symmetric(vertical: 9.h),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(10.r),
+                  border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.15),
+                    width: 1.w,
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.edit_note_rounded,
+                      size: 18.sp,
+                      color: AppColors.primary,
+                    ),
+                    AppSpaces.hSpace6,
+                    Text(
+                      'Edit Profile & Personal Details',
+                      style: AppTextStyles.text12.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            AppSpaces.vSpace14,
 
             // Quick Stats Pill Row: Department | Tenure | Attendance
             Container(

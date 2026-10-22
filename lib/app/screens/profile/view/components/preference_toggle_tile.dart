@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import '../../../../core/utils/app_colors.dart';
 import '../../../../core/utils/app_spaces.dart';
 import '../../../../core/utils/app_text_styles.dart';
+import '../../../../core/widgets/custom_card.dart';
 import '../../../../core/widgets/custom_snackbar.dart';
 import '../../controller/profile_controller.dart';
 
@@ -14,29 +15,14 @@ class PreferenceToggleHub extends GetView<ProfileController> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: AppColors.cardBackground,
-        borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(
-          color: AppColors.borderColor,
-          width: 1.w,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.04),
-            blurRadius: 12.r,
-            offset: Offset(0, 3.h),
-          ),
-        ],
-      ),
+    return CustomCard(
+      padding: EdgeInsets.zero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header Section
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
             child: Row(
               children: [
                 Container(
@@ -184,7 +170,7 @@ class PreferenceToggleHub extends GetView<ProfileController> {
     required ValueChanged<bool> onChanged,
   }) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
       child: Row(
         children: [
           Container(
@@ -244,7 +230,7 @@ class PreferenceToggleHub extends GetView<ProfileController> {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 11.h),
+        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 11.h),
         child: Row(
           children: [
             Container(

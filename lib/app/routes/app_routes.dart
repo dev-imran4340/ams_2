@@ -25,6 +25,7 @@ abstract class Routes {
   static const COMPANY_DASHBOARD = '/company-dashboard';
   static const EMPLOYEE_KIOSK_DASHBOARD = '/employee-kiosk-dashboard';
   static const ATTENDANCE_ACTIONS = '/attendance-actions';
+  static const EDIT_PROFILE = '/edit-profile';
 }
 
 

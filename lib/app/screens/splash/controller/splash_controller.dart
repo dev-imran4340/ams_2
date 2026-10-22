@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import '../../../api/app_preferences.dart';
 import '../../../api/exception_handler.dart';
+import '../../../core/utils/device_info_helper.dart';
 import '../../../routes/app_routes.dart';
 
 class SplashController extends GetxController {
@@ -26,6 +27,9 @@ class SplashController extends GetxController {
 
     try {
       isLoading.value = true;
+
+      // Extract hardware device name and ID, save to AppPreferences, and print to console
+      await DeviceInfoHelper.initDeviceInfo();
 
       // Allow animations and executive brand presentation to complete gracefully
       await Future.delayed(const Duration(milliseconds: 2200));

@@ -10,29 +10,43 @@ import 'exception_handler.dart';
 
 enum HttpMethod { get, post, put, patch, delete }
 
+/// Enterprise-grade, centralized HTTP network engine for the entire AMS 2 suite.
+/// Strictly enforces the Layer Flow Policy: View -> Controller -> Repository -> ApiClient.
 class ApiClient {
   static const Duration timeoutDuration = Duration(seconds: 30);
 
-  /// Pre-flight Internet check
+  /// Pre-flight Internet check with platform-safe exception fallback
   static Future<bool> hasInternetConnection() async {
-    final connectivityResults = await Connectivity().checkConnectivity();
-    if (connectivityResults.contains(ConnectivityResult.none) ||
-        connectivityResults.isEmpty) {
-      return false;
+    try {
+      final connectivityResults = await Connectivity().checkConnectivity();
+      if (connectivityResults.contains(ConnectivityResult.none) ||
+          connectivityResults.isEmpty) {
+        return false;
+      }
+      return true;
+    } catch (_) {
+      // In case of platform channel error, allow the request to attempt standard socket connection
+      return true;
     }
-    return true;
   }
 
-  /// Default headers with Auth Bearer token from AppPreferences
+  /// Default headers with Auth Bearer token, device binding, and JSON content-type
   static Map<String, String> _buildHeaders(Map<String, String>? customHeaders) {
     final headers = <String, String>{
       'Content-Type': 'application/json',
       'Accept': 'application/json',
+      'X-App-Version': '2.0.0',
+      'X-Client-Platform': defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android',
     };
 
     final token = AppPreferences.token;
     if (token != null && token.isNotEmpty) {
       headers['Authorization'] = 'Bearer $token';
+    }
+
+    final deviceId = AppPreferences.deviceId;
+    if (deviceId != null && deviceId.isNotEmpty) {
+      headers['X-Device-Id'] = deviceId;
     }
 
     if (customHeaders != null) {
@@ -146,6 +160,7 @@ class ApiClient {
         Get.log(
           '🏁 [API Response] ${response.statusCode} in ${stopwatch.elapsedMilliseconds}ms -> $uri\n'
           'Origin: $tag\n'
+          'Headers: ${response.headers}\n'
           'Response Body: ${response.body}',
         );
       }
@@ -166,9 +181,14 @@ class ApiClient {
         );
       }
 
-      // Only status 200 and 201 are considered success
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        if (response.body.isEmpty) return null;
+      // Status 200 (OK), 201 (Created), and 204 (No Content) are valid success responses
+      if (response.statusCode == 200 ||
+          response.statusCode == 201 ||
+          response.statusCode == 204) {
+        // 204 No Content has no body according to official doc/api.md
+        if (response.statusCode == 204 || response.body.trim().isEmpty) {
+          return <String, dynamic>{'success': true, 'data': null};
+        }
         try {
           return jsonDecode(response.body);
         } catch (_) {
@@ -178,6 +198,7 @@ class ApiClient {
         throw ExceptionHandler.handleResponse(
           response.statusCode,
           response.body,
+          headers: response.headers,
           tag: tag,
           showToast: showToastOnError,
         );
@@ -254,6 +275,7 @@ class ApiClient {
         Get.log(
           '🏁 [API Multipart Response] ${response.statusCode} in ${stopwatch.elapsedMilliseconds}ms -> $uri\n'
           'Origin: $tag\n'
+          'Headers: ${response.headers}\n'
           'Response Body: ${response.body}',
         );
       }
@@ -274,8 +296,13 @@ class ApiClient {
         );
       }
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        if (response.body.isEmpty) return null;
+      // Status 200, 201, 204 are valid success responses
+      if (response.statusCode == 200 ||
+          response.statusCode == 201 ||
+          response.statusCode == 204) {
+        if (response.statusCode == 204 || response.body.trim().isEmpty) {
+          return <String, dynamic>{'success': true, 'data': null};
+        }
         try {
           return jsonDecode(response.body);
         } catch (_) {
@@ -285,6 +312,7 @@ class ApiClient {
         throw ExceptionHandler.handleResponse(
           response.statusCode,
           response.body,
+          headers: response.headers,
           tag: tag,
           showToast: showToastOnError,
         );
@@ -298,5 +326,31 @@ class ApiClient {
         showToast: showToastOnError,
       );
     }
+  }
+
+  /// Convenience method that automatically unwraps standard 'data' envelope from doc/api.md
+  static Future<dynamic> requestData({
+    required HttpMethod method,
+    required String endpoint,
+    dynamic body,
+    Map<String, dynamic>? queryParameters,
+    Map<String, String>? headers,
+    String tag = 'ApiClient -> requestData()',
+    bool showToastOnError = true,
+  }) async {
+    final response = await request(
+      method: method,
+      endpoint: endpoint,
+      body: body,
+      queryParameters: queryParameters,
+      headers: headers,
+      tag: tag,
+      showToastOnError: showToastOnError,
+    );
+
+    if (response is Map<String, dynamic> && response.containsKey('data')) {
+      return response['data'];
+    }
+    return response;
   }
 }

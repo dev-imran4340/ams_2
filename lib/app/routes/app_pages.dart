@@ -7,6 +7,7 @@ import '../screens/splash/view/splash_view.dart';
 import '../screens/splash/controller/splash_controller.dart';
 
 import '../screens/auth/view/login_view.dart';
+import '../screens/auth/view/forgot_password_view.dart';
 import '../screens/auth/controller/auth_controller.dart';
 import '../screens/auth/repo/auth_repo.dart';
 
@@ -83,6 +84,10 @@ import '../screens/attendance_actions/view/attendance_actions_view.dart';
 import '../screens/attendance_actions/controller/attendance_actions_controller.dart';
 import '../screens/attendance_actions/repo/attendance_actions_repo.dart';
 
+import '../screens/edit_profile/view/edit_profile_view.dart';
+import '../screens/edit_profile/controller/edit_profile_controller.dart';
+import '../screens/edit_profile/repo/edit_profile_repo.dart';
+
 class AppPages {
   // Initial Entry Route
   static const INITIAL = Routes.SPLASH;
@@ -101,6 +106,16 @@ class AppPages {
     GetPage(
       name: Routes.LOGIN,
       page: () => const LoginView(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => AuthRepo(), fenix: true);
+        Get.lazyPut(() => AuthController(repo: Get.find()), fenix: true);
+      }),
+    ),
+
+    // 2.1 Forgot Password Screen
+    GetPage(
+      name: Routes.FORGOT_PASSWORD,
+      page: () => const ForgotPasswordView(),
       binding: BindingsBuilder(() {
         Get.lazyPut(() => AuthRepo(), fenix: true);
         Get.lazyPut(() => AuthController(repo: Get.find()), fenix: true);
@@ -350,6 +365,19 @@ class AppPages {
         Get.lazyPut(() => AttendanceActionsRepo(), fenix: true);
         Get.lazyPut(
           () => AttendanceActionsController(repo: Get.find()),
+          fenix: true,
+        );
+      }),
+    ),
+
+    // 20. Edit Employee Profile Screen
+    GetPage(
+      name: Routes.EDIT_PROFILE,
+      page: () => const EditProfileView(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => EditProfileRepo(), fenix: true);
+        Get.lazyPut(
+          () => EditProfileController(repo: Get.find()),
           fenix: true,
         );
       }),

@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import '../../../../core/utils/app_colors.dart';
 import '../../../../core/utils/app_spaces.dart';
 import '../../../../core/utils/app_text_styles.dart';
+import '../../../../core/widgets/custom_card.dart';
 import '../../controller/profile_controller.dart';
 
 class AssignedShiftCard extends GetView<ProfileController> {
@@ -21,28 +22,14 @@ class AssignedShiftCard extends GetView<ProfileController> {
       final location =
           p?.workLocation ?? 'Softech Business Services HQ • 4th Floor';
 
-      return Container(
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color: AppColors.cardBackground,
-          borderRadius: BorderRadius.circular(16.r),
-          border: Border.all(color: AppColors.borderColor, width: 1.w),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primary.withValues(alpha: 0.04),
-              blurRadius: 12.r,
-              offset: Offset(0, 3.h),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(16.r),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+      return CustomCard(
+        padding: EdgeInsets.zero,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Header Section
               Padding(
-                padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -131,7 +118,7 @@ class AssignedShiftCard extends GetView<ProfileController> {
 
               // Details Body
               Padding(
-                padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
                 child: Column(
                   children: [
                     // Row 1: Shift Timing
@@ -178,10 +165,9 @@ class AssignedShiftCard extends GetView<ProfileController> {
               // Dedicated bottom accent strip
             ],
           ),
-        ),
-      );
-    });
-  }
+        );
+      });
+    }
 
   Widget _buildShiftDetailRow({
     required IconData icon,

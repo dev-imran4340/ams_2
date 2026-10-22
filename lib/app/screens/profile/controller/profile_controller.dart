@@ -45,6 +45,26 @@ class ProfileController extends GetxController {
     }
   }
 
+  /// Updates reactive profile instantly in-memory
+  void updateProfileLocally(EmployeeProfileModel updated) {
+    profile.value = updated;
+    biometricPunch.value = updated.biometricEnabled;
+    shiftReminders.value = updated.remindersEnabled;
+    geofenceAutoCheck.value = updated.geofenceAutoCheck;
+  }
+
+  /// Navigates to Edit Profile Screen and refreshes upon return
+  Future<void> navigateToEditProfile() async {
+    HapticFeedback.lightImpact();
+    final result = await Get.toNamed(
+      Routes.EDIT_PROFILE,
+      arguments: profile.value,
+    );
+    if (result == true) {
+      await loadProfile();
+    }
+  }
+
   /// Toggles biometric quick authentication
   void toggleBiometric(bool val) {
     HapticFeedback.selectionClick();
