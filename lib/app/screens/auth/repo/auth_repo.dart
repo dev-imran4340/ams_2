@@ -40,7 +40,11 @@ class AuthRepo {
       tag: 'AuthRepo / LoginScreen -> login()',
     );
 
-    return LoginResponseModel.fromJson(response);
+    if (response is Map) {
+      return LoginResponseModel.fromJson(Map<String, dynamic>.from(response));
+    }
+
+    return LoginResponseModel();
   }
 
   /// Verifies Two-Factor challenge via POST /api/v1/auth/two-factor.

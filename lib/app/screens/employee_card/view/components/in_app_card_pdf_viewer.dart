@@ -352,7 +352,7 @@ class InAppCardPdfViewer extends GetView<EmployeeCardController> {
           _buildDocumentDataRow('Employee Reference ID', card.employeeId),
           _buildDocumentDataRow('Job Designation', card.designation),
           _buildDocumentDataRow('Assigned Department', card.department),
-          _buildDocumentDataRow('Medical Blood Group', card.bloodGroup),
+          _buildDocumentDataRow('Medical Blood Group', card.bloodGroup ?? 'N/A'),
           _buildDocumentDataRow('Emergency Contact', card.emergencyContact),
           _buildDocumentDataRow('Official Date of Joining', card.joiningDate),
           _buildDocumentDataRow('Credential Validity Period', card.validTill),

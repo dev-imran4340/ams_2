@@ -1,68 +1,84 @@
 import 'package:ams_2/app/screens/employee_card/controller/employee_card_controller.dart';
 import 'package:ams_2/app/screens/employee_card/model/employee_card_model.dart';
 import 'package:ams_2/app/screens/employee_card/repo/employee_card_repo.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:get_storage/get_storage.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  setUpAll(() async {
+    const MethodChannel channel =
+        MethodChannel('plugins.flutter.io/path_provider');
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+      return '.';
+    });
+    await GetStorage.init();
+  });
+
   group('EmployeeCardDetails Model Tests', () {
     test('serializes and deserializes correctly', () {
       const details = EmployeeCardDetails(
-        name: 'Muhammad Imran',
-        employeeId: 'SFT-1024',
-        designation: 'Senior Flutter Engineer',
-        department: 'Mobile & AI Solutions',
-        bloodGroup: 'O+',
-        emergencyContact: '+92 300 1234567',
-        joiningDate: '15 Jan 2024',
-        validTill: '31 Dec 2027',
-        qrPayload: 'AMS2::SFT-1024::ORG-HQ::SECURE_TOKEN',
-        pdfDocumentUrl:
-            'https://mock.Softech Business Services.com/cards/SFT-1024.pdf',
+        company: EmployeeCardCompany(
+          name: 'Kumash',
+          shortName: 'Ku',
+          phone: '03155109822',
+          address: 'test ad 1, Islamabad, 44000',
+        ),
+        name: 'Maryam Malik',
+        employeeNumber: 'EMP-0002',
+        designation: 'Sales Manager',
+        department: 'Sales',
+        cardNo: 1,
+        issuedOn: '2023-07-15',
+        colour: '#7f1d1d',
+        orientation: 'vertical',
+        qrValue: 'AMS1:MX0zbHeRVbzPIlBb8SjAwBChWK0oZvsb',
+        pdfDocumentUrl: 'https://laravel.ams-hrpayroll.com/cards/EMP-0002.pdf',
         isNfcVerified: true,
       );
 
       final json = details.toJson();
-      expect(json['name'], 'Muhammad Imran');
-      expect(json['employee_id'], 'SFT-1024');
-      expect(json['designation'], 'Senior Flutter Engineer');
-      expect(json['blood_group'], 'O+');
-      expect(json['is_nfc_verified'], true);
+      expect(json['name'], 'Maryam Malik');
+      expect(json['employee_number'], 'EMP-0002');
+      expect(json['designation'], 'Sales Manager');
+      expect(json['colour'], '#7f1d1d');
+      expect(json['orientation'], 'vertical');
+      expect(json['card_no'], 1);
 
       final parsed = EmployeeCardDetails.fromJson(json);
       expect(parsed.name, details.name);
-      expect(parsed.employeeId, details.employeeId);
-      expect(parsed.bloodGroup, 'O+');
-      expect(parsed.validTill, '31 Dec 2027');
+      expect(parsed.employeeId, 'EMP-0002');
+      expect(parsed.company.name, 'Kumash');
+      expect(parsed.cardNo, 1);
+      expect(parsed.colour, '#7f1d1d');
+      expect(parsed.orientation, 'vertical');
+      expect(parsed.initials, 'MM');
       expect(parsed.isNfcVerified, true);
     });
 
     test('copyWith preserves existing fields and modifies targeted values', () {
-      const details = EmployeeCardDetails(
-        name: 'Muhammad Imran',
-        employeeId: 'SFT-1024',
-        designation: 'Senior Flutter Engineer',
-        department: 'Mobile & AI Solutions',
-        bloodGroup: 'O+',
-        emergencyContact: '+92 300 1234567',
-        joiningDate: '15 Jan 2024',
-        validTill: '31 Dec 2027',
-        qrPayload: 'AMS2::SFT-1024::ORG-HQ::SECURE_TOKEN',
-        pdfDocumentUrl:
-            'https://mock.Softech Business Services.com/cards/SFT-1024.pdf',
-        isNfcVerified: true,
-      );
-
-      final modified = details.copyWith(
-        designation: 'Principal Architect',
+      final mock = EmployeeCardDetails.mock();
+      final modified = mock.copyWith(
+        designation: 'VP of Global Sales',
         validTill: '31 Dec 2030',
       );
 
-      expect(modified.name, 'Muhammad Imran');
-      expect(modified.designation, 'Principal Architect');
+      expect(modified.name, 'Maryam Malik');
+      expect(modified.designation, 'VP of Global Sales');
       expect(modified.validTill, '31 Dec 2030');
-      expect(modified.employeeId, 'SFT-1024');
+      expect(modified.employeeId, 'EMP-0002');
+      expect(modified.colour, '#012b43');
+      expect(modified.orientation, 'vertical');
+    });
+
+    test('initials and cardColor helpers evaluate properly', () {
+      final card = EmployeeCardDetails.mock();
+      expect(card.initials, 'MM');
+      expect(card.cardColor.toARGB32(), 0xff012b43);
+      expect(card.cardSubtitle, contains('Card 1'));
     });
   });
 
@@ -76,10 +92,11 @@ void main() {
     test('fetchCardDetails returns valid authenticated details', () async {
       final card = await repo.fetchCardDetails();
       expect(card, isNotNull);
-      expect(card!.employeeId, 'SFT-1024');
-      expect(card.name, 'Muhammad Imran');
+      expect(card!.employeeId, 'EMP-0002');
+      expect(card.name, 'Maryam Malik');
       expect(card.isNfcVerified, true);
-      expect(card.qrPayload.contains('SFT-1024'), true);
+      expect(card.qrPayload.contains('AMS1:'), true);
+      expect(card.orientation, 'vertical');
     });
 
     test(
@@ -114,7 +131,7 @@ void main() {
 
         await controller.loadCardData();
         expect(controller.cardData.value, isNotNull);
-        expect(controller.cardData.value!.employeeId, 'SFT-1024');
+        expect(controller.cardData.value!.employeeId, 'EMP-0002');
         expect(controller.isLoading.value, false);
       },
     );
@@ -128,5 +145,12 @@ void main() {
       controller.flipCard();
       expect(controller.isFlipped.value, false);
     });
+
+    test('downloadCardPdf handles state and triggers without errors', () async {
+      expect(controller.isPdfLoading.value, false);
+      await controller.downloadCardPdf();
+      expect(controller.isPdfLoading.value, false);
+    });
   });
 }
+

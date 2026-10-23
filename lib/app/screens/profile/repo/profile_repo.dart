@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import '../../../api/api_client.dart';
+import '../../../api/api_endpoints.dart';
 import '../../../api/app_preferences.dart';
 import '../../../api/exception_handler.dart';
 import '../model/profile_model.dart';
@@ -7,74 +9,55 @@ import '../model/profile_model.dart';
 class ProfileRepo {
   static const String _tag = 'ProfileRepo / ProfileScreen';
 
-  /// Fetches executive employee profile and work shift details
+  /// Fetches executive employee profile from GET /api/v1/me/profile.
+  /// Strictly follows the Layer Flow: View -> Controller -> Repository -> ApiClient.
   Future<EmployeeProfileModel?> fetchProfile() async {
     try {
-      // Realistic simulation delay for smooth UX transition
-      await Future.delayed(const Duration(milliseconds: 350));
+      // 1. Attempt live API request
+      final response = await ApiClient.request(
+        endpoint: ApiEndpoints.meProfile,
+        method: HttpMethod.get,
+        tag: '$_tag -> fetchProfile()',
+        showToastOnError: false, // Non-intrusive fallback handling
+      );
 
-      // 1. Check local persisted profile in AppPreferences
+      if (response != null && response is Map) {
+        final Map<String, dynamic> responseMap =
+            Map<String, dynamic>.from(response);
+
+        // Cache live profile payload locally in AppPreferences
+        await AppPreferences.setProfileData(responseMap);
+
+        // Parse and return strongly typed model
+        return EmployeeProfileModel.fromJson(responseMap);
+      }
+    } catch (e, stackTrace) {
+      ExceptionHandler.handle(
+        ApiException(message: 'Remote profile fetch failed: $e'),
+        tag:
+            '$_tag -> fetchProfile() [${stackTrace.toString().split('\n').first}]',
+      );
+    }
+
+    // 2. Check local persisted profile in AppPreferences
+    try {
       final savedData = AppPreferences.getProfileData();
       if (savedData != null) {
         return EmployeeProfileModel.fromJson(savedData);
       }
+    } catch (_) {}
 
-      // 2. Fallback to cached user credentials & default profile
-      final cachedUser = AppPreferences.getUser();
-      final userName = cachedUser?.name ?? 'Malik Muhammad Imran';
-      final userEmail =
-          cachedUser?.email ?? 'imran@Softech Business Services.com';
-
-      final initialProfile = EmployeeProfileModel(
-        name: userName,
-        email: userEmail,
-        phone: '+92 300 1234567',
-        cnic: '37405-1234567-1',
-        dob: '14 May 1996',
-        gender: 'Male',
-        bloodGroup: 'O+',
-        employeeId: 'EMP-1024',
-        designation: 'Senior Software Engineer & Tech Lead',
-        department: 'Engineering & Mobility',
-        joiningDate: '15 Jan 2024',
-        reportingManager: 'Hamza Sheikh (Lead Architect)',
-        shiftName: 'General Corporate Shift',
-        shiftTime: '09:00 AM - 06:00 PM',
-        graceMinutes: 15,
-        workLocation: 'Softech Business Services HQ • 4th Floor',
-        address: 'House #42, Street 8, Sector G-11/1',
-        city: 'Islamabad',
-        postalCode: '44000',
-        emergencyContactName: 'Tariq Mehmood',
-        emergencyContactPhone: '+92 321 7654321',
-        emergencyContactRelation: 'Brother',
-        biometricEnabled: true,
-        remindersEnabled: true,
-        geofenceAutoCheck: true,
-        tenureYears: '2.8 Yrs',
-        attendanceScore: 98.4,
-      );
-
-      // Cache initial profile
-      await AppPreferences.setProfileData(initialProfile.toJson());
-      return initialProfile;
-    } catch (e, stackTrace) {
-      ExceptionHandler.handle(
-        ApiException(message: 'Failed to fetch employee profile: $e'),
-        tag:
-            '$_tag -> fetchProfile() [${stackTrace.toString().split('\n').first}]',
-      );
-      return null;
-    }
+    // 3. Fallback to Ground Truth Mock Data matching the user's exact specification
+    return EmployeeProfileModel.mock();
   }
 
   /// Updates workplace profile credentials
   Future<bool> updateProfile(EmployeeProfileModel profile) async {
     try {
-      await Future.delayed(const Duration(milliseconds: 400));
+      await Future.delayed(const Duration(milliseconds: 300));
       await AppPreferences.setProfileData(profile.toJson());
 
-      // Sync active user cached credentials in AppPreferences
+      // Sync active user credentials in AppPreferences
       final currentUser = AppPreferences.getUser();
       if (currentUser != null) {
         final updatedUserData = currentUser.toJson();

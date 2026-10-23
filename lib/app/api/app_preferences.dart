@@ -1,4 +1,5 @@
 import 'package:get_storage/get_storage.dart';
+import '../core/utils/encryption_helper.dart';
 import '../screens/auth/model/auth_model.dart';
 
 /// Centralized local storage wrapper powered by GetStorage.
@@ -14,6 +15,10 @@ class AppPreferences {
   static const String _keyThemeMode = 'is_dark_mode';
   static const String _keyRememberMe = 'remember_me';
   static const String _keySavedEmail = 'saved_email';
+  static const String _keyEncryptedLogin = 'enc_saved_login';
+  static const String _keyEncryptedPassword = 'enc_saved_password';
+  static const String _keyEncryptedCompanyCode = 'enc_saved_company_code';
+  static const String _keySavedIsEmployeeMode = 'saved_is_emp_mode';
   static const String _keyDeviceName = 'cached_device_name';
   static const String _keyDeviceId = 'cached_device_id';
   static const String _keyProfile = 'employee_profile_data';
@@ -22,7 +27,9 @@ class AppPreferences {
   static const String _keyModules = 'server_paid_modules';
   static const String _keyBadges = 'server_menu_badges';
   static const String _keyCompany = 'server_company_data';
+  static const String _keyCard = 'employee_card_data';
   static const String _key2FAChallenge = 'pending_2fa_challenge';
+  static const String _keyMeData = 'server_me_full_payload';
 
   /// Initialize local storage container (Must be invoked before runApp in main.dart)
   static Future<void> init() async {
@@ -76,7 +83,9 @@ class AppPreferences {
     await _box.remove(_keyModules);
     await _box.remove(_keyBadges);
     await _box.remove(_keyCompany);
+    await _box.remove(_keyCard);
     await _box.remove(_key2FAChallenge);
+    await _box.remove(_keyMeData);
     await _box.write(_keyIsLoggedIn, false);
   }
 
@@ -122,6 +131,11 @@ class AppPreferences {
     }
   }
 
+  static String? get userId => user?['id']?.toString();
+  static String? get userName => user?['name']?.toString();
+  static String? get userEmail => user?['email']?.toString();
+  static bool get isTwoFactorEnabled => user?['two_factor_enabled'] == true;
+
   // --- Employee Profile Data ---
 
   static Map<String, dynamic>? getProfileData() =>
@@ -132,6 +146,19 @@ class AppPreferences {
       await _box.remove(_keyProfile);
     } else {
       await _box.write(_keyProfile, data);
+    }
+  }
+
+  // --- Digital Employee ID Card Data (from GET /me/card) ---
+
+  static Map<String, dynamic>? getCardData() =>
+      _box.read<Map<String, dynamic>>(_keyCard);
+
+  static Future<void> setCardData(Map<String, dynamic>? data) async {
+    if (data == null) {
+      await _box.remove(_keyCard);
+    } else {
+      await _box.write(_keyCard, data);
     }
   }
 
@@ -185,6 +212,15 @@ class AppPreferences {
     }
   }
 
+  /// Verifies if a paid company module is enabled (e.g. 'attendance', 'payroll', 'leave').
+  /// Note: 'core' module is always enabled.
+  static bool hasModule(String moduleKey) {
+    if (moduleKey == 'core') return true;
+    final modList = modules;
+    if (modList == null) return false;
+    return modList.contains(moduleKey);
+  }
+
   static Map<String, dynamic>? get badges =>
       _box.read<Map<String, dynamic>>(_keyBadges);
 
@@ -207,8 +243,62 @@ class AppPreferences {
     }
   }
 
+  static String? get companyId => company?['id']?.toString();
   static String? get companyCode => company?['code']?.toString();
   static String? get companyName => company?['name']?.toString();
+
+  // --- Full Identity Session Hydration (from GET /me) ---
+
+  static Map<String, dynamic>? get meData =>
+      _box.read<Map<String, dynamic>>(_keyMeData);
+
+  /// Saves the complete /me session payload. Persists full raw payload and
+  /// separately isolates user, company, permissions, modules, dynamic menu, and badges.
+  static Future<void> saveMeData(dynamic rawPayload) async {
+    if (rawPayload == null || rawPayload is! Map) return;
+
+    final Map<String, dynamic> rawMap =
+        Map<String, dynamic>.from(rawPayload);
+    final Map<String, dynamic> data = (rawMap['data'] is Map)
+        ? Map<String, dynamic>.from(rawMap['data'] as Map)
+        : rawMap;
+
+    // 1. Persist full session payload
+    await _box.write(_keyMeData, data);
+
+    // 2. Persist user information separately
+    if (data['user'] is Map) {
+      final userMap = Map<String, dynamic>.from(data['user'] as Map);
+      await setUser(userMap);
+    }
+
+    // 3. Persist company information separately
+    if (data['company'] is Map) {
+      final compMap = Map<String, dynamic>.from(data['company'] as Map);
+      await setCompany(compMap);
+    }
+
+    // 4. Persist permissions map
+    if (data['permissions'] is Map) {
+      await setPermissions(
+          Map<String, dynamic>.from(data['permissions'] as Map));
+    }
+
+    // 5. Persist modules list
+    if (data['modules'] is List) {
+      await setModules(List<dynamic>.from(data['modules'] as List));
+    }
+
+    // 6. Persist dynamic menu list
+    if (data['menu'] is List) {
+      await setMenu(List<dynamic>.from(data['menu'] as List));
+    }
+
+    // 7. Persist badges map
+    if (data['badges'] is Map) {
+      await setBadges(Map<String, dynamic>.from(data['badges'] as Map));
+    }
+  }
 
   // --- Two-Factor Authentication Challenge ---
 
@@ -223,7 +313,7 @@ class AppPreferences {
     }
   }
 
-  // --- Remember Me & Saved Email ---
+  // --- Remember Me & Encrypted Credentials ---
 
   static bool get rememberMe => _box.read<bool>(_keyRememberMe) ?? false;
 
@@ -239,6 +329,85 @@ class AppPreferences {
     } else {
       await _box.write(_keySavedEmail, email);
     }
+  }
+
+  /// Persists encrypted login credentials when "Remember Me" is enabled
+  static Future<void> saveRememberedCredentials({
+    required String login,
+    required String password,
+    String? companyCode,
+    required bool isEmployeeNumberMode,
+  }) async {
+    final devId = deviceId;
+    final encLogin = EncryptionHelper.encrypt(login, deviceId: devId);
+    final encPass = EncryptionHelper.encrypt(password, deviceId: devId);
+    final encCode = (companyCode != null && companyCode.trim().isNotEmpty)
+        ? EncryptionHelper.encrypt(companyCode.trim(), deviceId: devId)
+        : null;
+
+    if (encLogin != null && encPass != null) {
+      await _box.write(_keyEncryptedLogin, encLogin);
+      await _box.write(_keyEncryptedPassword, encPass);
+      if (encCode != null) {
+        await _box.write(_keyEncryptedCompanyCode, encCode);
+      } else {
+        await _box.remove(_keyEncryptedCompanyCode);
+      }
+      await _box.write(_keySavedIsEmployeeMode, isEmployeeNumberMode);
+      await setRememberMe(true);
+      if (!isEmployeeNumberMode) {
+        await setSavedEmail(login);
+      }
+    }
+  }
+
+  /// Clears stored remembered credentials and resets "Remember Me"
+  static Future<void> clearRememberedCredentials() async {
+    await _box.remove(_keyEncryptedLogin);
+    await _box.remove(_keyEncryptedPassword);
+    await _box.remove(_keyEncryptedCompanyCode);
+    await _box.remove(_keySavedIsEmployeeMode);
+    await setRememberMe(false);
+    await setSavedEmail(null);
+  }
+
+  /// Verifies if valid remembered credentials exist in local storage
+  static bool hasRememberedCredentials() {
+    return rememberMe &&
+        _box.hasData(_keyEncryptedLogin) &&
+        _box.hasData(_keyEncryptedPassword);
+  }
+
+  /// Retrieves the decrypted display identifier of the remembered account (email or employee ID)
+  static String? getSavedLoginIdentifier() {
+    if (!hasRememberedCredentials()) return null;
+    final encLogin = _box.read<String>(_keyEncryptedLogin);
+    return EncryptionHelper.decrypt(encLogin, deviceId: deviceId);
+  }
+
+  /// Decrypts and retrieves stored credentials map
+  static Map<String, dynamic>? getDecryptedCredentials() {
+    if (!hasRememberedCredentials()) return null;
+
+    final encLogin = _box.read<String>(_keyEncryptedLogin);
+    final encPass = _box.read<String>(_keyEncryptedPassword);
+    final encCode = _box.read<String>(_keyEncryptedCompanyCode);
+    final isEmpMode = _box.read<bool>(_keySavedIsEmployeeMode) ?? false;
+
+    final decLogin = EncryptionHelper.decrypt(encLogin, deviceId: deviceId);
+    final decPass = EncryptionHelper.decrypt(encPass, deviceId: deviceId);
+    final decCode = (encCode != null)
+        ? EncryptionHelper.decrypt(encCode, deviceId: deviceId)
+        : null;
+
+    if (decLogin == null || decPass == null) return null;
+
+    return {
+      'login': decLogin,
+      'password': decPass,
+      'companyCode': decCode,
+      'isEmployeeNumberMode': isEmpMode,
+    };
   }
 
   // --- Theme Mode ---

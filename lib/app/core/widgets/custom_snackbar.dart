@@ -39,7 +39,7 @@ class CustomSnackbar {
         backgroundColor: backgroundColor,
         textColor: AppColors.white,
         fontSize: 14.0,
-      );
+      ).catchError((_) => null);
     } catch (_) {
       try {
         Get.rawSnackbar(

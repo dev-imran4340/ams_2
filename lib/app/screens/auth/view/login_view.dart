@@ -7,9 +7,7 @@ import '../../../core/utils/app_colors.dart';
 import '../../../core/utils/app_spaces.dart';
 import '../../../core/utils/app_text_styles.dart';
 import '../../../core/widgets/network_boundary_wrapper.dart';
-import '../components/login_bottom_bar.dart';
 import '../components/login_form.dart';
-import '../components/social_auth_buttons.dart';
 import '../controller/auth_controller.dart';
 
 class LoginView extends GetView<AuthController> {
@@ -96,8 +94,6 @@ class LoginView extends GetView<AuthController> {
                       fit: BoxFit.cover,
                     ),
 
-                    // Centered Welcome & Sign In Text
-
                     // Spacing to move Form Container lower down
                     AppSpaces.vSpace40,
 
@@ -132,49 +128,39 @@ class LoginView extends GetView<AuthController> {
                               Padding(
                                 padding: EdgeInsets.symmetric(
                                   horizontal: 12.w,
-                                  vertical: 14.h,
+                                  vertical: 18.h,
                                 ),
-                              child: Column(
-                                children: [
-                                  Text(
-                                    "Welcome Back!",
-                                    textAlign: TextAlign.center,
-                                    style: AppTextStyles.text30.copyWith(
-                                      color: AppColors.textColor,
-                                      fontWeight: FontWeight.bold,
+                                child: Column(
+                                  children: [
+                                    Text(
+                                      "Welcome Back!",
+                                      textAlign: TextAlign.center,
+                                      style: AppTextStyles.text30.copyWith(
+                                        color: AppColors.textColor,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
-                                  ),
-                                  AppSpaces.vSpace2,
-                                  Text(
-                                    "Sign in to your account to continue",
-                                    textAlign: TextAlign.center,
-                                    style: AppTextStyles.text12.copyWith(
-                                      color: AppColors.textColor,
-                                      fontWeight: FontWeight.w400,
+                                    AppSpaces.vSpace2,
+                                    Text(
+                                      "Sign in to your account to continue",
+                                      textAlign: TextAlign.center,
+                                      style: AppTextStyles.text12.copyWith(
+                                        color: AppColors.textColor,
+                                        fontWeight: FontWeight.w400,
+                                      ),
                                     ),
-                                  ),
-                                  AppSpaces.vSpace20,
-                                  // Modern Form Fields & Primary Action Button
-                                  const LoginForm(),
-
-                                  AppSpaces.vSpace12,
-
-                                  // Social & Quick Biometric Auth Pill Buttons
-                                  const SocialAuthButtons(),
-
-                                  AppSpaces.vSpace12,
-
-                                  // Bottom Sign Up Link
-                                  const LoginBottomBar(),
-                                ],
+                                    AppSpaces.vSpace20,
+                                    // Modern Form Fields & Primary Action Button
+                                    const LoginForm(),
+                                  ],
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
                 ),
               ),
             ),

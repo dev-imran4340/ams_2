@@ -6,6 +6,7 @@ import '../../../api/app_preferences.dart';
 import '../../../api/exception_handler.dart';
 import '../../../core/utils/device_info_helper.dart';
 import '../../../routes/app_routes.dart';
+import '../components/saved_account_sheet.dart';
 import '../components/two_factor_sheet.dart';
 import '../model/auth_model.dart';
 import '../repo/auth_repo.dart';
@@ -41,6 +42,11 @@ class AuthController extends GetxController {
   final RxBool isRecoveryCode = false.obs;
   final RxnString pendingChallenge = RxnString();
 
+  // Remembered Credentials Observables
+  final RxBool hasSavedCredentials = false.obs;
+  final RxnString savedAccountLabel = RxnString();
+  final RxBool isSavedPromptVisible = false.obs;
+
   // Inline Validation & Error Observables
   final RxnString loginError = RxnString();
   final RxnString companyCodeError = RxnString();
@@ -58,16 +64,103 @@ class AuthController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _loadSavedCredentials();
+    _loadSavedCredentialsStatus();
   }
 
-  void _loadSavedCredentials() {
+  @override
+  void onReady() {
+    super.onReady();
+    _promptSavedAccountIfAvailable();
+  }
+
+  void _loadSavedCredentialsStatus() {
     rememberMe.value = AppPreferences.rememberMe;
-    final saved = AppPreferences.savedEmail;
-    if (saved != null && saved.isNotEmpty) {
-      emailController.text = saved;
-      forgotPasswordEmailController.text = saved;
+    if (AppPreferences.hasRememberedCredentials()) {
+      hasSavedCredentials.value = true;
+      savedAccountLabel.value = AppPreferences.getSavedLoginIdentifier();
+      isSavedPromptVisible.value = true;
+    } else {
+      final saved = AppPreferences.savedEmail;
+      if (saved != null && saved.isNotEmpty) {
+        emailController.text = saved;
+        forgotPasswordEmailController.text = saved;
+      }
     }
+  }
+
+  /// Prompts the user via SavedAccountSheet if an encrypted remembered account is available
+  void _promptSavedAccountIfAvailable() {
+    if (AppPreferences.hasRememberedCredentials() &&
+        emailController.text.trim().isEmpty &&
+        passwordController.text.isEmpty) {
+      final creds = AppPreferences.getDecryptedCredentials();
+      if (creds != null && Get.context != null) {
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (Get.context != null &&
+              !Get.isSnackbarOpen &&
+              !(Get.isBottomSheetOpen ?? false)) {
+            SavedAccountSheet.show(
+              Get.context!,
+              accountIdentifier: creds['login'] ?? '',
+              isEmployeeNumberMode: creds['isEmployeeNumberMode'] == true,
+            );
+          }
+        });
+      }
+    }
+  }
+
+  /// Manually trigger showing the saved account selection sheet
+  void showSavedAccountPrompt() {
+    final creds = AppPreferences.getDecryptedCredentials();
+    if (creds != null && Get.context != null) {
+      SavedAccountSheet.show(
+        Get.context!,
+        accountIdentifier: creds['login'] ?? '',
+        isEmployeeNumberMode: creds['isEmployeeNumberMode'] == true,
+      );
+    }
+  }
+
+  /// Populates input fields with decrypted credentials
+  void applySavedCredentials() {
+    final creds = AppPreferences.getDecryptedCredentials();
+    if (creds != null) {
+      final bool isEmp = creds['isEmployeeNumberMode'] == true;
+      isEmployeeNumberMode.value = isEmp;
+      emailController.text = creds['login'] ?? '';
+      passwordController.text = creds['password'] ?? '';
+      if (isEmp && creds['companyCode'] != null) {
+        companyCodeController.text = creds['companyCode'] ?? '';
+      } else {
+        companyCodeController.clear();
+      }
+      rememberMe.value = true;
+      clearInlineErrors();
+      isSavedPromptVisible.value = false;
+      Get.log(
+        '🔐 [AuthController] Decrypted & populated saved credentials for: ${creds['login']}',
+      );
+    }
+  }
+
+  /// Clears stored remembered credentials and resets the form
+  Future<void> forgetSavedAccount() async {
+    await AppPreferences.clearRememberedCredentials();
+    hasSavedCredentials.value = false;
+    savedAccountLabel.value = null;
+    isSavedPromptVisible.value = false;
+    rememberMe.value = false;
+    emailController.clear();
+    passwordController.clear();
+    companyCodeController.clear();
+    clearInlineErrors();
+    Get.log('🗑️ [AuthController] Cleared remembered account from local storage.');
+  }
+
+  /// Dismisses the saved account banner/prompt without wiping credentials
+  void dismissSavedAccountPrompt() {
+    isSavedPromptVisible.value = false;
   }
 
   void toggleLoginMode() {
@@ -197,14 +290,23 @@ class AuthController extends GetxController {
         );
 
         if (rememberMe.value) {
-          await AppPreferences.setSavedEmail(loginInput);
-          await AppPreferences.setRememberMe(true);
+          await AppPreferences.saveRememberedCredentials(
+            login: loginInput,
+            password: passwordInput,
+            companyCode: isEmployeeNumberMode.value ? companyCodeInput : null,
+            isEmployeeNumberMode: isEmployeeNumberMode.value,
+          );
         } else {
-          await AppPreferences.setSavedEmail(null);
-          await AppPreferences.setRememberMe(false);
+          await AppPreferences.clearRememberedCredentials();
         }
 
+        Get.log(
+          '🔑 [AuthController -> login()] Session token successfully persisted to local storage (AppPreferences): ${AppPreferences.token}',
+        );
+
         Get.offAllNamed(Routes.INDEX);
+      } else {
+        loginError.value = response.message ?? 'Authentication failed. Please verify your credentials.';
       }
     } catch (e) {
       if (e is ApiException) {
@@ -266,9 +368,17 @@ class AuthController extends GetxController {
         await AppPreferences.saveAuthData(token: response.token!);
         await AppPreferences.setTwoFactorChallenge(null);
 
-        if (rememberMe.value && emailController.text.trim().isNotEmpty) {
-          await AppPreferences.setSavedEmail(emailController.text.trim());
-          await AppPreferences.setRememberMe(true);
+        if (rememberMe.value) {
+          await AppPreferences.saveRememberedCredentials(
+            login: emailController.text.trim(),
+            password: passwordController.text,
+            companyCode: isEmployeeNumberMode.value
+                ? companyCodeController.text.trim()
+                : null,
+            isEmployeeNumberMode: isEmployeeNumberMode.value,
+          );
+        } else {
+          await AppPreferences.clearRememberedCredentials();
         }
 
         if (Get.isBottomSheetOpen ?? false) {

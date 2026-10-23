@@ -25,35 +25,24 @@ class CardQuickActionsBar extends GetView<EmployeeCardController> {
         ),
         AppSpaces.hSpace10,
 
-        // 2. View PDF
+        // 2. NFC Contactless
         Expanded(
           child: _buildActionTile(
-            icon: Icons.picture_as_pdf_rounded,
-            title: 'View\nPDF',
+            icon: Icons.contactless_rounded,
+            title: 'NFC\nPunch',
             accentColor: AppColors.secondary,
-            onTap: () => controller.openPdfViewer(context),
+            onTap: controller.simulateNfcTap,
           ),
         ),
         AppSpaces.hSpace10,
 
-        // 3. Share Card
+        // 3. Share Token
         Expanded(
           child: _buildActionTile(
             icon: Icons.share_rounded,
             title: 'Share\nToken',
-            accentColor: AppColors.info,
-            onTap: controller.shareCard,
-          ),
-        ),
-        AppSpaces.hSpace10,
-
-        // 4. NFC Ready
-        Expanded(
-          child: _buildActionTile(
-            icon: Icons.nfc_rounded,
-            title: 'NFC\nPunch',
             accentColor: AppColors.success,
-            onTap: controller.simulateNfcTap,
+            onTap: controller.shareCard,
           ),
         ),
       ],

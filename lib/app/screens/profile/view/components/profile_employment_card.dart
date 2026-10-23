@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
+import '../../../../api/app_preferences.dart';
 import '../../../../core/utils/app_colors.dart';
 import '../../../../core/utils/app_spaces.dart';
 import '../../../../core/utils/app_text_styles.dart';
@@ -16,14 +17,15 @@ class ProfileEmploymentCard extends GetView<ProfileController> {
     return Obx(() {
       final p = controller.profile.value;
       final designation =
-          p?.designation ?? 'Senior Software Engineer & Tech Lead';
-      final department = p?.department ?? 'Engineering & Mobility';
-      final employeeId = p?.employeeId ?? 'EMP-1024';
+          p?.designation ?? 'Department Lead & Manager';
+      final department = p?.department ?? 'Operations & Management';
+      final employeeId = p?.employeeId ?? AppPreferences.userId ?? 'EMP-1024';
       final joiningDate = p?.joiningDate ?? '15 Jan 2024';
-      final manager = p?.reportingManager ?? 'Hamza Sheikh (Lead Architect)';
-      final tenure = p?.tenureYears ?? '2.8 Yrs';
+      final manager = p?.reportingManager ?? 'Executive Management';
+      final tenure = p?.tenureYears ?? '2.5 Yrs';
+      final companyName = AppPreferences.companyName ?? 'Kumash';
       final location =
-          p?.workLocation ?? 'Softech Business Services HQ • 4th Floor';
+          p?.workLocation ?? '$companyName HQ • Main Campus';
 
       return CustomCard(
         child: Column(

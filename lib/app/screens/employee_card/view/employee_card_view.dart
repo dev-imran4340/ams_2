@@ -6,8 +6,11 @@ import 'package:get/get.dart';
 import '../../../core/utils/app_colors.dart';
 import '../../../core/utils/app_spaces.dart';
 import '../../../core/utils/app_text_styles.dart';
+import '../../../core/widgets/custom_button.dart';
 import '../../../core/widgets/custom_state_view.dart';
 import '../../../core/widgets/network_boundary_wrapper.dart';
+import '../../../routes/app_routes.dart';
+import '../../index/controller/index_controller.dart';
 import '../controller/employee_card_controller.dart';
 import 'components/card_quick_actions_bar.dart';
 import 'components/card_security_info_card.dart';
@@ -80,9 +83,26 @@ class EmployeeCardView extends GetView<EmployeeCardController> {
                             // Component 1: 3D Flip Smart Digital ID Card
                             const DigitalIdCardWidget(),
 
-                            AppSpaces.vSpace18,
+                            AppSpaces.vSpace16,
 
-                            // Component 2: Quick Actions Bar (Flip, View PDF, Share, NFC)
+                            // Primary Action: Download Official ID Card PDF Button
+                            Obx(() {
+                              return CustomButton(
+                                text: 'Download Official Card (PDF)',
+                                icon: Icon(
+                                  Icons.download_rounded,
+                                  size: 18.sp,
+                                  color: AppColors.white,
+                                ),
+                                isGradient: true,
+                                isLoading: controller.isPdfLoading.value,
+                                onPressed: controller.downloadCardPdf,
+                              );
+                            }),
+
+                            AppSpaces.vSpace16,
+
+                            // Component 2: Quick Actions Bar (Flip, Download, View PDF, Share)
                             const CardQuickActionsBar(),
 
                             AppSpaces.vSpace18,
@@ -106,192 +126,130 @@ class EmployeeCardView extends GetView<EmployeeCardController> {
     );
   }
 
-  /// Signature Curved Ambient Gradient Header (240.h) with floating translucent rings
+  /// Signature Curved Ambient Gradient Header (220.h) matching Profile Screen light-to-dark gradient
   Widget _buildCurvedAmbientHeader(BuildContext context) {
     return Container(
       width: double.infinity,
-      height: 240.h,
+      height: 220.h,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(24.r),
-          bottomRight: Radius.circular(24.r),
+          bottomLeft: Radius.circular(20.r),
+          bottomRight: Radius.circular(20.r),
         ),
-        gradient: LinearGradient(
+        gradient: const LinearGradient(
+          colors: [
+            AppColors.liteSecondary,
+            AppColors.liteSecondary,
+            AppColors.liteSecondary,
+            AppColors.liteSecondary,
+            AppColors.secondary,
+            AppColors.primary,
+          ],
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [
-            AppColors.primary,
-            AppColors.primary,
-            AppColors.accentNavy,
-            AppColors.primary.withValues(alpha: 0.85),
-          ],
         ),
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(24.r),
-          bottomRight: Radius.circular(24.r),
-        ),
-        child: Stack(
-          children: [
-            // Floating Translucent Ring 1 (Top Right)
-            Positioned(
-              top: -30.h,
-              right: -30.w,
-              child: Container(
-                width: 150.r,
-                height: 150.r,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.secondary.withValues(alpha: 0.05),
-                  border: Border.all(
-                    color: AppColors.liteSecondary.withValues(alpha: 0.12),
-                    width: 1.5.w,
-                  ),
-                ),
+      child: Stack(
+        children: [
+          Positioned(
+            top: -60.r,
+            right: -40.r,
+            child: Container(
+              width: 140.r,
+              height: 140.r,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.primary.withValues(alpha: 0.05),
               ),
             ),
-
-            // Floating Translucent Ring 2 (Bottom Left)
-            Positioned(
-              bottom: 15.h,
-              left: -40.w,
-              child: Container(
-                width: 120.r,
-                height: 120.r,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.primary.withValues(alpha: 0.08),
-                  border: Border.all(
-                    color: AppColors.secondary.withValues(alpha: 0.1),
-                    width: 1.2.w,
-                  ),
-                ),
+          ),
+          Positioned(
+            bottom: 20.r,
+            left: -50.r,
+            child: Container(
+              width: 120.r,
+              height: 120.r,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.secondary.withValues(alpha: 0.05),
               ),
             ),
-
-            // Subtle Halo (Center)
-            Positioned(
-              top: 45.h,
-              right: 85.w,
-              child: Container(
-                width: 70.r,
-                height: 70.r,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.white.withValues(alpha: 0.02),
-                ),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  /// Top executive navigation bar with Back Button, Title & Subtitle Capsule
+  /// Top navigation bar with Back Button, Title & Subtitle matching Profile Screen style
   Widget _buildTopBar(BuildContext context) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        // Back Glass Pill Button
+        // Back Pill Button matching Profile Screen
         Material(
           color: Colors.transparent,
           child: InkWell(
             onTap: () {
               HapticFeedback.lightImpact();
-              Get.back();
+              if (Navigator.canPop(context)) {
+                Get.back();
+              } else if (Get.isRegistered<IndexController>()) {
+                Get.find<IndexController>().changeTab(0);
+              } else {
+                Get.offAllNamed(Routes.INDEX);
+              }
             },
-            borderRadius: BorderRadius.circular(20.r),
+            borderRadius: BorderRadius.circular(12.r),
             child: Container(
-              width: 38.r,
-              height: 38.r,
+              padding: EdgeInsets.all(8.r),
+              margin: EdgeInsets.only(right: 10.w),
               decoration: BoxDecoration(
-                color: AppColors.white.withValues(alpha: 0.14),
-                shape: BoxShape.circle,
+                color: AppColors.white,
+                borderRadius: BorderRadius.circular(12.r),
                 border: Border.all(
-                  color: AppColors.white.withValues(alpha: 0.28),
-                  width: 1.w,
+                  color: AppColors.borderColor,
+                  width: 0.8.w,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.2),
-                    blurRadius: 8.r,
+                    color: AppColors.primary.withValues(alpha: 0.06),
+                    blurRadius: 6.r,
+                    offset: Offset(0, 2.h),
                   ),
                 ],
               ),
-              child: Center(
-                child: Icon(
-                  Icons.arrow_back_ios_new_rounded,
-                  size: 15.sp,
-                  color: AppColors.white,
-                ),
+              child: Icon(
+                Icons.arrow_back_ios_new_rounded,
+                size: 16.sp,
+                color: AppColors.textColor,
               ),
             ),
           ),
         ),
 
-        AppSpaces.hSpace12,
-
-        // Title and Subtitle Capsule Column
+        // Title and Subtitle with flex protection
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Subtitle Capsule: Digital Smart NFC & QR Card
-              Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: 8.w,
-                  vertical: 3.h,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.secondary.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(14.r),
-                  border: Border.all(
-                    color: AppColors.secondary.withValues(alpha: 0.4),
-                    width: 0.8.w,
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 5.r,
-                      height: 5.r,
-                      decoration: const BoxDecoration(
-                        color: AppColors.secondary,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    AppSpaces.hSpace6,
-                    Flexible(
-                      child: Text(
-                        'Digital Smart NFC & QR Card',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTextStyles.text10.copyWith(
-                          color: AppColors.liteSecondary,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.2,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              AppSpaces.vSpace4,
-
-              // Title: Corporate Identity
               Text(
                 'Corporate Identity',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: AppTextStyles.text20.copyWith(
-                  color: AppColors.white,
+                style: AppTextStyles.text18.copyWith(
                   fontWeight: FontWeight.bold,
-                  letterSpacing: -0.3,
+                  color: AppColors.textColor,
+                ),
+              ),
+              AppSpaces.vSpace2,
+              Text(
+                'Digital Smart NFC & QR Card',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTextStyles.text10.copyWith(
+                  color: AppColors.textColor.withValues(alpha: 0.75),
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ],

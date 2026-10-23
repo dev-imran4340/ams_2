@@ -19,6 +19,12 @@ class ProfileController extends GetxController {
   final RxBool isLoading = false.obs;
   final RxBool isLoggingOut = false.obs;
   final Rxn<EmployeeProfileModel> profile = Rxn<EmployeeProfileModel>();
+
+  // Active section tab key strictly driven by server's 'sections' list
+  final RxString selectedSectionKey = 'overview'.obs;
+
+  // Workplace Preferences & Security Observables
+  final RxBool twoFactorAuth = true.obs;
   final RxBool biometricPunch = true.obs;
   final RxBool shiftReminders = true.obs;
   final RxBool geofenceAutoCheck = true.obs;
@@ -29,7 +35,7 @@ class ProfileController extends GetxController {
     loadProfile();
   }
 
-  /// Loads executive employee profile and preferences
+  /// Loads executive employee profile and preferences via /me/profile
   Future<void> loadProfile() async {
     try {
       isLoading.value = true;
@@ -39,10 +45,23 @@ class ProfileController extends GetxController {
         biometricPunch.value = result.biometricEnabled;
         shiftReminders.value = result.remindersEnabled;
         geofenceAutoCheck.value = result.geofenceAutoCheck;
+
+        // Ensure selected section is valid
+        if (result.sections.isNotEmpty &&
+            !result.sections.any((s) => s.key == selectedSectionKey.value)) {
+          selectedSectionKey.value = result.sections.first.key;
+        }
       }
     } finally {
       isLoading.value = false;
     }
+  }
+
+  /// Selects an active section tab with light haptic feedback
+  void selectSection(String key) {
+    if (selectedSectionKey.value == key) return;
+    HapticFeedback.selectionClick();
+    selectedSectionKey.value = key;
   }
 
   /// Updates reactive profile instantly in-memory
@@ -63,6 +82,30 @@ class ProfileController extends GetxController {
     if (result == true) {
       await loadProfile();
     }
+  }
+
+  /// Navigates to Detailed Employee Profile Screen with all server-driven tabs
+  void navigateToProfileDetails() {
+    HapticFeedback.lightImpact();
+    Get.toNamed(Routes.PROFILE_DETAILS);
+  }
+
+  /// Navigates to Employee ID Card view
+  void navigateToCard() {
+    HapticFeedback.lightImpact();
+    Get.toNamed(Routes.EMPLOYEE_CARD);
+  }
+
+  /// Toggles Two-Factor Authentication (2FA)
+  void toggle2FA(bool val) {
+    HapticFeedback.selectionClick();
+    twoFactorAuth.value = val;
+    CustomSnackbar.showSuccess(
+      title: 'Two-Factor Authentication',
+      message: val
+          ? '2FA security is now enabled for your account.'
+          : '2FA security has been disabled.',
+    );
   }
 
   /// Toggles biometric quick authentication

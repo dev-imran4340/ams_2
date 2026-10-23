@@ -4,12 +4,8 @@ import 'package:get/get.dart';
 
 import '../../../core/utils/app_colors.dart';
 import '../../../core/widgets/network_boundary_wrapper.dart';
-import '../../attendance_history/view/attendance_history_view.dart';
-import '../../dashboard/view/dashboard_view.dart';
-import '../../leaves/view/leave_requests_view.dart';
-import '../../profile/view/profile_view.dart';
 import '../controller/index_controller.dart';
-import 'components/executive_app_drawer.dart';
+import '../../main_shell/view/components/app_drawer.dart';
 import 'components/floating_bottom_nav_bar.dart';
 
 class IndexView extends GetView<IndexController> {
@@ -18,7 +14,9 @@ class IndexView extends GetView<IndexController> {
   @override
   Widget build(BuildContext context) {
     return NetworkBoundaryWrapper(
-      onRetry: () async {},
+      onRetry: () async {
+        await controller.fetchMe();
+      },
       child: PopScope(
         canPop: false,
         onPopInvokedWithResult: (didPop, result) {
@@ -30,27 +28,37 @@ class IndexView extends GetView<IndexController> {
         },
         child: Scaffold(
           key: controller.scaffoldKey,
-          endDrawer: const ExecutiveAppDrawer(),
+          endDrawer: const AppDrawer(),
           backgroundColor: AppColors.backgroundColor,
           body: Stack(
             children: [
-              // 1. IndexedStack preserves state & scroll position across all 4 tabs
-              Obx(
-                () => IndexedStack(
-                  index: controller.currentIndex.value,
-                  children: const [
-                    DashboardView(),
-                    AttendanceHistoryView(),
-                    LeaveRequestsView(),
-                    ProfileView(),
-                  ],
-                ),
-              ),
+              // 1. IndexedStack preserves state & scroll position across all dynamic tabs
+              Obx(() {
+                final tabs = controller.navTabs;
+                if (tabs.isEmpty) {
+                  return const SizedBox.shrink();
+                }
+                final safeIndex = controller.currentIndex.value
+                    .clamp(0, tabs.length - 1);
+
+                final loaded = controller.loadedTabIndexes;
+
+                return IndexedStack(
+                  index: safeIndex,
+                  children: List.generate(tabs.length, (i) {
+                    if (loaded.contains(i)) {
+                      return tabs[i].buildWidget();
+                    } else {
+                      return const SizedBox.shrink();
+                    }
+                  }),
+                );
+              }),
 
               // 2. Floating Executive Bottom Navigation Bar
             ],
           ),
-          bottomNavigationBar: SafeArea(
+          bottomNavigationBar: const SafeArea(
             bottom: true,
             child: FloatingBottomNavBar(),
           ),

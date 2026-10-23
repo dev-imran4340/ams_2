@@ -13,6 +13,7 @@ import '../screens/auth/repo/auth_repo.dart';
 
 import '../screens/index/view/index_view.dart';
 import '../screens/index/controller/index_controller.dart';
+import '../screens/index/repo/index_repo.dart';
 
 import '../screens/dashboard/view/dashboard_view.dart';
 import '../screens/dashboard/controller/dashboard_controller.dart';
@@ -25,6 +26,8 @@ import '../screens/attendance_history/repo/attendance_history_repo.dart';
 import '../screens/leaves/controller/leave_controller.dart';
 import '../screens/leaves/repo/leave_repo.dart';
 
+import '../screens/profile/view/profile_view.dart';
+import '../screens/profile/view/profile_details_view.dart';
 import '../screens/profile/controller/profile_controller.dart';
 import '../screens/profile/repo/profile_repo.dart';
 
@@ -88,6 +91,10 @@ import '../screens/edit_profile/view/edit_profile_view.dart';
 import '../screens/edit_profile/controller/edit_profile_controller.dart';
 import '../screens/edit_profile/repo/edit_profile_repo.dart';
 
+import '../screens/employees/controller/department_employees_controller.dart';
+import '../screens/employees/repo/department_employees_repo.dart';
+import '../screens/main_shell/controller/session_me_controller.dart';
+
 class AppPages {
   // Initial Entry Route
   static const INITIAL = Routes.SPLASH;
@@ -127,7 +134,8 @@ class AppPages {
       name: Routes.INDEX,
       page: () => const IndexView(),
       binding: BindingsBuilder(() {
-        Get.lazyPut(() => IndexController(), fenix: true);
+        Get.lazyPut(() => IndexRepo(), fenix: true);
+        Get.lazyPut(() => IndexController(repo: Get.find()), fenix: true);
         Get.lazyPut(() => DashboardRepo(), fenix: true);
         Get.lazyPut(() => DashboardController(repo: Get.find()), fenix: true);
         Get.lazyPut(() => AttendanceHistoryRepo(), fenix: true);
@@ -145,6 +153,22 @@ class AppPages {
           () => ProfileController(repo: Get.find()),
           fenix: true,
         );
+        Get.lazyPut(() => TaskRepo(), fenix: true);
+        Get.lazyPut(
+          () => TaskController(repo: Get.find()),
+          fenix: true,
+        );
+        Get.lazyPut(() => EvaluationRepo(), fenix: true);
+        Get.lazyPut(
+          () => EvaluationController(repo: Get.find()),
+          fenix: true,
+        );
+        Get.lazyPut(() => DepartmentEmployeesRepo(), fenix: true);
+        Get.lazyPut(
+          () => DepartmentEmployeesController(repo: Get.find()),
+          fenix: true,
+        );
+        Get.lazyPut(() => SessionMeController(), fenix: true);
       }),
     ),
 
@@ -378,6 +402,32 @@ class AppPages {
         Get.lazyPut(() => EditProfileRepo(), fenix: true);
         Get.lazyPut(
           () => EditProfileController(repo: Get.find()),
+          fenix: true,
+        );
+      }),
+    ),
+
+    // 21. Profile Screen
+    GetPage(
+      name: Routes.PROFILE,
+      page: () => const ProfileView(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => ProfileRepo(), fenix: true);
+        Get.lazyPut(
+          () => ProfileController(repo: Get.find()),
+          fenix: true,
+        );
+      }),
+    ),
+
+    // 22. Detailed Profile Screen (Tabs & Full Records)
+    GetPage(
+      name: Routes.PROFILE_DETAILS,
+      page: () => const ProfileDetailsView(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => ProfileRepo(), fenix: true);
+        Get.lazyPut(
+          () => ProfileController(repo: Get.find()),
           fenix: true,
         );
       }),

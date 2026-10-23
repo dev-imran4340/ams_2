@@ -88,20 +88,29 @@ class LoginResponseModel {
   });
 
   factory LoginResponseModel.fromJson(Map<String, dynamic> json) {
-    // Check if wrapped in data envelope
-    final Map<String, dynamic> data = (json['data'] is Map<String, dynamic>)
-        ? json['data'] as Map<String, dynamic>
+    // Safe envelope extraction (handles generic Map, Map<String, dynamic>, etc.)
+    final Map<String, dynamic> data = (json['data'] is Map)
+        ? Map<String, dynamic>.from(json['data'] as Map)
         : json;
 
-    final userData = data['user'] is Map<String, dynamic>
-        ? data['user'] as Map<String, dynamic>
-        : (json['user'] is Map<String, dynamic> ? json['user'] as Map<String, dynamic> : null);
+    final userData = (data['user'] is Map)
+        ? Map<String, dynamic>.from(data['user'] as Map)
+        : ((json['user'] is Map)
+            ? Map<String, dynamic>.from(json['user'] as Map)
+            : null);
 
     return LoginResponseModel(
-      twoFactorRequired: data['two_factor_required'] == true,
-      token: data['token']?.toString() ?? data['access_token']?.toString() ?? json['token']?.toString(),
-      challenge: data['challenge']?.toString(),
-      refreshToken: data['refresh_token']?.toString() ?? json['refresh_token']?.toString(),
+      twoFactorRequired: data['two_factor_required'] == true ||
+          json['two_factor_required'] == true,
+      token: data['token']?.toString() ??
+          data['access_token']?.toString() ??
+          json['token']?.toString() ??
+          (json['data'] is Map
+              ? (json['data'] as Map)['token']?.toString()
+              : null),
+      challenge: data['challenge']?.toString() ?? json['challenge']?.toString(),
+      refreshToken: data['refresh_token']?.toString() ??
+          json['refresh_token']?.toString(),
       user: userData != null ? UserModel.fromJson(userData) : null,
       message: data['message']?.toString() ?? json['message']?.toString(),
     );

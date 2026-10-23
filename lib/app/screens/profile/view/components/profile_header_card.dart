@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
+import '../../../../api/app_preferences.dart';
 import '../../../../core/utils/app_colors.dart';
 import '../../../../core/utils/app_spaces.dart';
 import '../../../../core/utils/app_text_styles.dart';
@@ -11,25 +12,35 @@ import '../../../../core/widgets/custom_card.dart';
 import '../../controller/profile_controller.dart';
 
 class ProfileHeaderCard extends GetView<ProfileController> {
-  const ProfileHeaderCard({super.key});
+  final bool isClickable;
+  final VoidCallback? onTap;
+
+  const ProfileHeaderCard({
+    super.key,
+    this.isClickable = false,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Obx(() {
       final p = controller.profile.value;
-      final name = p?.name ?? 'Malik Muhammad Imran';
-      final designation =
-          p?.designation ?? 'Senior Software Engineer & Tech Lead';
-      final employeeId = p?.employeeId ?? 'EMP-1024';
-      final department = p?.department ?? 'Engineering';
-      final tenure = p?.tenureYears ?? '2.8 Yrs';
-      final score = p?.attendanceScore ?? 98.4;
-      final initials = p?.initials ?? 'MI';
+      final name = p?.name ?? AppPreferences.userName ?? 'Maryam Malik';
+      final designation = p?.designation ?? 'Sales Manager';
+      final employeeId = p?.employeeNumber ?? p?.employeeId ?? 'EMP-0002';
+      final department = p?.department ?? 'Sales';
+      final location = p?.workLocation ?? 'Head office';
+      final tenure = p?.tenureYears ?? '3 years 3 months';
+      final stage = p?.stageLabel ?? 'Active';
+      final initials = p?.initials ?? 'MM';
       final avatarPath = p?.avatarPath;
       final hasLocalAvatar =
           avatarPath != null && File(avatarPath).existsSync();
 
       return CustomCard(
+        onTap: isClickable
+            ? (onTap ?? controller.navigateToProfileDetails)
+            : null,
         child: Column(
           children: [
             // Avatar with Online Beacon and Profile Meta
@@ -40,8 +51,8 @@ class ProfileHeaderCard extends GetView<ProfileController> {
                   clipBehavior: Clip.none,
                   children: [
                     Container(
-                      width: 62.r,
-                      height: 62.r,
+                      width: 60.r,
+                      height: 60.r,
                       decoration: BoxDecoration(
                         gradient: !hasLocalAvatar
                             ? const LinearGradient(
@@ -71,13 +82,13 @@ class ProfileHeaderCard extends GetView<ProfileController> {
                         child: hasLocalAvatar
                             ? Image.file(
                                 File(avatarPath),
-                                width: 62.r,
-                                height: 62.r,
+                                width: 60.r,
+                                height: 60.r,
                                 fit: BoxFit.cover,
                               )
                             : Text(
                                 initials,
-                                style: AppTextStyles.text22.copyWith(
+                                style: AppTextStyles.text20.copyWith(
                                   fontWeight: FontWeight.bold,
                                   color: AppColors.white,
                                 ),
@@ -90,8 +101,8 @@ class ProfileHeaderCard extends GetView<ProfileController> {
                       bottom: 0,
                       right: 0,
                       child: Container(
-                        width: 15.r,
-                        height: 15.r,
+                        width: 14.r,
+                        height: 14.r,
                         decoration: BoxDecoration(
                           color: AppColors.success,
                           shape: BoxShape.circle,
@@ -127,15 +138,15 @@ class ProfileHeaderCard extends GetView<ProfileController> {
                           ),
                           Container(
                             padding: EdgeInsets.symmetric(
-                              horizontal: 6.w,
+                              horizontal: 7.w,
                               vertical: 2.h,
                             ),
                             decoration: BoxDecoration(
-                              color: AppColors.secondary.withValues(alpha: 0.1),
+                              color: AppColors.secondary.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(6.r),
                             ),
                             child: Text(
-                              'Verified',
+                              stage,
                               style: AppTextStyles.text10.copyWith(
                                 fontWeight: FontWeight.bold,
                                 color: AppColors.secondary,
@@ -163,11 +174,15 @@ class ProfileHeaderCard extends GetView<ProfileController> {
                             color: AppColors.subTextColor,
                           ),
                           AppSpaces.hSpace4,
-                          Text(
-                            '#$employeeId • HQ Office',
-                            style: AppTextStyles.text10.copyWith(
-                              fontWeight: FontWeight.w500,
-                              color: AppColors.subTextColor,
+                          Flexible(
+                            child: Text(
+                              '#$employeeId • $location',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTextStyles.text10.copyWith(
+                                fontWeight: FontWeight.w500,
+                                color: AppColors.subTextColor,
+                              ),
                             ),
                           ),
                         ],
@@ -178,52 +193,14 @@ class ProfileHeaderCard extends GetView<ProfileController> {
               ],
             ),
 
-            AppSpaces.vSpace14,
+            AppSpaces.vSpace12,
 
-            // Quick Action: Edit Profile Button
-            InkWell(
-              onTap: controller.navigateToEditProfile,
-              borderRadius: BorderRadius.circular(10.r),
-              child: Container(
-                width: double.infinity,
-                padding: EdgeInsets.symmetric(vertical: 9.h),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.05),
-                  borderRadius: BorderRadius.circular(10.r),
-                  border: Border.all(
-                    color: AppColors.primary.withValues(alpha: 0.15),
-                    width: 1.w,
-                  ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.edit_note_rounded,
-                      size: 18.sp,
-                      color: AppColors.primary,
-                    ),
-                    AppSpaces.hSpace6,
-                    Text(
-                      'Edit Profile & Personal Details',
-                      style: AppTextStyles.text12.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            AppSpaces.vSpace14,
-
-            // Quick Stats Pill Row: Department | Tenure | Attendance
+            // Quick Stats Pill Row: Department | Location | Tenure
             Container(
-              padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 10.h),
+              padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
               decoration: BoxDecoration(
                 color: AppColors.inputFill,
-                borderRadius: BorderRadius.circular(12.r),
+                borderRadius: BorderRadius.circular(10.r),
                 border: Border.all(
                   color: AppColors.borderColor,
                   width: 0.8.w,
@@ -235,7 +212,7 @@ class ProfileHeaderCard extends GetView<ProfileController> {
                   Expanded(
                     child: _buildStatItem(
                       label: 'DEPARTMENT',
-                      value: department.split(' ').first,
+                      value: department,
                       icon: Icons.domain_rounded,
                       color: AppColors.primary,
                     ),
@@ -246,40 +223,58 @@ class ProfileHeaderCard extends GetView<ProfileController> {
                   // Stat 2: Tenure
                   Expanded(
                     child: _buildStatItem(
-                      label: 'TENURE',
+                      label: 'SERVICE',
                       value: tenure,
                       icon: Icons.timeline_rounded,
                       color: AppColors.secondary,
                     ),
                   ),
-
-                  _buildDivider(),
-
-                  // Stat 3: Attendance Score
-                  Expanded(
-                    child: _buildStatItem(
-                      label: 'ATTENDANCE',
-                      value: '$score%',
-                      icon: Icons.verified_rounded,
-                      color: AppColors.success,
-                    ),
-                  ),
                 ],
               ),
             ),
+
+            if (isClickable) ...[
+              AppSpaces.vSpace12,
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 7.h),
+                decoration: BoxDecoration(
+                  color: AppColors.secondary.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(8.r),
+                  border: Border.all(
+                    color: AppColors.secondary.withValues(alpha: 0.22),
+                    width: 0.8.w,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.badge_outlined,
+                      size: 15.sp,
+                      color: AppColors.secondary,
+                    ),
+                    AppSpaces.hSpace8,
+                    Expanded(
+                      child: Text(
+                        'View Full Details & Official Records',
+                        style: AppTextStyles.text12.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.secondary,
+                        ),
+                      ),
+                    ),
+                    Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      size: 12.sp,
+                      color: AppColors.secondary,
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ],
         ),
       );
     });
-  }
-
-  Widget _buildDivider() {
-    return Container(
-      width: 1.w,
-      height: 26.h,
-      color: AppColors.borderColor,
-      margin: EdgeInsets.symmetric(horizontal: 4.w),
-    );
   }
 
   Widget _buildStatItem({
@@ -288,36 +283,44 @@ class ProfileHeaderCard extends GetView<ProfileController> {
     required IconData icon,
     required Color color,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 12.sp, color: color),
-            AppSpaces.hSpace4,
-            Text(
-              label,
-              style: AppTextStyles.text10.copyWith(
-                fontWeight: FontWeight.bold,
-                fontSize: 8.5.sp,
-                color: AppColors.subTextColor,
-                letterSpacing: 0.4,
+        Icon(icon, size: 14.sp, color: color),
+        AppSpaces.hSpace6,
+        Flexible(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: AppTextStyles.text10.copyWith(
+                  letterSpacing: 0.6,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.subTextColor,
+                ),
               ),
-            ),
-          ],
-        ),
-        AppSpaces.vSpace2,
-        Text(
-          value,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: AppTextStyles.text12.copyWith(
-            fontWeight: FontWeight.bold,
-            color: AppColors.textColor,
+              Text(
+                value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTextStyles.text12.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textColor,
+                ),
+              ),
+            ],
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildDivider() {
+    return Container(
+      height: 22.h,
+      width: 1.w,
+      color: AppColors.borderColor.withValues(alpha: 0.8),
     );
   }
 }

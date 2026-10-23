@@ -37,44 +37,22 @@ class FloatingBottomNavBar extends GetView<IndexController> {
 
       child: Obx(() {
         final current = controller.currentIndex.value;
+        final tabs = controller.navTabs;
 
         return Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            // 0: Dashboard Tab
-            NavItemCapsule(
-              icon: Icons.space_dashboard_rounded,
-              label: 'Home',
-              isSelected: current == 0,
-              onTap: () => controller.changeTab(0),
-            ),
+          children: List.generate(tabs.length, (index) {
+            final tab = tabs[index];
+            final bool hasBadge = tab.hasBadge?.call() ?? false;
 
-            // 1: Attendance Logs Tab
-            NavItemCapsule(
-              icon: Icons.calendar_month_rounded,
-              label: 'Logs',
-              isSelected: current == 1,
-              hasBadge: controller.hasUnreadLogs.value,
-              onTap: () => controller.changeTab(1),
-            ),
-
-            // 2: Leaves & Requests Tab
-            NavItemCapsule(
-              icon: Icons.beach_access_rounded,
-              label: 'Leaves',
-              isSelected: current == 2,
-              hasBadge: controller.hasPendingLeaves.value,
-              onTap: () => controller.changeTab(2),
-            ),
-
-            // 3: Profile & Settings Tab
-            NavItemCapsule(
-              icon: Icons.person_rounded,
-              label: 'Profile',
-              isSelected: current == 3,
-              onTap: () => controller.changeTab(3),
-            ),
-          ],
+            return NavItemCapsule(
+              icon: tab.icon,
+              label: tab.label,
+              isSelected: current == index,
+              hasBadge: hasBadge,
+              onTap: () => controller.changeTab(index),
+            );
+          }),
         );
       }),
     );

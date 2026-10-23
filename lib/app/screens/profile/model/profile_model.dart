@@ -1,5 +1,289 @@
-/// Represents the executive employee profile and workplace parameters
+/// Models for the AMS 2 Mobile Profile API (/me/profile)
+/// Conforms strictly with doc/api.md and doc/backend_api_specifications.md
+library;
+
+class ProfileSectionModel {
+  final String key;
+  final String label;
+
+  const ProfileSectionModel({
+    required this.key,
+    required this.label,
+  });
+
+  factory ProfileSectionModel.fromJson(Map<String, dynamic> json) {
+    return ProfileSectionModel(
+      key: json['key']?.toString() ?? '',
+      label: json['label']?.toString() ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'key': key,
+    'label': label,
+  };
+}
+
+class ProfileJobModel {
+  final String? legalEntity;
+  final String? workLocation;
+  final String? department;
+  final String? subDepartment;
+  final String? designation;
+  final String? grade;
+  final String? employmentType;
+  final String? contractType;
+  final String? contractEndsOn;
+  final String? joinedOn;
+  final String? probationEndsOn;
+  final String? confirmedOn;
+  final String? lastWorkingDay;
+  final String? leftOn;
+  final String? lengthOfService;
+
+  const ProfileJobModel({
+    this.legalEntity,
+    this.workLocation,
+    this.department,
+    this.subDepartment,
+    this.designation,
+    this.grade,
+    this.employmentType,
+    this.contractType,
+    this.contractEndsOn,
+    this.joinedOn,
+    this.probationEndsOn,
+    this.confirmedOn,
+    this.lastWorkingDay,
+    this.leftOn,
+    this.lengthOfService,
+  });
+
+  factory ProfileJobModel.fromJson(Map<String, dynamic> json) {
+    return ProfileJobModel(
+      legalEntity: json['legal_entity']?.toString(),
+      workLocation: json['work_location']?.toString(),
+      department: json['department']?.toString(),
+      subDepartment: json['sub_department']?.toString(),
+      designation: json['designation']?.toString(),
+      grade: json['grade']?.toString(),
+      employmentType: json['employment_type']?.toString(),
+      contractType: json['contract_type']?.toString(),
+      contractEndsOn: json['contract_ends_on']?.toString(),
+      joinedOn: json['joined_on']?.toString(),
+      probationEndsOn: json['probation_ends_on']?.toString(),
+      confirmedOn: json['confirmed_on']?.toString(),
+      lastWorkingDay: json['last_working_day']?.toString(),
+      leftOn: json['left_on']?.toString(),
+      lengthOfService: json['length_of_service']?.toString(),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'legal_entity': legalEntity,
+    'work_location': workLocation,
+    'department': department,
+    'sub_department': subDepartment,
+    'designation': designation,
+    'grade': grade,
+    'employment_type': employmentType,
+    'contract_type': contractType,
+    'contract_ends_on': contractEndsOn,
+    'joined_on': joinedOn,
+    'probation_ends_on': probationEndsOn,
+    'confirmed_on': confirmedOn,
+    'last_working_day': lastWorkingDay,
+    'left_on': leftOn,
+    'length_of_service': lengthOfService,
+  };
+}
+
+class ProfileContactModel {
+  final String? workEmail;
+  final String? workPhone;
+
+  const ProfileContactModel({
+    this.workEmail,
+    this.workPhone,
+  });
+
+  factory ProfileContactModel.fromJson(Map<String, dynamic> json) {
+    return ProfileContactModel(
+      workEmail: json['work_email']?.toString(),
+      workPhone: json['work_phone']?.toString(),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'work_email': workEmail,
+    'work_phone': workPhone,
+  };
+}
+
+class ProfileAddressModel {
+  final String? line1;
+  final String? line2;
+  final String? city;
+  final String? postcode;
+  final String? country;
+
+  const ProfileAddressModel({
+    this.line1,
+    this.line2,
+    this.city,
+    this.postcode,
+    this.country,
+  });
+
+  factory ProfileAddressModel.fromJson(Map<String, dynamic> json) {
+    return ProfileAddressModel(
+      line1: json['line1']?.toString(),
+      line2: json['line2']?.toString(),
+      city: json['city']?.toString(),
+      postcode: json['postcode']?.toString(),
+      country: json['country']?.toString(),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'line1': line1,
+    'line2': line2,
+    'city': city,
+    'postcode': postcode,
+    'country': country,
+  };
+
+  String? get formattedAddress {
+    final parts = [line1, line2, city, postcode, country]
+        .where((p) => p != null && p.trim().isNotEmpty)
+        .toList();
+    return parts.isEmpty ? null : parts.join(', ');
+  }
+}
+
+class ProfilePersonalModel {
+  final String? gender;
+  final String? dateOfBirth;
+  final String? bloodGroup;
+  final String? maritalStatus;
+  final String? nationality;
+  final String? personalEmail;
+  final String? personalPhone;
+  final ProfileAddressModel? address;
+
+  const ProfilePersonalModel({
+    this.gender,
+    this.dateOfBirth,
+    this.bloodGroup,
+    this.maritalStatus,
+    this.nationality,
+    this.personalEmail,
+    this.personalPhone,
+    this.address,
+  });
+
+  factory ProfilePersonalModel.fromJson(Map<String, dynamic> json) {
+    return ProfilePersonalModel(
+      gender: json['gender']?.toString(),
+      dateOfBirth: json['date_of_birth']?.toString(),
+      bloodGroup: json['blood_group']?.toString(),
+      maritalStatus: json['marital_status']?.toString(),
+      nationality: json['nationality']?.toString(),
+      personalEmail: json['personal_email']?.toString(),
+      personalPhone: json['personal_phone']?.toString(),
+      address: json['address'] is Map<String, dynamic>
+          ? ProfileAddressModel.fromJson(json['address'] as Map<String, dynamic>)
+          : (json['address'] is Map
+              ? ProfileAddressModel.fromJson(
+                  Map<String, dynamic>.from(json['address']))
+              : null),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'gender': gender,
+    'date_of_birth': dateOfBirth,
+    'blood_group': bloodGroup,
+    'marital_status': maritalStatus,
+    'nationality': nationality,
+    'personal_email': personalEmail,
+    'personal_phone': personalPhone,
+    if (address != null) 'address': address!.toJson(),
+  };
+}
+
+class ProfileEmergencyContactModel {
+  final String? id;
+  final String? name;
+  final String? relationship;
+  final String? phone;
+  final String? alternativePhone;
+  final bool isPrimary;
+
+  const ProfileEmergencyContactModel({
+    this.id,
+    this.name,
+    this.relationship,
+    this.phone,
+    this.alternativePhone,
+    this.isPrimary = false,
+  });
+
+  factory ProfileEmergencyContactModel.fromJson(Map<String, dynamic> json) {
+    return ProfileEmergencyContactModel(
+      id: json['id']?.toString(),
+      name: json['name']?.toString(),
+      relationship: json['relationship']?.toString(),
+      phone: json['phone']?.toString(),
+      alternativePhone: json['alternative_phone']?.toString(),
+      isPrimary: json['is_primary'] == true,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'relationship': relationship,
+    'phone': phone,
+    'alternative_phone': alternativePhone,
+    'is_primary': isPrimary,
+  };
+}
+
+class ProfileDocumentModel {
+  final String? id;
+  final String? kind;
+  final String? expiresOn;
+  final int? daysLeft;
+
+  const ProfileDocumentModel({
+    this.id,
+    this.kind,
+    this.expiresOn,
+    this.daysLeft,
+  });
+
+  factory ProfileDocumentModel.fromJson(Map<String, dynamic> json) {
+    return ProfileDocumentModel(
+      id: json['id']?.toString(),
+      kind: json['kind']?.toString(),
+      expiresOn: json['expires_on']?.toString(),
+      daysLeft: (json['days_left'] as num?)?.toInt(),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'kind': kind,
+    'expires_on': expiresOn,
+    'days_left': daysLeft,
+  };
+}
+
+/// Represents the executive employee profile returned from GET /api/v1/me/profile
 class EmployeeProfileModel {
+  final String id;
+  final String employeeNumber;
   final String name;
   final String email;
   final String phone;
@@ -16,6 +300,18 @@ class EmployeeProfileModel {
   final String shiftTime;
   final int graceMinutes;
   final String workLocation;
+  final String stage;
+  final String firstName;
+  final String lastName;
+  final String? preferredName;
+  final bool hasPhoto;
+  final String stageLabel;
+  final List<ProfileSectionModel> sections;
+  final ProfileJobModel? job;
+  final ProfileContactModel? contact;
+  final ProfilePersonalModel? personal;
+  final List<ProfileEmergencyContactModel> emergencyContacts;
+  final List<ProfileDocumentModel> documents;
   final String address;
   final String city;
   final String postalCode;
@@ -31,38 +327,52 @@ class EmployeeProfileModel {
   final double attendanceScore;
 
   const EmployeeProfileModel({
+    this.id = '01m5kmp9g8wxp9ssn3aed8awzm',
+    this.employeeNumber = 'EMP-0002',
     required this.name,
-    required this.email,
-    this.phone = '+92 300 1234567',
-    this.cnic = '37405-1234567-1',
-    this.dob = '14 May 1996',
-    this.gender = 'Male',
-    this.bloodGroup = 'O+',
-    required this.employeeId,
+    this.email = 'maryam@example.com',
+    this.phone = '',
+    this.cnic = '',
+    this.dob = '',
+    this.gender = '',
+    this.bloodGroup = '',
+    this.employeeId = 'EMP-0002',
     required this.designation,
     required this.department,
-    required this.joiningDate,
-    required this.reportingManager,
-    required this.shiftName,
-    required this.shiftTime,
-    required this.graceMinutes,
+    this.joiningDate = '2023-07-15',
+    this.reportingManager = 'Executive Management',
+    this.shiftName = 'General Corporate Shift',
+    this.shiftTime = '09:00 AM - 06:00 PM',
+    this.graceMinutes = 15,
     required this.workLocation,
-    this.address = 'House #42, Street 8, Sector G-11/1',
-    this.city = 'Islamabad',
-    this.postalCode = '44000',
-    this.emergencyContactName = 'Tariq Mehmood',
-    this.emergencyContactPhone = '+92 321 7654321',
-    this.emergencyContactRelation = 'Brother',
+    this.stage = 'active',
+    this.firstName = 'Maryam',
+    this.lastName = 'Malik',
+    this.preferredName,
+    this.hasPhoto = false,
+    this.stageLabel = 'Active',
+    this.sections = const [],
+    this.job,
+    this.contact,
+    this.personal,
+    this.emergencyContacts = const [],
+    this.documents = const [],
+    this.address = '',
+    this.city = '',
+    this.postalCode = '',
+    this.emergencyContactName = '',
+    this.emergencyContactPhone = '',
+    this.emergencyContactRelation = '',
     this.avatarUrl,
     this.avatarPath,
     this.biometricEnabled = true,
     this.remindersEnabled = true,
     this.geofenceAutoCheck = true,
-    this.tenureYears = '2.8 Yrs',
-    this.attendanceScore = 98.4,
+    this.tenureYears = '3 years 3 months',
+    this.attendanceScore = 99.0,
   });
 
-  /// Initials generated from employee name (e.g., 'MI' for Malik Imran)
+  /// Initials generated from employee name (e.g. 'MM' for Maryam Malik)
   String get initials {
     if (name.trim().isEmpty) return 'EM';
     final parts = name.trim().split(' ').where((p) => p.isNotEmpty).toList();
@@ -72,53 +382,287 @@ class EmployeeProfileModel {
     return '${parts[0][0]}${parts[parts.length - 1][0]}'.toUpperCase();
   }
 
+  /// Factory parser for /me/profile and /employees/{id} responses
   factory EmployeeProfileModel.fromJson(Map<String, dynamic> json) {
+    // Envelope unwrapping
+    final payload = (json['data'] is Map<String, dynamic>)
+        ? json['data'] as Map<String, dynamic>
+        : (json['data'] is Map
+            ? Map<String, dynamic>.from(json['data'])
+            : json);
+
+    // Parse sections
+    final rawSections = payload['sections'];
+    final List<ProfileSectionModel> parsedSections = [];
+    if (rawSections is List) {
+      for (final s in rawSections) {
+        if (s is Map) {
+          parsedSections.add(ProfileSectionModel.fromJson(
+              Map<String, dynamic>.from(s)));
+        }
+      }
+    }
+
+    // Parse emergency contacts
+    final rawEmergencies = payload['emergency_contacts'];
+    final List<ProfileEmergencyContactModel> parsedEmergencies = [];
+    if (rawEmergencies is List) {
+      for (final e in rawEmergencies) {
+        if (e is Map) {
+          parsedEmergencies.add(ProfileEmergencyContactModel.fromJson(
+              Map<String, dynamic>.from(e)));
+        }
+      }
+    }
+
+    // Parse documents
+    final rawDocs = payload['documents'];
+    final List<ProfileDocumentModel> parsedDocs = [];
+    if (rawDocs is List) {
+      for (final d in rawDocs) {
+        if (d is Map) {
+          parsedDocs.add(ProfileDocumentModel.fromJson(
+              Map<String, dynamic>.from(d)));
+        }
+      }
+    }
+
+    final rawJob = payload['job'];
+    final ProfileJobModel? parsedJob = rawJob is Map
+        ? ProfileJobModel.fromJson(Map<String, dynamic>.from(rawJob))
+        : null;
+
+    final rawContact = payload['contact'];
+    final ProfileContactModel? parsedContact = rawContact is Map
+        ? ProfileContactModel.fromJson(
+            Map<String, dynamic>.from(rawContact))
+        : null;
+
+    final rawPersonal = payload['personal'];
+    final ProfilePersonalModel? parsedPersonal = rawPersonal is Map
+        ? ProfilePersonalModel.fromJson(
+            Map<String, dynamic>.from(rawPersonal))
+        : null;
+
+    final rawName = payload['name']?.toString() ??
+        '${payload['first_name'] ?? 'Maryam'} ${payload['last_name'] ?? 'Malik'}';
+
+    final resolvedEmpNum = payload['employee_number']?.toString() ??
+        payload['employee_id']?.toString() ??
+        'EMP-0002';
+
+    final resolvedEmail = parsedContact?.workEmail ??
+        payload['email']?.toString() ??
+        'maryam@example.com';
+
+    final resolvedPhone = parsedPersonal?.personalPhone ??
+        parsedContact?.workPhone ??
+        payload['phone']?.toString() ??
+        '';
+
+    final resolvedAddress = parsedPersonal?.address?.formattedAddress ??
+        (payload['address'] is String ? payload['address'] as String : null) ??
+        '';
+
+    final resolvedCity = parsedPersonal?.address?.city ??
+        payload['city']?.toString() ??
+        '';
+
+    final resolvedPostalCode = parsedPersonal?.address?.postcode ??
+        payload['postal_code']?.toString() ??
+        '';
+
+    final String resolvedEmergName = parsedEmergencies.isNotEmpty
+        ? (parsedEmergencies.first.name ?? '')
+        : (payload['emergency_contact_name']?.toString() ?? '');
+
+    final String resolvedEmergPhone = parsedEmergencies.isNotEmpty
+        ? (parsedEmergencies.first.phone ?? '')
+        : (payload['emergency_contact_phone']?.toString() ?? '');
+
+    final String resolvedEmergRel = parsedEmergencies.isNotEmpty
+        ? (parsedEmergencies.first.relationship ?? '')
+        : (payload['emergency_contact_relation']?.toString() ?? '');
+
     return EmployeeProfileModel(
-      name: json['name'] as String? ?? 'Malik Muhammad Imran',
-      email:
-          json['email'] as String? ?? 'imran@Softech Business Services.com',
-      phone: json['phone'] as String? ?? '+92 300 1234567',
-      cnic: json['cnic'] as String? ?? '37405-1234567-1',
-      dob: json['dob'] as String? ?? '14 May 1996',
-      gender: json['gender'] as String? ?? 'Male',
-      bloodGroup: json['blood_group'] as String? ?? 'O+',
-      employeeId: json['employee_id'] as String? ?? 'EMP-1024',
-      designation:
-          json['designation'] as String? ?? 'Senior Software Engineer & Tech Lead',
-      department:
-          json['department'] as String? ?? 'Engineering & Mobility',
-      joiningDate: json['joining_date'] as String? ?? '15 Jan 2024',
-      reportingManager:
-          json['reporting_manager'] as String? ?? 'Hamza Sheikh (Lead Architect)',
-      shiftName:
-          json['shift_name'] as String? ?? 'General Corporate Shift',
-      shiftTime:
-          json['shift_time'] as String? ?? '09:00 AM - 06:00 PM',
-      graceMinutes: json['grace_minutes'] as int? ?? 15,
-      workLocation:
-          json['work_location'] as String? ?? 'Softech Business Services HQ • 4th Floor',
-      address:
-          json['address'] as String? ?? 'House #42, Street 8, Sector G-11/1',
-      city: json['city'] as String? ?? 'Islamabad',
-      postalCode: json['postal_code'] as String? ?? '44000',
-      emergencyContactName:
-          json['emergency_contact_name'] as String? ?? 'Tariq Mehmood',
-      emergencyContactPhone:
-          json['emergency_contact_phone'] as String? ?? '+92 321 7654321',
-      emergencyContactRelation:
-          json['emergency_contact_relation'] as String? ?? 'Brother',
-      avatarUrl: json['avatar_url'] as String?,
-      avatarPath: json['avatar_path'] as String?,
-      biometricEnabled: json['biometric_enabled'] as bool? ?? true,
-      remindersEnabled: json['reminders_enabled'] as bool? ?? true,
-      geofenceAutoCheck: json['geofence_auto_check'] as bool? ?? true,
-      tenureYears: json['tenure_years'] as String? ?? '2.8 Yrs',
-      attendanceScore: (json['attendance_score'] as num?)?.toDouble() ?? 98.4,
+      id: payload['id']?.toString() ?? '01m5kmp9g8wxp9ssn3aed8awzm',
+      employeeNumber: resolvedEmpNum,
+      name: rawName,
+      email: resolvedEmail,
+      phone: resolvedPhone,
+      cnic: payload['cnic']?.toString() ?? '',
+      dob: parsedPersonal?.dateOfBirth ??
+          payload['dob']?.toString() ??
+          '',
+      gender: parsedPersonal?.gender ??
+          payload['gender']?.toString() ??
+          '',
+      bloodGroup: parsedPersonal?.bloodGroup ??
+          payload['blood_group']?.toString() ??
+          '',
+      employeeId: resolvedEmpNum,
+      designation: payload['designation']?.toString() ??
+          parsedJob?.designation ??
+          'Sales Manager',
+      department: payload['department']?.toString() ??
+          parsedJob?.department ??
+          'Sales',
+      joiningDate: parsedJob?.joinedOn ??
+          payload['joining_date']?.toString() ??
+          '2023-07-15',
+      reportingManager: payload['reporting_manager']?.toString() ??
+          'Executive Management',
+      shiftName: payload['shift_name']?.toString() ??
+          'General Corporate Shift',
+      shiftTime: payload['shift_time']?.toString() ??
+          '09:00 AM - 06:00 PM',
+      graceMinutes: (payload['grace_minutes'] as num?)?.toInt() ?? 15,
+      workLocation: payload['work_location']?.toString() ??
+          parsedJob?.workLocation ??
+          'Head office',
+      stage: payload['stage']?.toString() ?? 'active',
+      firstName: payload['first_name']?.toString() ?? 'Maryam',
+      lastName: payload['last_name']?.toString() ?? 'Malik',
+      preferredName: payload['preferred_name']?.toString(),
+      hasPhoto: payload['has_photo'] == true,
+      stageLabel: payload['stage_label']?.toString() ?? 'Active',
+      sections: parsedSections.isNotEmpty
+          ? parsedSections
+          : defaultSections,
+      job: parsedJob,
+      contact: parsedContact ??
+          ProfileContactModel(
+            workEmail: resolvedEmail,
+            workPhone: resolvedPhone.isNotEmpty ? resolvedPhone : null,
+          ),
+      personal: parsedPersonal,
+      emergencyContacts: parsedEmergencies,
+      documents: parsedDocs,
+      address: resolvedAddress,
+      city: resolvedCity,
+      postalCode: resolvedPostalCode,
+      emergencyContactName: resolvedEmergName,
+      emergencyContactPhone: resolvedEmergPhone,
+      emergencyContactRelation: resolvedEmergRel,
+      avatarUrl: payload['avatar_url']?.toString(),
+      avatarPath: payload['avatar_path']?.toString(),
+      biometricEnabled: payload['biometric_enabled'] as bool? ?? true,
+      remindersEnabled: payload['reminders_enabled'] as bool? ?? true,
+      geofenceAutoCheck: payload['geofence_auto_check'] as bool? ?? true,
+      tenureYears: parsedJob?.lengthOfService ??
+          payload['tenure_years']?.toString() ??
+          '3 years 3 months',
+      attendanceScore:
+          (payload['attendance_score'] as num?)?.toDouble() ?? 99.0,
+    );
+  }
+
+  /// Default sections if not provided by server
+  static List<ProfileSectionModel> get defaultSections => const [
+        ProfileSectionModel(key: 'overview', label: 'Overview'),
+        ProfileSectionModel(key: 'personal', label: 'Personal'),
+        ProfileSectionModel(key: 'job', label: 'Job'),
+        ProfileSectionModel(key: 'attendance', label: 'Attendance'),
+        ProfileSectionModel(key: 'documents', label: 'Documents'),
+        ProfileSectionModel(key: 'bank', label: 'Bank details'),
+        ProfileSectionModel(key: 'account', label: 'Sign-in and card'),
+        ProfileSectionModel(key: 'history', label: 'History'),
+      ];
+
+  /// Ground truth mock matching the user's exact specification
+  factory EmployeeProfileModel.mock() {
+    return const EmployeeProfileModel(
+      id: '01m5kmp9g8wxp9ssn3aed8awzm',
+      employeeNumber: 'EMP-0002',
+      name: 'Maryam Malik',
+      email: 'maryam@example.com',
+      phone: '',
+      cnic: '',
+      dob: '',
+      gender: '',
+      bloodGroup: '',
+      employeeId: 'EMP-0002',
+      designation: 'Sales Manager',
+      department: 'Sales',
+      joiningDate: '2023-07-15',
+      reportingManager: 'Executive Management',
+      shiftName: 'General Corporate Shift',
+      shiftTime: '09:00 AM - 06:00 PM',
+      graceMinutes: 15,
+      workLocation: 'Head office',
+      stage: 'active',
+      firstName: 'Maryam',
+      lastName: 'Malik',
+      preferredName: null,
+      hasPhoto: false,
+      stageLabel: 'Active',
+      sections: [
+        ProfileSectionModel(key: 'overview', label: 'Overview'),
+        ProfileSectionModel(key: 'personal', label: 'Personal'),
+        ProfileSectionModel(key: 'job', label: 'Job'),
+        ProfileSectionModel(key: 'attendance', label: 'Attendance'),
+        ProfileSectionModel(key: 'documents', label: 'Documents'),
+        ProfileSectionModel(key: 'bank', label: 'Bank details'),
+        ProfileSectionModel(key: 'account', label: 'Sign-in and card'),
+        ProfileSectionModel(key: 'history', label: 'History'),
+      ],
+      job: ProfileJobModel(
+        legalEntity: 'Kumash (Pvt) Ltd',
+        workLocation: 'Head office',
+        department: 'Sales',
+        subDepartment: null,
+        designation: 'Sales Manager',
+        grade: null,
+        employmentType: 'full_time',
+        contractType: 'permanent',
+        contractEndsOn: null,
+        joinedOn: '2023-07-15',
+        probationEndsOn: null,
+        confirmedOn: null,
+        lastWorkingDay: null,
+        leftOn: null,
+        lengthOfService: '3 years 3 months',
+      ),
+      contact: ProfileContactModel(
+        workEmail: 'maryam@example.com',
+        workPhone: null,
+      ),
+      personal: ProfilePersonalModel(
+        gender: null,
+        dateOfBirth: null,
+        bloodGroup: null,
+        maritalStatus: null,
+        nationality: 'PK',
+        personalEmail: null,
+        personalPhone: null,
+        address: ProfileAddressModel(
+          line1: null,
+          line2: null,
+          city: null,
+          postcode: null,
+          country: null,
+        ),
+      ),
+      emergencyContacts: [],
+      documents: [],
+      address: '',
+      city: '',
+      postalCode: '',
+      emergencyContactName: '',
+      emergencyContactPhone: '',
+      emergencyContactRelation: '',
+      biometricEnabled: true,
+      remindersEnabled: true,
+      geofenceAutoCheck: true,
+      tenureYears: '3 years 3 months',
+      attendanceScore: 99.0,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
+      'id': id,
+      'employee_number': employeeNumber,
       'name': name,
       'email': email,
       'phone': phone,
@@ -135,6 +679,19 @@ class EmployeeProfileModel {
       'shift_time': shiftTime,
       'grace_minutes': graceMinutes,
       'work_location': workLocation,
+      'stage': stage,
+      'first_name': firstName,
+      'last_name': lastName,
+      'preferred_name': preferredName,
+      'has_photo': hasPhoto,
+      'stage_label': stageLabel,
+      'sections': sections.map((s) => s.toJson()).toList(),
+      if (job != null) 'job': job!.toJson(),
+      if (contact != null) 'contact': contact!.toJson(),
+      if (personal != null) 'personal': personal!.toJson(),
+      'emergency_contacts':
+          emergencyContacts.map((e) => e.toJson()).toList(),
+      'documents': documents.map((d) => d.toJson()).toList(),
       'address': address,
       'city': city,
       'postal_code': postalCode,
@@ -152,6 +709,8 @@ class EmployeeProfileModel {
   }
 
   EmployeeProfileModel copyWith({
+    String? id,
+    String? employeeNumber,
     String? name,
     String? email,
     String? phone,
@@ -168,6 +727,18 @@ class EmployeeProfileModel {
     String? shiftTime,
     int? graceMinutes,
     String? workLocation,
+    String? stage,
+    String? firstName,
+    String? lastName,
+    String? preferredName,
+    bool? hasPhoto,
+    String? stageLabel,
+    List<ProfileSectionModel>? sections,
+    ProfileJobModel? job,
+    ProfileContactModel? contact,
+    ProfilePersonalModel? personal,
+    List<ProfileEmergencyContactModel>? emergencyContacts,
+    List<ProfileDocumentModel>? documents,
     String? address,
     String? city,
     String? postalCode,
@@ -183,6 +754,8 @@ class EmployeeProfileModel {
     double? attendanceScore,
   }) {
     return EmployeeProfileModel(
+      id: id ?? this.id,
+      employeeNumber: employeeNumber ?? this.employeeNumber,
       name: name ?? this.name,
       email: email ?? this.email,
       phone: phone ?? this.phone,
@@ -199,12 +772,23 @@ class EmployeeProfileModel {
       shiftTime: shiftTime ?? this.shiftTime,
       graceMinutes: graceMinutes ?? this.graceMinutes,
       workLocation: workLocation ?? this.workLocation,
+      stage: stage ?? this.stage,
+      firstName: firstName ?? this.firstName,
+      lastName: lastName ?? this.lastName,
+      preferredName: preferredName ?? this.preferredName,
+      hasPhoto: hasPhoto ?? this.hasPhoto,
+      stageLabel: stageLabel ?? this.stageLabel,
+      sections: sections ?? this.sections,
+      job: job ?? this.job,
+      contact: contact ?? this.contact,
+      personal: personal ?? this.personal,
+      emergencyContacts: emergencyContacts ?? this.emergencyContacts,
+      documents: documents ?? this.documents,
       address: address ?? this.address,
       city: city ?? this.city,
       postalCode: postalCode ?? this.postalCode,
       emergencyContactName: emergencyContactName ?? this.emergencyContactName,
-      emergencyContactPhone:
-          emergencyContactPhone ?? this.emergencyContactPhone,
+      emergencyContactPhone: emergencyContactPhone ?? this.emergencyContactPhone,
       emergencyContactRelation:
           emergencyContactRelation ?? this.emergencyContactRelation,
       avatarUrl: avatarUrl ?? this.avatarUrl,
