@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-import 'package:ams_2/app/core/utils/app_colors.dart';
-
 /// Represents company information printed on the Digital ID Badge
 class EmployeeCardCompany {
   final String name;
@@ -96,15 +94,12 @@ class EmployeeCardDetails {
   Color get cardColor {
     try {
       final hex = colour.replaceFirst('#', '').toLowerCase();
-      if (hex == '7f1d1d' || hex == 'ff7f1d1d') {
-        return AppColors.primary;
-      }
       final buffer = StringBuffer();
       if (hex.length == 6) buffer.write('ff');
       buffer.write(hex);
       return Color(int.parse(buffer.toString(), radix: 16));
     } catch (_) {
-      return AppColors.primary;
+      return const Color(0xFF7F1D1D);
     }
   }
 
@@ -268,7 +263,7 @@ class EmployeeCardDetails {
       emergencyPhone: null,
       cardNo: 1,
       issuedOn: '2023-07-15',
-      colour: '#012b43',
+      colour: '#7f1d1d',
       orientation: 'vertical',
       qrValue: 'AMS1:MX0zbHeRVbzPIlBb8SjAwBChWK0oZvsb',
       pdfDocumentUrl:

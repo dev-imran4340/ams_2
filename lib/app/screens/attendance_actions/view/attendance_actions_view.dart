@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
 import '../../../core/utils/app_colors.dart';
 import '../../../core/utils/app_spaces.dart';
 import '../../../core/utils/app_text_styles.dart';
+import '../../../core/widgets/custom_screen_header.dart';
 import '../../../core/widgets/custom_state_view.dart';
+import '../../../core/widgets/employee_ambient_header.dart';
 import '../../../core/widgets/network_boundary_wrapper.dart';
 import '../controller/attendance_actions_controller.dart';
 import 'components/active_break_card.dart';
@@ -47,56 +48,7 @@ class AttendanceActionsView extends GetView<AttendanceActionsController> {
           return Stack(
             children: [
               // 1. Signature Curved Ambient Gradient Header
-              Container(
-                width: double.infinity,
-                height: 260.h,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      AppColors.liteSecondary,
-                      AppColors.liteSecondary,
-                      AppColors.liteSecondary,
-                      AppColors.secondary,
-                      AppColors.primary,
-                    ],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                  ),
-                  borderRadius: BorderRadius.only(
-                    bottomLeft: Radius.circular(20.r),
-                    bottomRight: Radius.circular(20.r),
-                  ),
-                ),
-                child: Stack(
-                  children: [
-                    // Ambient Decorative Geometric Rings
-                    Positioned(
-                      top: -60.r,
-                      right: -40.r,
-                      child: Container(
-                        width: 150.r,
-                        height: 150.r,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: AppColors.primary.withValues(alpha: 0.06),
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      bottom: 30.r,
-                      left: -50.r,
-                      child: Container(
-                        width: 120.r,
-                        height: 120.r,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: AppColors.secondary.withValues(alpha: 0.06),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              EmployeeAmbientHeader(height: 260.h),
 
               // 2. Main Scrollable Content Overlapping Header
               SafeArea(
@@ -115,7 +67,55 @@ class AttendanceActionsView extends GetView<AttendanceActionsController> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Top Executive Navigation Bar
-                        _buildTopBar(context),
+                        CustomScreenHeader(
+                          title: 'Attendance Hub',
+                          subtitle: 'Punches, Breaks & Requests',
+                          actions: [
+                            Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 10.w,
+                                vertical: 6.h,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.white,
+                                borderRadius: BorderRadius.circular(16.r),
+                                border: Border.all(
+                                  color: AppColors.borderColor,
+                                  width: 0.8.w,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.primary
+                                        .withValues(alpha: 0.06),
+                                    blurRadius: 6.r,
+                                    offset: Offset(0, 2.h),
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 6.r,
+                                    height: 6.r,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: AppColors.onTimeColor,
+                                    ),
+                                  ),
+                                  AppSpaces.hSpace6,
+                                  Text(
+                                    'Live Sync',
+                                    style: AppTextStyles.text10.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
 
                         AppSpaces.vSpace14,
 
@@ -156,91 +156,5 @@ class AttendanceActionsView extends GetView<AttendanceActionsController> {
     );
   }
 
-  /// Top executive navigation bar with back button, title, and live beacon pill
-  Widget _buildTopBar(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Row(
-          children: [
-            // Glass Back Button
-            IconButton(
-              style: IconButton.styleFrom(
-                backgroundColor: AppColors.white,
-                shape: const CircleBorder(),
-                shadowColor: AppColors.primary.withValues(alpha: 0.08),
-                elevation: 8,
-              ),
-              icon: Icon(
-                Icons.arrow_back_ios_new_rounded,
-                color: AppColors.primary,
-                size: 18.sp,
-              ),
-              onPressed: () {
-                HapticFeedback.lightImpact();
-                Get.back();
-              },
-            ),
-            AppSpaces.hSpace12,
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Attendance Hub',
-                  style: AppTextStyles.text18.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textColor,
-                  ),
-                ),
-                Text(
-                  'Punches, Breaks & Requests',
-                  style: AppTextStyles.text10.copyWith(
-                    color: AppColors.textColor.withValues(alpha: 0.7),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
 
-        // Live Cloud Sync Status Pill
-        Container(
-          padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.circular(16.r),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primary.withValues(alpha: 0.06),
-                blurRadius: 10.r,
-                offset: Offset(0, 4.h),
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 6.r,
-                height: 6.r,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.onTimeColor,
-                ),
-              ),
-              AppSpaces.hSpace6,
-              Text(
-                'Live Sync',
-                style: AppTextStyles.text10.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primary,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
 }

@@ -60,14 +60,7 @@ class DrawerFooterSection extends StatelessWidget {
                         isLoading: sessionController.isLoggingOut.value,
                         height: 42.h,
                         borderRadius: 12.r,
-                        onPressed: () async {
-                          Get.back();
-                          try {
-                            await sessionController.logout();
-                          } finally {
-                            // Guaranteed cleanup in controller
-                          }
-                        },
+                        onPressed: sessionController.logout,
                       );
                     }),
                   ),

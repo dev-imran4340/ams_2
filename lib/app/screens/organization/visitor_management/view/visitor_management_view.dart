@@ -329,9 +329,6 @@ class VisitorManagementView extends GetView<VisitorController> {
       decoration: BoxDecoration(
         color: AppColors.cardBackground,
         borderRadius: BorderRadius.circular(15.r),
-        border: Border(
-          bottom: BorderSide(color: AppColors.primary, width: 2.w),
-        ),
         boxShadow: [
           BoxShadow(
             color: AppColors.primary.withValues(alpha: 0.08),
@@ -340,44 +337,60 @@ class VisitorManagementView extends GetView<VisitorController> {
           ),
         ],
       ),
-      child: Padding(
-        padding: EdgeInsets.all(14.r),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(15.r),
+        child: Stack(
           children: [
-            Container(
-              padding: EdgeInsets.all(9.r),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(12.r),
-              ),
-              child: Icon(
-                Icons.info_outline_rounded,
-                color: AppColors.primary,
-                size: 20.sp,
-              ),
-            ),
-            AppSpaces.hSpace12,
-            Expanded(
-              child: Column(
+            Padding(
+              padding: EdgeInsets.all(14.r),
+              child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Reception workflow',
-                    style: AppTextStyles.text14.copyWith(
+                  Container(
+                    padding: EdgeInsets.all(9.r),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(12.r),
+                    ),
+                    child: Icon(
+                      Icons.info_outline_rounded,
                       color: AppColors.primary,
-                      fontWeight: FontWeight.bold,
+                      size: 20.sp,
                     ),
                   ),
-                  AppSpaces.vSpace4,
-                  Text(
-                    'Use Entry for new visitors. Use Exit when a visitor is leaving and their session should be closed.',
-                    style: AppTextStyles.text12.copyWith(
-                      color: AppColors.subTextColor,
-                      height: 1.45,
+                  AppSpaces.hSpace12,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Reception workflow',
+                          style: AppTextStyles.text14.copyWith(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        AppSpaces.vSpace4,
+                        Text(
+                          'Use Entry for new visitors. Use Exit when a visitor is leaving and their session should be closed.',
+                          style: AppTextStyles.text12.copyWith(
+                            color: AppColors.subTextColor,
+                            height: 1.45,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
+              ),
+            ),
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                height: 2.w,
+                color: AppColors.primary,
               ),
             ),
           ],

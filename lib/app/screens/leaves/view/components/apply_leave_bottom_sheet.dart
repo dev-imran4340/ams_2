@@ -130,51 +130,78 @@ class ApplyLeaveBottomSheet extends GetView<LeaveController> {
                         'Medical / Sick',
                       ];
 
-                      return Row(
-                        children: categories.map((cat) {
-                          final isCurrent = selected == cat;
-                          return Expanded(
-                            child: Padding(
-                              padding: EdgeInsets.only(
-                                right: cat != categories.last ? 8.w : 0,
-                              ),
-                              child: InkWell(
-                                onTap: () =>
-                                    controller.selectedLeaveType.value = cat,
-                                borderRadius: BorderRadius.circular(12.r),
-                                child: Container(
-                                  padding: EdgeInsets.symmetric(vertical: 10.h),
-                                  decoration: BoxDecoration(
-                                    color: isCurrent
-                                        ? AppColors.primary
-                                        : AppColors.inputFill,
-                                    borderRadius: BorderRadius.circular(12.r),
-                                    border: Border.all(
-                                      color: isCurrent
-                                          ? AppColors.primary
-                                          : AppColors.borderColor,
-                                      width: 1.w,
-                                    ),
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: categories.map((cat) {
+                              final isCurrent = selected == cat;
+                              return Expanded(
+                                child: Padding(
+                                  padding: EdgeInsets.only(
+                                    right: cat != categories.last ? 8.w : 0,
                                   ),
-                                  child: Center(
-                                    child: Text(
-                                      cat,
-                                      textAlign: TextAlign.center,
-                                      style: AppTextStyles.text12.copyWith(
-                                        fontWeight: isCurrent
-                                            ? FontWeight.bold
-                                            : FontWeight.w500,
+                                  child: InkWell(
+                                    onTap: () {
+                                      controller.selectedLeaveType.value = cat;
+                                      controller.leaveTypeError.value = null;
+                                    },
+                                    borderRadius: BorderRadius.circular(12.r),
+                                    child: Container(
+                                      padding: EdgeInsets.symmetric(vertical: 10.h),
+                                      decoration: BoxDecoration(
                                         color: isCurrent
-                                            ? AppColors.white
-                                            : AppColors.textColor,
+                                            ? AppColors.primary
+                                            : AppColors.inputFill,
+                                        borderRadius: BorderRadius.circular(12.r),
+                                        border: Border.all(
+                                          color: isCurrent
+                                              ? AppColors.primary
+                                              : AppColors.borderColor,
+                                          width: 1.w,
+                                        ),
+                                      ),
+                                      child: Center(
+                                        child: Text(
+                                          cat,
+                                          textAlign: TextAlign.center,
+                                          style: AppTextStyles.text12.copyWith(
+                                            fontWeight: isCurrent
+                                                ? FontWeight.bold
+                                                : FontWeight.w500,
+                                            color: isCurrent
+                                                ? AppColors.white
+                                                : AppColors.textColor,
+                                          ),
+                                        ),
                                       ),
                                     ),
                                   ),
                                 ),
-                              ),
+                              );
+                            }).toList(),
+                          ),
+                          if (controller.leaveTypeError.value != null) ...[
+                            AppSpaces.vSpace4,
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.error_outline_rounded,
+                                  size: 12.sp,
+                                  color: AppColors.error,
+                                ),
+                                AppSpaces.hSpace4,
+                                Text(
+                                  controller.leaveTypeError.value!,
+                                  style: AppTextStyles.text10.copyWith(
+                                    color: AppColors.error,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
                             ),
-                          );
-                        }).toList(),
+                          ],
+                        ],
                       );
                     }),
 
@@ -194,172 +221,208 @@ class ApplyLeaveBottomSheet extends GetView<LeaveController> {
                       final start = controller.startDate.value;
                       final end = controller.endDate.value;
                       final days = controller.calculatedDays;
+                      final dateError = controller.startDateError.value ??
+                          controller.endDateError.value;
+                      final hasDateError = dateError != null;
 
-                      return Container(
-                        padding: EdgeInsets.all(12.r),
-                        decoration: BoxDecoration(
-                          color: AppColors.inputFill,
-                          borderRadius: BorderRadius.circular(14.r),
-                          border: Border.all(
-                            color: AppColors.borderColor,
-                            width: 1.w,
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            padding: EdgeInsets.all(12.r),
+                            decoration: BoxDecoration(
+                              color: AppColors.inputFill,
+                              borderRadius: BorderRadius.circular(14.r),
+                              border: Border.all(
+                                color: hasDateError
+                                    ? AppColors.error
+                                    : AppColors.borderColor,
+                                width: hasDateError ? 1.2.w : 1.w,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                // Start Date Capsule
+                                Expanded(
+                                  child: InkWell(
+                                    onTap: () => controller.pickStartDate(context),
+                                    borderRadius: BorderRadius.circular(10.r),
+                                    child: Container(
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 10.w,
+                                        vertical: 8.h,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.cardBackground,
+                                        borderRadius: BorderRadius.circular(10.r),
+                                        border: Border.all(
+                                          color: controller.startDateError.value != null
+                                              ? AppColors.error
+                                              : AppColors.borderColor,
+                                          width: 1.w,
+                                        ),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'From',
+                                            style: AppTextStyles.text10.copyWith(
+                                              color: AppColors.subTextColor,
+                                            ),
+                                          ),
+                                          AppSpaces.vSpace2,
+                                          Row(
+                                            children: [
+                                              Icon(
+                                                Icons.calendar_today_rounded,
+                                                size: 13.sp,
+                                                color: AppColors.secondary,
+                                              ),
+                                              AppSpaces.hSpace4,
+                                              Expanded(
+                                                child: Text(
+                                                  start != null
+                                                      ? LeaveController.formatDate(start)
+                                                      : 'Select',
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                  style:
+                                                      AppTextStyles.text12.copyWith(
+                                                    fontWeight: FontWeight.bold,
+                                                    color: AppColors.textColor,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+
+                                // Days Count Badge in the Middle
+                                Padding(
+                                  padding: EdgeInsets.symmetric(horizontal: 8.w),
+                                  child: Container(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: 8.w,
+                                      vertical: 4.h,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.secondary
+                                          .withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(20.r),
+                                      border: Border.all(
+                                        color: AppColors.secondary
+                                            .withValues(alpha: 0.3),
+                                        width: 1.w,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      '$days ${days == 1 ? 'Day' : 'Days'}',
+                                      style: AppTextStyles.text10.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.secondary,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+
+                                // End Date Capsule
+                                Expanded(
+                                  child: InkWell(
+                                    onTap: () => controller.pickEndDate(context),
+                                    borderRadius: BorderRadius.circular(10.r),
+                                    child: Container(
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 10.w,
+                                        vertical: 8.h,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.cardBackground,
+                                        borderRadius: BorderRadius.circular(10.r),
+                                        border: Border.all(
+                                          color: controller.endDateError.value != null
+                                              ? AppColors.error
+                                              : AppColors.borderColor,
+                                          width: 1.w,
+                                        ),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'To',
+                                            style: AppTextStyles.text10.copyWith(
+                                              color: AppColors.subTextColor,
+                                            ),
+                                          ),
+                                          AppSpaces.vSpace2,
+                                          Row(
+                                            children: [
+                                              Icon(
+                                                Icons.event_available_rounded,
+                                                size: 13.sp,
+                                                color: AppColors.primary,
+                                              ),
+                                              AppSpaces.hSpace4,
+                                              Expanded(
+                                                child: Text(
+                                                  end != null
+                                                      ? LeaveController.formatDate(end)
+                                                      : 'Select',
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                  style:
+                                                      AppTextStyles.text12.copyWith(
+                                                    fontWeight: FontWeight.bold,
+                                                    color: AppColors.textColor,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                        child: Row(
-                          children: [
-                            // Start Date Capsule
-                            Expanded(
-                              child: InkWell(
-                                onTap: () => controller.pickStartDate(context),
-                                borderRadius: BorderRadius.circular(10.r),
-                                child: Container(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 10.w,
-                                    vertical: 8.h,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.cardBackground,
-                                    borderRadius: BorderRadius.circular(10.r),
-                                    border: Border.all(
-                                      color: AppColors.borderColor,
-                                      width: 1.w,
+                          if (hasDateError) ...[
+                            AppSpaces.vSpace4,
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.error_outline_rounded,
+                                  size: 12.sp,
+                                  color: AppColors.error,
+                                ),
+                                AppSpaces.hSpace4,
+                                Expanded(
+                                  child: Text(
+                                    dateError,
+                                    style: AppTextStyles.text10.copyWith(
+                                      color: AppColors.error,
+                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'From',
-                                        style: AppTextStyles.text10.copyWith(
-                                          color: AppColors.subTextColor,
-                                        ),
-                                      ),
-                                      AppSpaces.vSpace2,
-                                      Row(
-                                        children: [
-                                          Icon(
-                                            Icons.calendar_today_rounded,
-                                            size: 13.sp,
-                                            color: AppColors.secondary,
-                                          ),
-                                          AppSpaces.hSpace4,
-                                          Expanded(
-                                            child: Text(
-                                              start != null
-                                                  ? LeaveController.formatDate(start)
-                                                  : 'Select',
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style:
-                                                  AppTextStyles.text12.copyWith(
-                                                fontWeight: FontWeight.bold,
-                                                color: AppColors.textColor,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
                                 ),
-                              ),
-                            ),
-
-                            // Days Count Badge in the Middle
-                            Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 8.w),
-                              child: Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 8.w,
-                                  vertical: 4.h,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.secondary
-                                      .withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(20.r),
-                                  border: Border.all(
-                                    color: AppColors.secondary
-                                        .withValues(alpha: 0.3),
-                                    width: 1.w,
-                                  ),
-                                ),
-                                child: Text(
-                                  '$days ${days == 1 ? 'Day' : 'Days'}',
-                                  style: AppTextStyles.text10.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.secondary,
-                                  ),
-                                ),
-                              ),
-                            ),
-
-                            // End Date Capsule
-                            Expanded(
-                              child: InkWell(
-                                onTap: () => controller.pickEndDate(context),
-                                borderRadius: BorderRadius.circular(10.r),
-                                child: Container(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 10.w,
-                                    vertical: 8.h,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.cardBackground,
-                                    borderRadius: BorderRadius.circular(10.r),
-                                    border: Border.all(
-                                      color: AppColors.borderColor,
-                                      width: 1.w,
-                                    ),
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'To',
-                                        style: AppTextStyles.text10.copyWith(
-                                          color: AppColors.subTextColor,
-                                        ),
-                                      ),
-                                      AppSpaces.vSpace2,
-                                      Row(
-                                        children: [
-                                          Icon(
-                                            Icons.event_available_rounded,
-                                            size: 13.sp,
-                                            color: AppColors.primary,
-                                          ),
-                                          AppSpaces.hSpace4,
-                                          Expanded(
-                                            child: Text(
-                                              end != null
-                                                  ? LeaveController.formatDate(end)
-                                                  : 'Select',
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style:
-                                                  AppTextStyles.text12.copyWith(
-                                                fontWeight: FontWeight.bold,
-                                                color: AppColors.textColor,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
+                              ],
                             ),
                           ],
-                        ),
+                        ],
                       );
                     }),
 
                     AppSpaces.vSpace16,
 
-                    // Section 3: Reason Text Field
+                    // Section 3: Reason Text Field with Validation Error
                     Text(
                       'Reason & Justification',
                       style: AppTextStyles.text12.copyWith(
@@ -369,15 +432,46 @@ class ApplyLeaveBottomSheet extends GetView<LeaveController> {
                     ),
                     AppSpaces.vSpace8,
 
-                    CustomTextField(
-                      hintText:
-                          'Provide a concise explanation for your leave request...',
-                      controller: controller.reasonController,
-                      focusNode: controller.reasonFocusNode,
-                      maxLines: 3,
-                      maxLength: 200,
-                      keyboardType: TextInputType.multiline,
-                    ),
+                    Obx(() {
+                      final hasReasonError = controller.reasonError.value != null;
+
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          CustomTextField(
+                            hintText:
+                                'Provide a concise reason for your leave request (5–1000 characters)...',
+                            controller: controller.reasonController,
+                            focusNode: controller.reasonFocusNode,
+                            maxLines: 3,
+                            maxLength: 1000,
+                            keyboardType: TextInputType.multiline,
+                          ),
+                          if (hasReasonError) ...[
+                            AppSpaces.vSpace4,
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.error_outline_rounded,
+                                  size: 12.sp,
+                                  color: AppColors.error,
+                                ),
+                                AppSpaces.hSpace4,
+                                Expanded(
+                                  child: Text(
+                                    controller.reasonError.value!,
+                                    style: AppTextStyles.text10.copyWith(
+                                      color: AppColors.error,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ],
+                      );
+                    }),
 
                     AppSpaces.vSpace12,
 
@@ -486,21 +580,23 @@ class ApplyLeaveBottomSheet extends GetView<LeaveController> {
 
                     AppSpaces.vSpace20,
 
-                    // Submit CTA Button
-                    CustomButton(
-                      text: 'Submit Leave Request',
-                      isLoading: controller.isSubmitting.value,
-                      onPressed: controller.isSubmitting.value
-                          ? null
-                          : () => controller.applyLeave(context),
-                      icon: Icon(
-                        Icons.send_rounded,
-                        size: 16.sp,
-                        color: AppColors.white,
+                    // Submit CTA Button with Form Validation Lock
+                    Obx(
+                      () => CustomButton(
+                        text: 'Submit Leave Request',
+                        isLoading: controller.isSubmitting.value,
+                        isGradient: true,
+                        onPressed: controller.isSubmitting.value
+                            ? null
+                            : () => controller.applyLeave(context),
+                        icon: Icon(
+                          Icons.send_rounded,
+                          size: 16.sp,
+                          color: AppColors.white,
+                        ),
+                        height: 48.h,
+                        borderRadius: 14.r,
                       ),
-                      backgroundColor: AppColors.primary,
-                      height: 48.h,
-                      borderRadius: 14.r,
                     ),
 
                     AppSpaces.vSpace16,

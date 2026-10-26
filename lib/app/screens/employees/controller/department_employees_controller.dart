@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 
 import 'package:ams_2/app/api/app_preferences.dart';
 import 'package:ams_2/app/core/widgets/custom_snackbar.dart';
+import '../../../routes/app_routes.dart';
 import '../model/department_employee_model.dart';
 import '../repo/department_employees_repo.dart';
 import '../view/components/employee_detail_sheet.dart';
@@ -68,6 +69,22 @@ class DepartmentEmployeesController extends GetxController {
     HapticFeedback.mediumImpact();
     CustomSnackbar.showSuccess(
       message: 'Exporting ${filteredStaff.length} department records to $format...',
+    );
+  }
+
+  /// Navigates to Detailed Employee Profile Screen with all server-driven tabs via GET /employees/{id}
+  void openEmployeeProfile(DepartmentEmployeeModel employee) {
+    HapticFeedback.lightImpact();
+    Get.toNamed(
+      Routes.PROFILE_DETAILS,
+      arguments: {
+        'employeeId': employee.id,
+        'employeeName': employee.name,
+        'employeeCode': employee.employeeCode,
+        'department': employee.department,
+        'designation': employee.designation,
+        'isViewingEmployee': true,
+      },
     );
   }
 

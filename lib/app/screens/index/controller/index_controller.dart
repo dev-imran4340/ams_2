@@ -8,7 +8,7 @@ import '../../dashboard/view/dashboard_view.dart';
 
 import '../../leaves/view/leave_requests_view.dart';
 
-import '../../employees/view/department_employees_view.dart';
+import '../../employees/view/employees_view.dart';
 import '../../profile/view/profile_view.dart';
 import '../model/me_model.dart';
 import '../model/nav_tab_model.dart';

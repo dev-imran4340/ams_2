@@ -85,7 +85,11 @@ class DashboardController extends GetxController {
     final today = dashboardData.value?.todayAttendance;
     if (today == null || !today.isCheckedIn || today.checkInDateTime == null) {
       if (today?.isCheckedIn == false) {
-        elapsedShiftTimer.value = '00h 00m 00s';
+        if (today?.checkOutTime != null && today?.checkOutTime != '--:--') {
+          elapsedShiftTimer.value = '${today!.workingHours} (Done)';
+        } else {
+          elapsedShiftTimer.value = '00h 00m 00s';
+        }
       }
       return;
     }
@@ -102,6 +106,15 @@ class DashboardController extends GetxController {
     final seconds = (difference.inSeconds % 60).toString().padLeft(2, '0');
 
     elapsedShiftTimer.value = '${hours}h ${minutes}m ${seconds}s';
+
+    // Also update todayAttendance workingHours reactively so stats cards show live progression
+    final currentHours = '${hours}h ${minutes}m';
+    if (today.workingHours != currentHours && dashboardData.value != null) {
+      dashboardData.value = DashboardDataModel(
+        todayAttendance: today.copyWith(workingHours: currentHours),
+        monthlySummary: dashboardData.value!.monthlySummary,
+      );
+    }
   }
 
   /// Loads initial dashboard state

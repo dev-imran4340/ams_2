@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import '../../../api/api_client.dart';
+import '../../../api/api_endpoints.dart';
 import '../../../api/app_preferences.dart';
 import '../../../api/exception_handler.dart';
 import '../../profile/model/profile_model.dart';
@@ -8,85 +10,121 @@ import '../model/edit_profile_model.dart';
 class EditProfileRepo {
   static const String _tag = 'EditProfileRepo / EditProfileScreen';
 
-  /// Fetches current employee profile credentials from storage/mock
+  /// Fetches executive employee profile from GET /api/v1/me/profile
   Future<EmployeeProfileModel?> fetchCurrentProfile() async {
     try {
-      await Future.delayed(const Duration(milliseconds: 250));
+      final response = await ApiClient.request(
+        endpoint: ApiEndpoints.meProfile,
+        method: HttpMethod.get,
+        tag: '$_tag -> fetchCurrentProfile()',
+        showToastOnError: false,
+      );
 
+      if (response != null && response is Map) {
+        final Map<String, dynamic> responseMap =
+            Map<String, dynamic>.from(response);
+
+        // Cache live profile payload locally in AppPreferences
+        await AppPreferences.setProfileData(responseMap);
+
+        return EmployeeProfileModel.fromJson(responseMap);
+      }
+    } catch (e, stackTrace) {
+      ExceptionHandler.handle(
+        ApiException(message: 'Remote profile fetch failed: $e'),
+        tag:
+            '$_tag -> fetchCurrentProfile() [${stackTrace.toString().split('\n').first}]',
+      );
+    }
+
+    // Offline cache fallback
+    try {
       final savedData = AppPreferences.getProfileData();
       if (savedData != null) {
         return EmployeeProfileModel.fromJson(savedData);
       }
+    } catch (_) {}
 
-      final cachedUser = AppPreferences.getUser();
-      return EmployeeProfileModel(
-        name: cachedUser?.name ?? 'Malik Muhammad Imran',
-        email: cachedUser?.email ?? 'imran@Softech Business Services.com',
-        phone: '+92 300 1234567',
-        cnic: '37405-1234567-1',
-        dob: '14 May 1996',
-        gender: 'Male',
-        bloodGroup: 'O+',
-        employeeId: 'EMP-1024',
-        designation: 'Senior Software Engineer & Tech Lead',
-        department: 'Engineering & Mobility',
-        joiningDate: '15 Jan 2024',
-        reportingManager: 'Hamza Sheikh (Lead Architect)',
-        shiftName: 'General Corporate Shift',
-        shiftTime: '09:00 AM - 06:00 PM',
-        graceMinutes: 15,
-        workLocation: 'Softech Business Services HQ • 4th Floor',
-        address: 'House #42, Street 8, Sector G-11/1',
-        city: 'Islamabad',
-        postalCode: '44000',
-        emergencyContactName: 'Tariq Mehmood',
-        emergencyContactPhone: '+92 321 7654321',
-        emergencyContactRelation: 'Brother',
-      );
-    } catch (e, stackTrace) {
-      ExceptionHandler.handle(
-        ApiException(message: 'Failed to fetch current profile: $e'),
-        tag:
-            '$_tag -> fetchCurrentProfile() [${stackTrace.toString().split('\n').first}]',
-      );
-      return null;
-    }
+    return null;
   }
 
-  /// Updates and persists employee profile modifications
-  Future<EmployeeProfileModel?> saveProfile({
-    required EmployeeProfileModel current,
-    required EditProfileRequestModel request,
-  }) async {
-    try {
-      // Realistic simulation delay for API prototyping
-      await Future.delayed(const Duration(milliseconds: 600));
+  /// Submits contact & personal details change request via POST /me/details-change
+  /// Contract: kind: "details"
+  Future<DetailsChangeResponse> submitPersonalDetailsChange(
+    PersonalDetailsChangeRequest request,
+  ) async {
+    final response = await ApiClient.request(
+      endpoint: ApiEndpoints.meDetailsChange,
+      method: HttpMethod.post,
+      body: request.toJson(),
+      tag: '$_tag -> submitPersonalDetailsChange()',
+      showToastOnError: false,
+    );
 
-      final updatedProfile = request.applyTo(current);
-
-      // Persist to isolated AppPreferences storage
-      await AppPreferences.setProfileData(updatedProfile.toJson());
-
-      // Synchronize cached user session
-      final currentUser = AppPreferences.getUser();
-      if (currentUser != null) {
-        final userMap = currentUser.toJson();
-        userMap['name'] = updatedProfile.name;
-        userMap['email'] = updatedProfile.email;
-        if (updatedProfile.avatarPath != null) {
-          userMap['avatar_url'] = updatedProfile.avatarPath;
-        }
-        await AppPreferences.setUser(userMap);
-      }
-
-      return updatedProfile;
-    } catch (e, stackTrace) {
-      ExceptionHandler.handle(
-        ApiException(message: 'Profile update failed: $e'),
-        tag:
-            '$_tag -> saveProfile() [${stackTrace.toString().split('\n').first}]',
+    if (response != null && response is Map && response['data'] is Map) {
+      return DetailsChangeResponse.fromJson(
+        Map<String, dynamic>.from(response['data'] as Map),
       );
-      return null;
     }
+
+    throw ApiException(
+      message: 'Unexpected server response for details change request.',
+      errorCode: 'INVALID_RESPONSE',
+    );
+  }
+
+  /// Submits emergency contact addition or modification via POST /me/details-change
+  /// Contract: kind: "emergency_contact"
+  Future<DetailsChangeResponse> submitEmergencyContactChange(
+    EmergencyContactChangeRequest request,
+  ) async {
+    final response = await ApiClient.request(
+      endpoint: ApiEndpoints.meDetailsChange,
+      method: HttpMethod.post,
+      body: request.toJson(),
+      tag: '$_tag -> submitEmergencyContactChange()',
+      showToastOnError: false,
+    );
+
+    if (response != null && response is Map && response['data'] is Map) {
+      return DetailsChangeResponse.fromJson(
+        Map<String, dynamic>.from(response['data'] as Map),
+      );
+    }
+
+    throw ApiException(
+      message: 'Unexpected server response for emergency contact request.',
+      errorCode: 'INVALID_RESPONSE',
+    );
+  }
+
+  /// Checks whether employee already has a details-change request waiting for approval in /approvals?box=mine
+  Future<bool> hasPendingDetailsChangeRequest() async {
+    try {
+      final response = await ApiClient.request(
+        endpoint: ApiEndpoints.approvals,
+        method: HttpMethod.get,
+        queryParameters: {
+          'box': 'mine',
+          'type': 'employee_details_change',
+          'per_page': '5',
+        },
+        tag: '$_tag -> hasPendingDetailsChangeRequest()',
+        showToastOnError: false,
+      );
+
+      if (response != null && response is Map && response['data'] is List) {
+        final list = response['data'] as List;
+        for (final item in list) {
+          if (item is Map) {
+            final status = item['status']?.toString().toLowerCase();
+            if (status == 'pending' || status == 'waiting') {
+              return true;
+            }
+          }
+        }
+      }
+    } catch (_) {}
+    return false;
   }
 }

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../../../core/utils/app_colors.dart';
 import '../../../../core/utils/app_spaces.dart';
@@ -174,7 +175,7 @@ class DigitalIdCardWidget extends GetView<EmployeeCardController> {
     );
   }
 
-  /// Front Face: Exact Vertical Portrait ID formatted with Corporate Theme
+  /// Front Face: Exact Vertical Portrait ID formatted with Corporate Theme matching official PDF
   Widget _buildFrontFace(EmployeeCardDetails card) {
     return Container(
       width: 275.w,
@@ -188,7 +189,7 @@ class DigitalIdCardWidget extends GetView<EmployeeCardController> {
         ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.12),
+            color: card.cardColor.withValues(alpha: 0.12),
             blurRadius: 22.r,
             offset: Offset(0, 8.h),
           ),
@@ -203,43 +204,14 @@ class DigitalIdCardWidget extends GetView<EmployeeCardController> {
         borderRadius: BorderRadius.circular(16.r),
         child: Stack(
           children: [
-            // Left Accent Strip running the full height with Teal to Navy gradient
-            Positioned(
-              top: 0,
-              bottom: 0,
-              left: 0,
-              child: Container(
-                width: 6.w,
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      AppColors.secondary,
-                      AppColors.primary,
-                    ],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                  ),
-                ),
-              ),
-            ),
-
-            // Top Header Banner in Executive Navy with subtle gradient
+            // Top Header Banner in Card Theme Color
             Positioned(
               top: 0,
               left: 0,
               right: 0,
               child: Container(
                 height: 42.h,
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      AppColors.primary,
-                      AppColors.accentNavy,
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
+                color: card.cardColor,
                 alignment: Alignment.center,
                 child: Text(
                   'EMPLOYEE ID CARD',
@@ -255,38 +227,31 @@ class DigitalIdCardWidget extends GetView<EmployeeCardController> {
             // Card Body Content
             Positioned.fill(
               top: 42.h,
-              left: 6.w,
+              bottom: 6.h,
               child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 16.h),
+                padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 14.h),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     // Avatar & Employee Info Block
                     Column(
                       children: [
-                        AppSpaces.vSpace8,
+                        AppSpaces.vSpace6,
 
-                        // Circular Avatar with Initials in Corporate Navy & Teal Accent
+                        // Circular Avatar with Initials in Card Theme Color
                         Container(
-                          width: 78.r,
-                          height: 78.r,
+                          width: 76.r,
+                          height: 76.r,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            gradient: const LinearGradient(
-                              colors: [
-                                AppColors.primary,
-                                AppColors.accentNavy,
-                              ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
+                            color: card.cardColor,
                             border: Border.all(
                               color: AppColors.white,
                               width: 2.5.w,
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: AppColors.primary.withValues(alpha: 0.22),
+                                color: card.cardColor.withValues(alpha: 0.25),
                                 blurRadius: 10.r,
                                 offset: Offset(0, 3.h),
                               ),
@@ -319,47 +284,33 @@ class DigitalIdCardWidget extends GetView<EmployeeCardController> {
 
                         AppSpaces.vSpace2,
 
-                        // Designation in Corporate Teal Accent
+                        // Designation
                         Text(
                           card.designation,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           textAlign: TextAlign.center,
                           style: AppTextStyles.text12.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.secondary,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.subTextColor,
                           ),
                         ),
 
                         AppSpaces.vSpace6,
 
-                        // Employee Number / ID Badge Capsule
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 10.w,
-                            vertical: 3.h,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(alpha: 0.06),
-                            borderRadius: BorderRadius.circular(12.r),
-                            border: Border.all(
-                              color: AppColors.primary.withValues(alpha: 0.15),
-                              width: 0.8.w,
-                            ),
-                          ),
-                          child: Text(
-                            'ID: ${card.employeeNumber}',
-                            style: AppTextStyles.text10.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.primary,
-                              letterSpacing: 0.5,
-                            ),
+                        // Employee Number / ID Text
+                        Text(
+                          'ID: ${card.employeeNumber}',
+                          style: AppTextStyles.text10.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textColor,
+                            letterSpacing: 0.5,
                           ),
                         ),
                       ],
                     ),
 
-                    // QR Code Container
+                    // Authentic Scannable QR Code Container generated from card.qrValue
                     Container(
                       padding: EdgeInsets.all(8.r),
                       decoration: BoxDecoration(
@@ -371,27 +322,42 @@ class DigitalIdCardWidget extends GetView<EmployeeCardController> {
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.primary.withValues(alpha: 0.05),
+                            color: card.cardColor.withValues(alpha: 0.05),
                             blurRadius: 8.r,
                             offset: Offset(0, 2.h),
                           ),
                         ],
                       ),
-                      child: Icon(
-                        Icons.qr_code_2_rounded,
-                        size: 92.sp,
-                        color: AppColors.primary,
-                      ),
+                      child: card.qrValue.isNotEmpty
+                          ? QrImageView(
+                              data: card.qrValue,
+                              version: QrVersions.auto,
+                              size: 88.sp,
+                              padding: EdgeInsets.zero,
+                              eyeStyle: const QrEyeStyle(
+                                eyeShape: QrEyeShape.square,
+                                color: Color(0xFF1E293B),
+                              ),
+                              dataModuleStyle: const QrDataModuleStyle(
+                                dataModuleShape: QrDataModuleShape.square,
+                                color: Color(0xFF1E293B),
+                              ),
+                            )
+                          : Icon(
+                              Icons.qr_code_2_rounded,
+                              size: 88.sp,
+                              color: card.cardColor,
+                            ),
                     ),
 
                     // Company Name Footer
                     Padding(
-                      padding: EdgeInsets.only(bottom: 6.h),
+                      padding: EdgeInsets.only(bottom: 4.h),
                       child: Text(
                         card.company.name.toUpperCase(),
                         style: AppTextStyles.text12.copyWith(
                           fontWeight: FontWeight.bold,
-                          color: AppColors.primary,
+                          color: AppColors.textColor,
                           letterSpacing: 1.4,
                         ),
                       ),
@@ -400,13 +366,24 @@ class DigitalIdCardWidget extends GetView<EmployeeCardController> {
                 ),
               ),
             ),
+
+            // Bottom Accent Bar
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                height: 5.h,
+                color: card.cardColor,
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  /// Back Face: Official Terms, Company Address & Contact Information in Corporate Theme
+  /// Back Face: Official Terms, Company Address & Contact Information matching official PDF
   Widget _buildBackFace(EmployeeCardDetails card) {
     final company = card.company;
     final address = company.address ?? 'test ad 1, Islamabad, 44000';
@@ -424,7 +401,7 @@ class DigitalIdCardWidget extends GetView<EmployeeCardController> {
         ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.12),
+            color: card.cardColor.withValues(alpha: 0.12),
             blurRadius: 22.r,
             offset: Offset(0, 8.h),
           ),
@@ -439,31 +416,11 @@ class DigitalIdCardWidget extends GetView<EmployeeCardController> {
         borderRadius: BorderRadius.circular(16.r),
         child: Stack(
           children: [
-            // Left Accent Strip running full height with Teal to Navy gradient
-            Positioned(
-              top: 0,
-              bottom: 0,
-              left: 0,
-              child: Container(
-                width: 6.w,
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      AppColors.secondary,
-                      AppColors.primary,
-                    ],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                  ),
-                ),
-              ),
-            ),
-
             // Back Content
             Positioned.fill(
-              left: 6.w,
+              bottom: 6.h,
               child: Padding(
-                padding: EdgeInsets.fromLTRB(14.w, 18.h, 14.w, 14.h),
+                padding: EdgeInsets.fromLTRB(16.w, 18.h, 16.w, 12.h),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -474,7 +431,7 @@ class DigitalIdCardWidget extends GetView<EmployeeCardController> {
                           company.name.toUpperCase(),
                           style: AppTextStyles.text16.copyWith(
                             fontWeight: FontWeight.bold,
-                            color: AppColors.primary,
+                            color: AppColors.textColor,
                             letterSpacing: 1.2,
                           ),
                         ),
@@ -485,13 +442,13 @@ class DigitalIdCardWidget extends GetView<EmployeeCardController> {
                           width: 44.r,
                           height: 44.r,
                           decoration: BoxDecoration(
-                            color: AppColors.secondary.withValues(alpha: 0.12),
+                            color: card.cardColor.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(10.r),
                           ),
                           child: Icon(
                             Icons.corporate_fare_rounded,
-                            size: 24.sp,
-                            color: AppColors.secondary,
+                            size: 26.sp,
+                            color: card.cardColor,
                           ),
                         ),
 
@@ -505,7 +462,7 @@ class DigitalIdCardWidget extends GetView<EmployeeCardController> {
                             Icon(
                               Icons.location_on_rounded,
                               size: 13.sp,
-                              color: AppColors.secondary,
+                              color: AppColors.subTextColor,
                             ),
                             AppSpaces.hSpace4,
                             Flexible(
@@ -566,7 +523,7 @@ class DigitalIdCardWidget extends GetView<EmployeeCardController> {
                             Icon(
                               Icons.phone_rounded,
                               size: 12.sp,
-                              color: AppColors.secondary,
+                              color: AppColors.textColor,
                             ),
                             AppSpaces.hSpace6,
                             Text(
@@ -585,7 +542,7 @@ class DigitalIdCardWidget extends GetView<EmployeeCardController> {
                             Icon(
                               Icons.email_outlined,
                               size: 12.sp,
-                              color: AppColors.secondary,
+                              color: AppColors.subTextColor,
                             ),
                             AppSpaces.hSpace6,
                             Text(
@@ -608,6 +565,17 @@ class DigitalIdCardWidget extends GetView<EmployeeCardController> {
                     ),
                   ],
                 ),
+              ),
+            ),
+
+            // Bottom Accent Bar
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                height: 5.h,
+                color: card.cardColor,
               ),
             ),
           ],

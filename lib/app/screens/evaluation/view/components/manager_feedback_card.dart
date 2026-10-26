@@ -130,37 +130,52 @@ class ManagerFeedbackCard extends GetView<EvaluationController> {
 
             // Quote Box
             Container(
-              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
               decoration: BoxDecoration(
                 color: AppColors.inputFill.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(12.r),
-                border: Border(
-                  left: BorderSide(
-                    color: AppColors.secondary,
-                    width: 3.w,
-                  ),
-                ),
               ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(
-                    Icons.format_quote_rounded,
-                    size: 20.sp,
-                    color: AppColors.secondary,
-                  ),
-                  AppSpaces.hSpace8,
-                  Expanded(
-                    child: Text(
-                      report.managerFeedback,
-                      style: AppTextStyles.text12.copyWith(
-                        fontStyle: FontStyle.italic,
-                        color: AppColors.textColor,
-                        height: 1.45,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12.r),
+                child: Stack(
+                  children: [
+                    Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 12.w,
+                        vertical: 12.h,
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            Icons.format_quote_rounded,
+                            size: 20.sp,
+                            color: AppColors.secondary,
+                          ),
+                          AppSpaces.hSpace8,
+                          Expanded(
+                            child: Text(
+                              report.managerFeedback,
+                              style: AppTextStyles.text12.copyWith(
+                                fontStyle: FontStyle.italic,
+                                color: AppColors.textColor,
+                                height: 1.45,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-                ],
+                    Positioned(
+                      left: 0,
+                      top: 0,
+                      bottom: 0,
+                      child: Container(
+                        width: 3.w,
+                        color: AppColors.secondary,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],

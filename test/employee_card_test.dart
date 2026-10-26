@@ -1,6 +1,7 @@
 import 'package:ams_2/app/screens/employee_card/controller/employee_card_controller.dart';
 import 'package:ams_2/app/screens/employee_card/model/employee_card_model.dart';
 import 'package:ams_2/app/screens/employee_card/repo/employee_card_repo.dart';
+import 'package:ams_2/app/screens/employee_card/utils/card_pdf_generator.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_storage/get_storage.dart';
@@ -70,15 +71,28 @@ void main() {
       expect(modified.designation, 'VP of Global Sales');
       expect(modified.validTill, '31 Dec 2030');
       expect(modified.employeeId, 'EMP-0002');
-      expect(modified.colour, '#012b43');
+      expect(modified.colour, '#7f1d1d');
       expect(modified.orientation, 'vertical');
     });
 
     test('initials and cardColor helpers evaluate properly', () {
       final card = EmployeeCardDetails.mock();
       expect(card.initials, 'MM');
-      expect(card.cardColor.toARGB32(), 0xff012b43);
+      expect(card.cardColor.toARGB32(), 0xff7f1d1d);
       expect(card.cardSubtitle, contains('Card 1'));
+    });
+  });
+
+  group('CardPdfGenerator Tests', () {
+    test('createCardPdfBytes generates valid 2-page PDF document bytes', () async {
+      final card = EmployeeCardDetails.mock();
+      final bytes = await CardPdfGenerator.createCardPdfBytes(card);
+
+      expect(bytes, isNotEmpty);
+      expect(bytes.length, greaterThan(100));
+      // Standard PDF header signature "%PDF"
+      final header = String.fromCharCodes(bytes.take(4));
+      expect(header, '%PDF');
     });
   });
 

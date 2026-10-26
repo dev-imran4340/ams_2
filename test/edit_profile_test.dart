@@ -1,160 +1,173 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:ams_2/app/api/exception_handler.dart';
 import 'package:ams_2/app/screens/edit_profile/controller/edit_profile_controller.dart';
 import 'package:ams_2/app/screens/edit_profile/model/edit_profile_model.dart';
 import 'package:ams_2/app/screens/edit_profile/repo/edit_profile_repo.dart';
-import 'package:ams_2/app/screens/profile/model/profile_model.dart';
-import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized();
-
-  group('EmployeeProfileModel Tests', () {
-    test('serializes and deserializes correctly with all fields', () {
-      const profile = EmployeeProfileModel(
-        name: 'Malik Imran',
-        email: 'imran@Softech Business Services.com',
-        phone: '+92 300 9876543',
-        cnic: '37405-9876543-1',
-        dob: '15 June 1995',
-        gender: 'Male',
-        bloodGroup: 'B+',
-        employeeId: 'EMP-2048',
-        designation: 'Tech Lead',
-        department: 'Mobility',
-        joiningDate: '01 Feb 2023',
-        reportingManager: 'Hamza Sheikh',
-        shiftName: 'Morning Shift',
-        shiftTime: '08:00 AM - 05:00 PM',
-        graceMinutes: 20,
-        workLocation: 'Islamabad HQ',
-        address: 'Sector F-7/2, Street 10',
-        city: 'Islamabad',
-        postalCode: '44000',
-        emergencyContactName: 'Ahmed Malik',
-        emergencyContactPhone: '+92 333 1122334',
-        emergencyContactRelation: 'Father',
+  group('POST /me/details-change Models Test Suite', () {
+    test('PersonalDetailsChangeRequest sends kind: details and only changed fields', () {
+      final request = PersonalDetailsChangeRequest(
+        personalPhone: '0300 2222222',
+        cityName: 'Lahore',
+        changedFields: {'personal_phone', 'city_name'},
       );
 
-      final json = profile.toJson();
-      expect(json['name'], 'Malik Imran');
-      expect(json['phone'], '+92 300 9876543');
-      expect(json['cnic'], '37405-9876543-1');
-      expect(json['blood_group'], 'B+');
-      expect(json['address'], 'Sector F-7/2, Street 10');
+      final json = request.toJson();
 
-      final parsed = EmployeeProfileModel.fromJson(json);
-      expect(parsed.name, profile.name);
-      expect(parsed.phone, profile.phone);
-      expect(parsed.cnic, profile.cnic);
-      expect(parsed.bloodGroup, profile.bloodGroup);
-      expect(parsed.initials, 'MI');
+      expect(json['kind'], 'details');
+      expect(json['personal_phone'], '0300 2222222');
+      expect(json['city_name'], 'Lahore');
+      expect(json.containsKey('preferred_name'), isFalse);
+      expect(json.containsKey('personal_email'), isFalse);
+      expect(json.containsKey('marital_status'), isFalse);
+      expect(json.containsKey('address_line1'), isFalse);
     });
 
-    test('initials computation handles single and multi-word names', () {
-      const singleName = EmployeeProfileModel(
-        name: 'Rashid',
-        email: 'test@test.com',
-        employeeId: 'EMP-1',
-        designation: 'Lead',
-        department: 'Eng',
-        joiningDate: '01 Jan 2024',
-        reportingManager: 'Lead',
-        shiftName: 'General',
-        shiftTime: '9-5',
-        graceMinutes: 15,
-        workLocation: 'HQ',
+    test('EmergencyContactChangeRequest serializes required fields accurately', () {
+      const request = EmergencyContactChangeRequest(
+        name: 'Bilal Khan',
+        relationship: 'Brother',
+        phone: '0300 3333333',
+        isPrimary: true,
       );
-      expect(singleName.initials, 'RA');
 
-      const multiName = EmployeeProfileModel(
-        name: 'Malik Muhammad Imran',
-        email: 'test@test.com',
-        employeeId: 'EMP-1',
-        designation: 'Lead',
-        department: 'Eng',
-        joiningDate: '01 Jan 2024',
-        reportingManager: 'Lead',
-        shiftName: 'General',
-        shiftTime: '9-5',
-        graceMinutes: 15,
-        workLocation: 'HQ',
-      );
-      expect(multiName.initials, 'MI');
+      final json = request.toJson();
+
+      expect(json['kind'], 'emergency_contact');
+      expect(json['name'], 'Bilal Khan');
+      expect(json['relationship'], 'Brother');
+      expect(json['phone'], '0300 3333333');
+      expect(json['is_primary'], isTrue);
+      expect(json.containsKey('contact'), isFalse);
     });
-  });
 
-  group('EditProfileRequestModel Tests', () {
-    test('applyTo updates all personal and contact fields', () {
-      const initial = EmployeeProfileModel(
-        name: 'Original Name',
-        email: 'original@test.com',
-        phone: '+92 300 0000000',
-        cnic: '00000-0000000-0',
-        dob: '01 Jan 1990',
-        gender: 'Male',
-        bloodGroup: 'A+',
-        employeeId: 'EMP-100',
-        designation: 'Engineer',
-        department: 'Eng',
-        joiningDate: '01 Jan 2020',
-        reportingManager: 'Manager',
-        shiftName: 'General',
-        shiftTime: '9-5',
-        graceMinutes: 15,
-        workLocation: 'HQ',
-        address: 'Old Address',
-        city: 'Rawalpindi',
-        postalCode: '46000',
-        emergencyContactName: 'Old Contact',
-        emergencyContactPhone: '+92 300 1111111',
-        emergencyContactRelation: 'Friend',
+    test('EmergencyContactChangeRequest with existing contact ID serializes contact key', () {
+      const request = EmergencyContactChangeRequest(
+        contactId: '01jb2x9k4m7q8r3t5v6w8y0z1a',
+        name: 'Tariq Mehmood',
+        relationship: 'Father',
+        phone: '0321 7654321',
+        alternativePhone: '0300 1111111',
+        isPrimary: false,
       );
 
-      const request = EditProfileRequestModel(
-        name: 'Updated Name',
-        email: 'updated@test.com',
-        phone: '+92 300 9999999',
-        cnic: '37405-1111111-1',
-        dob: '14 May 1996',
-        gender: 'Female',
-        bloodGroup: 'AB+',
-        address: 'New Street 12',
-        city: 'Islamabad',
-        postalCode: '44000',
-        emergencyContactName: 'New Contact',
-        emergencyContactPhone: '+92 321 9999999',
-        emergencyContactRelation: 'Spouse',
+      final json = request.toJson();
+
+      expect(json['kind'], 'emergency_contact');
+      expect(json['contact'], '01jb2x9k4m7q8r3t5v6w8y0z1a');
+      expect(json['name'], 'Tariq Mehmood');
+      expect(json['relationship'], 'Father');
+      expect(json['alternative_phone'], '0300 1111111');
+      expect(json['is_primary'], isFalse);
+    });
+
+    test('DetailsChangeResponse parses 201 response payload correctly', () {
+      final json = {
+        'id': '01jb2x9k4m7q8r3t5v6w8y0z1a',
+        'type': 'employee_details_change',
+        'type_label': 'Change of my details',
+        'title': 'Change of my details: personal phone',
+        'status': 'pending',
+        'status_label': 'Waiting for approval',
+        'status_tone': 'amber',
+      };
+
+      final response = DetailsChangeResponse.fromJson(json);
+
+      expect(response.id, '01jb2x9k4m7q8r3t5v6w8y0z1a');
+      expect(response.isPending, isTrue);
+      expect(response.isApproved, isFalse);
+      expect(response.statusTone, 'amber');
+      expect(response.userMessage, contains('waiting for company decision'));
+    });
+
+    test('DetailsChangeResponse with approved status returns saved message', () {
+      final json = {
+        'id': '01jb2x9k4m7q8r3t5v6w8y0z1a',
+        'type': 'employee_details_change',
+        'type_label': 'Change of my details',
+        'title': 'Change of my details: personal phone',
+        'status': 'approved',
+        'status_label': 'Approved',
+        'status_tone': 'emerald',
+      };
+
+      final response = DetailsChangeResponse.fromJson(json);
+
+      expect(response.isApproved, isTrue);
+      expect(response.isPending, isFalse);
+      expect(response.userMessage, contains('Saved'));
+    });
+
+    test('409 Conflict ApiException identification and error handling', () {
+      final conflictException = ApiException(
+        statusCode: 409,
+        errorCode: 'conflict',
+        message: 'There is already a request waiting for approval. Wait for its answer or withdraw it first.',
       );
 
-      final updated = request.applyTo(initial);
-
-      expect(updated.name, 'Updated Name');
-      expect(updated.email, 'updated@test.com');
-      expect(updated.phone, '+92 300 9999999');
-      expect(updated.gender, 'Female');
-      expect(updated.bloodGroup, 'AB+');
-      expect(updated.address, 'New Street 12');
-      expect(updated.city, 'Islamabad');
-      expect(updated.emergencyContactName, 'New Contact');
-      expect(updated.emergencyContactRelation, 'Spouse');
-
-      // Locked organizational fields should remain intact
-      expect(updated.employeeId, 'EMP-100');
-      expect(updated.designation, 'Engineer');
-      expect(updated.department, 'Eng');
+      expect(conflictException.isConflict, isTrue);
+      expect(conflictException.statusCode, 409);
+      expect(conflictException.errorCode, 'conflict');
+      expect(conflictException.message, contains('already a request waiting'));
     });
   });
 
-  group('EditProfileController Logic Tests', () {
-    test('updates gender and blood group observables', () {
-      final controller = EditProfileController(repo: EditProfileRepo());
+  group('Edit Profile Form Validators (Empty is valid; format validated on typing)', () {
+    late EditProfileController controller;
 
-      controller.setGender('Female');
-      expect(controller.selectedGender.value, 'Female');
+    setUp(() {
+      controller = EditProfileController(repo: EditProfileRepo());
+    });
 
-      controller.setBloodGroup('AB+');
-      expect(controller.selectedBloodGroup.value, 'AB+');
-
+    tearDown(() {
       controller.onClose();
+    });
+
+    test('Empty fields are completely valid (no validation errors)', () {
+      expect(controller.validatePersonalEmail(''), isNull);
+      expect(controller.validatePersonalEmail(null), isNull);
+      expect(controller.validatePersonalPhone(''), isNull);
+      expect(controller.validatePersonalPhone(null), isNull);
+      expect(controller.validatePreferredName(''), isNull);
+      expect(controller.validateCity(''), isNull);
+      expect(controller.validatePostcode(''), isNull);
+      expect(controller.validateCountryCode(''), isNull);
+      expect(controller.validateAddressLine1(''), isNull);
+      expect(controller.validateAddressLine2(''), isNull);
+      expect(controller.validateEmergencyAltPhone(''), isNull);
+    });
+
+    test('Email validator enforces valid email format when entered', () {
+      expect(controller.validatePersonalEmail('invalid-email'), isNotNull);
+      expect(controller.validatePersonalEmail('test@'), isNotNull);
+      expect(controller.validatePersonalEmail('test@domain'), isNotNull);
+      expect(controller.validatePersonalEmail('employee@company.com'), isNull);
+      expect(controller.validatePersonalEmail('alex.smith@mail.co.uk'), isNull);
+    });
+
+    test('Phone validator enforces at least 10 digits and valid format when entered', () {
+      expect(controller.validatePersonalPhone('123'), isNotNull);
+      expect(controller.validatePersonalPhone('0300'), isNotNull);
+      expect(controller.validatePersonalPhone('abc03001234567'), isNotNull);
+      expect(controller.validatePersonalPhone('0300 2222222'), isNull);
+      expect(controller.validatePersonalPhone('+92 300 1234567'), isNull);
+      expect(controller.validatePersonalPhone('+44 20 7946 0991'), isNull);
+    });
+
+    test('Country code validator enforces 2-letter ISO code', () {
+      expect(controller.validateCountryCode('PAK'), isNotNull);
+      expect(controller.validateCountryCode('12'), isNotNull);
+      expect(controller.validateCountryCode('PK'), isNull);
+      expect(controller.validateCountryCode('GB'), isNull);
+      expect(controller.validateCountryCode('US'), isNull);
+    });
+
+    test('Preferred name validator enforces max 80 characters and letters/spaces', () {
+      expect(controller.validatePreferredName('Valid Name'), isNull);
+      expect(controller.validatePreferredName("O'Connor"), isNull);
+      expect(controller.validatePreferredName('Name123'), isNotNull);
     });
   });
 }

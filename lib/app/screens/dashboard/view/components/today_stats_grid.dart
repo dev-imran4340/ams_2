@@ -18,7 +18,8 @@ class TodayStatsGrid extends GetView<DashboardController> {
       final checkOut = today?.checkOutTime ?? '--:--';
       final totalHours = today?.workingHours ?? '00h 00m';
       final overtime = today?.overtime ?? '+00h 00m';
-      final status = today?.status ?? 'On Time';
+      final isCheckedIn = today?.isCheckedIn ?? false;
+      final isCheckedOut = (checkOut != '--:--');
 
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -29,11 +30,19 @@ class TodayStatsGrid extends GetView<DashboardController> {
                 child: _buildStatCard(
                   title: 'Check-In',
                   value: checkIn,
-                  subtitle: 'Std: 09:00 AM',
-                  tag: status,
-                  tagColor: AppColors.onTimeColor,
+                  subtitle: checkIn == '--:--'
+                      ? 'Not Checked In'
+                      : 'Started: $checkIn',
+                  tag: checkIn == '--:--'
+                      ? 'Pending'
+                      : (isCheckedIn ? 'Active' : 'Logged'),
+                  tagColor: checkIn == '--:--'
+                      ? AppColors.subTextColor
+                      : AppColors.onTimeColor,
                   icon: Icons.login_rounded,
-                  accentColor: AppColors.onTimeColor,
+                  accentColor: checkIn == '--:--'
+                      ? AppColors.subTextColor
+                      : AppColors.onTimeColor,
                 ),
               ),
               AppSpaces.hSpace12,
@@ -41,13 +50,17 @@ class TodayStatsGrid extends GetView<DashboardController> {
                 child: _buildStatCard(
                   title: 'Check-Out',
                   value: checkOut,
-                  subtitle: 'Exp: 06:00 PM',
-                  tag: checkOut == '--:--' ? 'Pending' : 'Completed',
-                  tagColor: checkOut == '--:--'
-                      ? AppColors.subTextColor
-                      : AppColors.info,
+                  subtitle: isCheckedOut
+                      ? 'Ended: $checkOut'
+                      : (isCheckedIn ? 'In Progress' : 'Pending'),
+                  tag: isCheckedOut
+                      ? 'Completed'
+                      : (isCheckedIn ? 'Running' : 'Pending'),
+                  tagColor: isCheckedOut
+                      ? AppColors.info
+                      : (isCheckedIn ? AppColors.secondary : AppColors.subTextColor),
                   icon: Icons.logout_rounded,
-                  accentColor: AppColors.info,
+                  accentColor: isCheckedOut ? AppColors.info : AppColors.secondary,
                 ),
               ),
             ],
@@ -59,11 +72,17 @@ class TodayStatsGrid extends GetView<DashboardController> {
                 child: _buildStatCard(
                   title: 'Working Hours',
                   value: totalHours,
-                  subtitle: 'Target: 09h 00m',
-                  tag: 'Standard',
-                  tagColor: AppColors.secondary,
+                  subtitle: isCheckedIn
+                      ? 'Live Shift Time'
+                      : (isCheckedOut ? 'Total Logged' : 'Target: 09h 00m'),
+                  tag: isCheckedIn
+                      ? 'Active'
+                      : (isCheckedOut ? 'Completed' : 'Standard'),
+                  tagColor: isCheckedIn
+                      ? AppColors.onTimeColor
+                      : (isCheckedOut ? AppColors.info : AppColors.secondary),
                   icon: Icons.timelapse_rounded,
-                  accentColor: AppColors.secondary,
+                  accentColor: isCheckedIn ? AppColors.onTimeColor : AppColors.secondary,
                 ),
               ),
               AppSpaces.hSpace12,
@@ -72,8 +91,8 @@ class TodayStatsGrid extends GetView<DashboardController> {
                   title: 'Overtime',
                   value: overtime,
                   subtitle: 'Rate: 1.5x Std',
-                  tag: 'Approved',
-                  tagColor: AppColors.warning,
+                  tag: overtime != '+00h 00m' ? 'Logged' : 'None',
+                  tagColor: overtime != '+00h 00m' ? AppColors.warning : AppColors.subTextColor,
                   icon: Icons.more_time_rounded,
                   accentColor: AppColors.warning,
                 ),

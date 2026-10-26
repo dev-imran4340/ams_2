@@ -29,131 +29,127 @@ class CardSecurityInfoCard extends GetView<EmployeeCardController> {
             ),
           ],
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(16.r),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Padding(
-                padding: EdgeInsets.all(16.w),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Section Title Row
-                    Row(
-                      children: [
-                        Container(
-                          width: 32.r,
-                          height: 32.r,
-                          decoration: BoxDecoration(
-                            color: AppColors.success.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(8.r),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: EdgeInsets.all(12.w),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Section Title Row
+                  Row(
+                    children: [
+                      Container(
+                        width: 32.r,
+                        height: 32.r,
+                        decoration: BoxDecoration(
+                          color: AppColors.success.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(8.r),
+                        ),
+                        child: Center(
+                          child: Icon(
+                            Icons.verified_user_rounded,
+                            size: 17.sp,
+                            color: AppColors.success,
                           ),
-                          child: Center(
-                            child: Icon(
-                              Icons.verified_user_rounded,
-                              size: 17.sp,
-                              color: AppColors.success,
+                        ),
+                      ),
+                      AppSpaces.hSpace10,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Security & Hardware Telemetry',
+                              style: AppTextStyles.text14.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textColor,
+                              ),
                             ),
-                          ),
-                        ),
-                        AppSpaces.hSpace10,
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Security & Hardware Telemetry',
-                                style: AppTextStyles.text14.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.textColor,
-                                ),
+                            AppSpaces.vSpace2,
+                            Text(
+                              'Hardware-bound cryptographic access credentials',
+                              style: AppTextStyles.text10.copyWith(
+                                color: AppColors.subTextColor,
                               ),
-                              AppSpaces.vSpace2,
-                              Text(
-                                'Hardware-bound cryptographic access credentials',
-                                style: AppTextStyles.text10.copyWith(
-                                  color: AppColors.subTextColor,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        // Status capsule
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 8.w,
-                            vertical: 3.h,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.success.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(8.r),
-                            border: Border.all(
-                              color: AppColors.success.withValues(alpha: 0.3),
-                              width: 0.8.w,
                             ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                width: 6.r,
-                                height: 6.r,
-                                decoration: const BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: AppColors.success,
-                                ),
-                              ),
-                              AppSpaces.hSpace4,
-                              Text(
-                                'Active',
-                                style: AppTextStyles.text10.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.success,
-                                ),
-                              ),
-                            ],
+                          ],
+                        ),
+                      ),
+                      // Status capsule
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 8.w,
+                          vertical: 3.h,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.success.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(8.r),
+                          border: Border.all(
+                            color: AppColors.success.withValues(alpha: 0.3),
+                            width: 0.8.w,
                           ),
                         ),
-                      ],
-                    ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 6.r,
+                              height: 6.r,
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: AppColors.success,
+                              ),
+                            ),
+                            AppSpaces.hSpace4,
+                            Text(
+                              'Active',
+                              style: AppTextStyles.text10.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.success,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
 
-                    AppSpaces.vSpace14,
-                    Container(height: 1.h, color: AppColors.borderColor),
-                    AppSpaces.vSpace12,
+                  AppSpaces.vSpace14,
+                  Container(height: 1.h, color: AppColors.borderColor),
+                  AppSpaces.vSpace12,
 
-                    // Key Security Properties Grid
-                    _buildSecurityRow(
-                      icon: Icons.business_rounded,
-                      title: 'Issuing Authority',
-                      value: 'Softech Business Services Global HQ • Cryptographic Keystore',
-                    ),
-                    AppSpaces.vSpace10,
-                    _buildSecurityRow(
-                      icon: Icons.vpn_key_rounded,
-                      title: 'Encryption Standard',
-                      value: 'AES-256 GCM • ISO/IEC 14443 Type A',
-                    ),
-                    AppSpaces.vSpace10,
-                    _buildSecurityRow(
-                      icon: Icons.event_available_rounded,
-                      title: 'Access Expiry',
-                      value: card.validTill,
-                    ),
-                    AppSpaces.vSpace10,
-                    _buildSecurityRow(
-                      icon: Icons.tag_rounded,
-                      title: 'Hardware NFC UID',
-                      value: '04:A2:8B:1F:7C:3D:E0 (Verified)',
-                    ),
-                  ],
-                ),
+                  // Key Security Properties Grid
+                  _buildSecurityRow(
+                    icon: Icons.business_rounded,
+                    title: 'Issuing Authority',
+                    value: 'Softech Business Services Global HQ • Cryptographic Keystore',
+                  ),
+                  AppSpaces.vSpace10,
+                  _buildSecurityRow(
+                    icon: Icons.vpn_key_rounded,
+                    title: 'Encryption Standard',
+                    value: 'AES-256 GCM • ISO/IEC 14443 Type A',
+                  ),
+                  AppSpaces.vSpace10,
+                  _buildSecurityRow(
+                    icon: Icons.event_available_rounded,
+                    title: 'Access Expiry',
+                    value: card.validTill,
+                  ),
+                  AppSpaces.vSpace10,
+                  _buildSecurityRow(
+                    icon: Icons.tag_rounded,
+                    title: 'Hardware NFC UID',
+                    value: '04:A2:8B:1F:7C:3D:E0 (Verified)',
+                  ),
+                ],
               ),
+            ),
 
-              // Bottom Signature Accent Strip (3.h)
-              Container(height: 3.h, color: AppColors.secondary),
-            ],
-          ),
+            // Bottom Signature Accent Strip (3.h)
+          ],
         ),
       );
     });

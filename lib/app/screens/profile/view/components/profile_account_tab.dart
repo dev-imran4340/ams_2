@@ -134,10 +134,62 @@ class ProfileAccountTab extends GetView<ProfileController> {
             ),
           ),
 
-          AppSpaces.vSpace14,
+          if (!controller.isViewingOtherEmployee.value) ...[
+            AppSpaces.vSpace14,
+            // 3. Workplace Preferences & Toggles
+            const PreferenceToggleHub(),
 
-          // 3. Workplace Preferences & Toggles
-          const PreferenceToggleHub(),
+            AppSpaces.vSpace14,
+
+            // 4. Workplace Sign Out Action Card
+            CustomCard(
+              onTap: () => controller.showLogoutConfirmation(context),
+              child: Row(
+                children: [
+                  Container(
+                    width: 38.r,
+                    height: 38.r,
+                    decoration: BoxDecoration(
+                      color: AppColors.error.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10.r),
+                    ),
+                    child: Icon(
+                      Icons.logout_rounded,
+                      color: AppColors.error,
+                      size: 20.sp,
+                    ),
+                  ),
+                  AppSpaces.hSpace12,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Sign Out',
+                          style: AppTextStyles.text14.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.error,
+                          ),
+                        ),
+                        AppSpaces.vSpace2,
+                        Text(
+                          'Securely end workplace session on this device',
+                          style: AppTextStyles.text10.copyWith(
+                            color: AppColors.subTextColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    color: AppColors.subTextColor,
+                    size: 20.sp,
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       );
     });

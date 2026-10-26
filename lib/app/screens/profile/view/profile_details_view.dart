@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
 import '../../../core/utils/app_colors.dart';
 import '../../../core/utils/app_spaces.dart';
 import '../../../core/utils/app_text_styles.dart';
+import '../../../core/widgets/custom_screen_header.dart';
+import '../../../core/widgets/employee_ambient_header.dart';
 import '../../../core/widgets/network_boundary_wrapper.dart';
 import '../controller/profile_controller.dart';
 import 'components/profile_account_tab.dart';
@@ -19,13 +20,69 @@ import 'components/profile_overview_tab.dart';
 import 'components/profile_personal_tab.dart';
 import 'components/profile_section_tabs_bar.dart';
 
-class ProfileDetailsView extends GetView<ProfileController> {
-  const ProfileDetailsView({super.key});
+/// Unified Comprehensive Profile Screen:
+/// Handles both self profile (/me/profile) and any selected employee (/employees/{id})
+/// with strict identity isolation, server-driven dynamic sections, and zero state conflict.
+class ProfileDetailsView extends StatefulWidget {
+  final bool isBottomNavTab;
+
+  const ProfileDetailsView({
+    super.key,
+    this.isBottomNavTab = false,
+  });
+
+  @override
+  State<ProfileDetailsView> createState() => _ProfileDetailsViewState();
+}
+
+class _ProfileDetailsViewState extends State<ProfileDetailsView> {
+  late final ProfileController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = Get.find<ProfileController>();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.isBottomNavTab) {
+        controller.handleViewEntry(null);
+      } else {
+        controller.handleViewEntry(Get.arguments);
+      }
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant ProfileDetailsView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.isBottomNavTab) {
+        controller.handleViewEntry(null);
+      } else {
+        controller.handleViewEntry(Get.arguments);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    if (!widget.isBottomNavTab) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (Get.isRegistered<ProfileController>()) {
+          final c = Get.find<ProfileController>();
+          if (!c.isClosed) {
+            c.handleViewExit();
+          }
+        }
+      });
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return NetworkBoundaryWrapper(
-      onRetry: () => controller.loadProfile(),
+      onRetry: controller.refreshActiveProfile,
       child: Scaffold(
         backgroundColor: AppColors.backgroundColor,
         body: Obx(() {
@@ -41,12 +98,12 @@ class ProfileDetailsView extends GetView<ProfileController> {
           return Stack(
             children: [
               // 1. Curved Ambient Gradient Header
-              _buildAmbientHeader(),
+              EmployeeAmbientHeader(height: 230.h),
 
               // 2. Main Scrollable Content Overlapping the Header
               SafeArea(
                 child: RefreshIndicator(
-                  onRefresh: controller.loadProfile,
+                  onRefresh: controller.refreshActiveProfile,
                   color: AppColors.primary,
                   child: SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(
@@ -59,8 +116,66 @@ class ProfileDetailsView extends GetView<ProfileController> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Top Bar with Back to Profile Hub and Edit Profile Action
-                        _buildTopBar(context),
+                        // Top Bar with Back (if route), Title, and Edit Profile Action
+                        CustomScreenHeader(
+                          title: '',
+                          showBackButton: !widget.isBottomNavTab,
+                          customTitleWidget: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Obx(() {
+                                final isOther =
+                                    controller.isViewingOtherEmployee.value;
+                                final name = controller.profile.value?.name;
+                                final title = isOther
+                                    ? (name != null && name.isNotEmpty
+                                        ? name
+                                        : 'Employee Profile')
+                                    : 'My Profile';
+                                return Text(
+                                  title,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: AppTextStyles.text16.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.textColor,
+                                  ),
+                                );
+                              }),
+                              AppSpaces.vSpace2,
+                              Obx(() {
+                                final isOther =
+                                    controller.isViewingOtherEmployee.value;
+                                final p = controller.profile.value;
+                                final subtitle = isOther
+                                    ? '${p?.designation ?? "Employee"}${p?.department.isNotEmpty == true ? " • ${p!.department}" : ""}'
+                                    : 'Employment credentials & service records';
+                                return Text(
+                                  subtitle,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: AppTextStyles.text10.copyWith(
+                                    color: AppColors.textColor
+                                        .withValues(alpha: 0.75),
+                                  ),
+                                );
+                              }),
+                            ],
+                          ),
+                          actions: [
+                            Obx(() {
+                              if (controller.isViewingOtherEmployee.value) {
+                                return const SizedBox.shrink();
+                              }
+                              return CustomScreenHeader.actionButton(
+                                icon: Icons.edit_outlined,
+                                onTap: controller.navigateToEditProfile,
+                                tooltip: 'Edit Profile',
+                              );
+                            }),
+                          ],
+                        ),
 
                         AppSpaces.vSpace14,
 
@@ -74,17 +189,30 @@ class ProfileDetailsView extends GetView<ProfileController> {
 
                         AppSpaces.vSpace14,
 
-                        // Component 3: Reactive Section Tab Content (Hides null/empty fields)
-                        Obx(() {
-                          final currentKey =
-                              controller.selectedSectionKey.value;
-                          return AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 250),
-                            switchInCurve: Curves.easeInOut,
-                            switchOutCurve: Curves.easeInOut,
-                            child: _buildSectionContent(currentKey),
-                          );
-                        }),
+                        // Component 3: Reactive Section Tab Content (Supports left/right swipe between tabs)
+                        GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onHorizontalDragEnd: (details) {
+                            if (details.primaryVelocity == null) return;
+                            if (details.primaryVelocity! < -250) {
+                              // Swiped left -> next section tab
+                              controller.selectNextSection();
+                            } else if (details.primaryVelocity! > 250) {
+                              // Swiped right -> previous section tab
+                              controller.selectPreviousSection();
+                            }
+                          },
+                          child: Obx(() {
+                            final currentKey =
+                                controller.selectedSectionKey.value;
+                            return AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 250),
+                              switchInCurve: Curves.easeInOut,
+                              switchOutCurve: Curves.easeInOut,
+                              child: _buildSectionContent(currentKey),
+                            );
+                          }),
+                        ),
 
                         AppSpaces.vSpace18,
 
@@ -138,161 +266,5 @@ class ProfileDetailsView extends GetView<ProfileController> {
     }
   }
 
-  /// Ambient Curved Gradient Header matching executive style
-  Widget _buildAmbientHeader() {
-    return Container(
-      width: double.infinity,
-      height: 220.h,
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [
-            AppColors.liteSecondary,
-            AppColors.liteSecondary,
-            AppColors.liteSecondary,
-            AppColors.liteSecondary,
-            AppColors.secondary,
-            AppColors.primary,
-          ],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ),
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(20.r),
-          bottomRight: Radius.circular(20.r),
-        ),
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            top: -60.r,
-            right: -40.r,
-            child: Container(
-              width: 140.r,
-              height: 140.r,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.primary.withValues(alpha: 0.05),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: 20.r,
-            left: -50.r,
-            child: Container(
-              width: 120.r,
-              height: 120.r,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.secondary.withValues(alpha: 0.05),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
-  /// Top navigation bar with Back Button, Title, and Edit Profile
-  Widget _buildTopBar(BuildContext context) {
-    return Row(
-      children: [
-        // 1. Back Button: Returns smoothly to Profile Hub
-        Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: () {
-              HapticFeedback.lightImpact();
-              Get.back();
-            },
-            borderRadius: BorderRadius.circular(12.r),
-            child: Container(
-              padding: EdgeInsets.all(8.r),
-              margin: EdgeInsets.only(right: 10.w),
-              decoration: BoxDecoration(
-                color: AppColors.white,
-                borderRadius: BorderRadius.circular(12.r),
-                border: Border.all(
-                  color: AppColors.borderColor,
-                  width: 0.8.w,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.06),
-                    blurRadius: 6.r,
-                    offset: Offset(0, 2.h),
-                  ),
-                ],
-              ),
-              child: Icon(
-                Icons.arrow_back_ios_new_rounded,
-                size: 16.sp,
-                color: AppColors.textColor,
-              ),
-            ),
-          ),
-        ),
-
-        // 2. Title & Subtitle with flex protection
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Employee Profile',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: AppTextStyles.text18.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textColor,
-                ),
-              ),
-              AppSpaces.vSpace2,
-              Text(
-                'Employment credentials & service records',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: AppTextStyles.text10.copyWith(
-                  color: AppColors.textColor.withValues(alpha: 0.75),
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        AppSpaces.hSpace8,
-
-        // 3. Action: Edit Profile Icon Button
-        Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: controller.navigateToEditProfile,
-            borderRadius: BorderRadius.circular(12.r),
-            child: Container(
-              padding: EdgeInsets.all(8.r),
-              decoration: BoxDecoration(
-                color: AppColors.white,
-                borderRadius: BorderRadius.circular(12.r),
-                border: Border.all(
-                  color: AppColors.borderColor,
-                  width: 0.8.w,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.06),
-                    blurRadius: 6.r,
-                    offset: Offset(0, 2.h),
-                  ),
-                ],
-              ),
-              child: Icon(
-                Icons.edit_outlined,
-                size: 18.sp,
-                color: AppColors.secondary,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
 }

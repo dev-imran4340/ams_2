@@ -1,4 +1,5 @@
 
+import 'package:ams_2/app/api/app_preferences.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import '../../../../core/widgets/custom_snackbar.dart';
@@ -86,10 +87,10 @@ class OrgModeController extends GetxController {
   }
 
   /// Displays bottom confirmation sheet to switch back to Individual Mode or terminate session
-  void logout() {
+  Future<void> logout() async {
     HapticFeedback.lightImpact();
+    await AppPreferences.clearSession();
     Get.offAllNamed(Routes.LOGIN);
-    // Get.offAllNamed(A`)
   }
 
   @override

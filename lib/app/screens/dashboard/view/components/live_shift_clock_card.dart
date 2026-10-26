@@ -3,10 +3,12 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
 import 'package:flutter/services.dart';
+import '../../../../api/app_preferences.dart';
 import '../../../../core/utils/app_colors.dart';
 import '../../../../core/utils/app_spaces.dart';
 import '../../../../core/utils/app_text_styles.dart';
 import '../../../../routes/app_routes.dart';
+import '../../../main_shell/controller/session_me_controller.dart';
 import '../../controller/dashboard_controller.dart';
 import 'attendance_slider_button.dart';
 
@@ -15,6 +17,10 @@ class LiveShiftClockCard extends GetView<DashboardController> {
 
   @override
   Widget build(BuildContext context) {
+    final sessionMe = Get.isRegistered<SessionMeController>()
+        ? Get.find<SessionMeController>()
+        : Get.put(SessionMeController(), permanent: true);
+
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -37,33 +43,81 @@ class LiveShiftClockCard extends GetView<DashboardController> {
               padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 16.h),
               child: Column(
                 children: [
-                  // 1. Top Shift Title & Geofence Status Pill
+                  // 1. Top Shift Title & Company Code Pill (from auth/me)
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       // Shift Badge
+                      Flexible(
+                        child: Obx(() {
+                          final shift =
+                              controller
+                                  .dashboardData
+                                  .value
+                                  ?.todayAttendance
+                                  .shiftName ??
+                              'General Shift';
+                          return Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 8.w,
+                              vertical: 4.h,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.liteSecondary.withValues(
+                                alpha: 0.3,
+                              ),
+                              borderRadius: BorderRadius.circular(8.r),
+                              border: Border.all(
+                                color: AppColors.secondary.withValues(
+                                  alpha: 0.25,
+                                ),
+                                width: 1.w,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.schedule_rounded,
+                                  size: 14.sp,
+                                  color: AppColors.secondary,
+                                ),
+                                AppSpaces.hSpace6,
+                                Flexible(
+                                  child: Text(
+                                    shift,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: AppTextStyles.text10.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.textColor,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }),
+                      ),
+
+                      AppSpaces.hSpace8,
+
+                      // Company Code Pill strictly from auth/me (replaces perimeter 25m)
                       Obx(() {
-                        final shift =
-                            controller
-                                .dashboardData
-                                .value
-                                ?.todayAttendance
-                                .shiftName ??
-                            'General Shift';
+                        final code = sessionMe.company.value?.code ??
+                            AppPreferences.companyCode ??
+                            'K7MP2Q';
+
                         return Container(
                           padding: EdgeInsets.symmetric(
                             horizontal: 8.w,
                             vertical: 4.h,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.liteSecondary.withValues(
-                              alpha: 0.3,
-                            ),
+                            color: AppColors.primary.withValues(alpha: 0.08),
                             borderRadius: BorderRadius.circular(8.r),
                             border: Border.all(
-                              color: AppColors.secondary.withValues(
-                                alpha: 0.25,
-                              ),
+                              color: AppColors.primary.withValues(alpha: 0.2),
                               width: 1.w,
                             ),
                           ),
@@ -71,78 +125,18 @@ class LiveShiftClockCard extends GetView<DashboardController> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
-                                Icons.schedule_rounded,
-                                size: 14.sp,
-                                color: AppColors.secondary,
+                                Icons.business_rounded,
+                                size: 13.sp,
+                                color: AppColors.primary,
                               ),
-                              AppSpaces.hSpace6,
+                              AppSpaces.hSpace4,
                               Text(
-                                shift,
+                                'Company: $code',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: AppTextStyles.text10.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.textColor,
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }),
-
-                      // Geofence Radar Status Chip
-                      Obx(() {
-                        final radiusStatus =
-                            controller
-                                .dashboardData
-                                .value
-                                ?.todayAttendance
-                                .officeRadiusStatus ??
-                            'Inside Office Perimeter (25m)';
-                        final isInside = radiusStatus.toLowerCase().contains(
-                          'inside',
-                        );
-
-                        return Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 8.w,
-                            vertical: 4.h,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isInside
-                                ? AppColors.onTimeColor.withValues(alpha: 0.1)
-                                : AppColors.absentColor.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(20.r),
-                            border: Border.all(
-                              color: isInside
-                                  ? AppColors.onTimeColor.withValues(alpha: 0.3)
-                                  : AppColors.absentColor.withValues(
-                                      alpha: 0.3,
-                                    ),
-                              width: 1.w,
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                width: 6.r,
-                                height: 6.r,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: isInside
-                                      ? AppColors.onTimeColor
-                                      : AppColors.absentColor,
-                                ),
-                              ),
-                              AppSpaces.hSpace6,
-                              Text(
-                                isInside
-                                    ? 'In Perimeter (25m)'
-                                    : 'Outside Office',
-                                style: AppTextStyles.text10.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  color: isInside
-                                      ? AppColors.onTimeColor
-                                      : AppColors.absentColor,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.primary,
                                 ),
                               ),
                             ],
@@ -154,7 +148,7 @@ class LiveShiftClockCard extends GetView<DashboardController> {
 
                   AppSpaces.vSpace14,
 
-                  // 2. Center Live Digital Clock Display
+                  // 2. Center Shift Timer & Live Real-Time Clock
                   Container(
                     width: double.infinity,
                     padding: EdgeInsets.symmetric(
@@ -171,31 +165,39 @@ class LiveShiftClockCard extends GetView<DashboardController> {
                     ),
                     child: Column(
                       children: [
-                        Obx(
-                          () => Text(
-                            controller.liveClock.value.isEmpty
-                                ? '--:--:--'
-                                : controller.liveClock.value,
-                            style: AppTextStyles.text28.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.textColor,
-                              letterSpacing: 1.4,
-                              fontFeatures: const [
-                                FontFeature.tabularFigures(),
-                              ],
-                            ),
-                          ),
-                        ),
-                        AppSpaces.vSpace4,
+                        // Live Real-Time Wall Clock & Date header
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Icon(
-                              Icons.calendar_today_rounded,
-                              size: 12.sp,
+                              Icons.access_time_rounded,
+                              size: 13.sp,
                               color: AppColors.secondary,
                             ),
-                            AppSpaces.hSpace6,
+                            AppSpaces.hSpace4,
+                            Obx(
+                              () => Text(
+                                controller.liveClock.value.isEmpty
+                                    ? '--:--'
+                                    : controller.liveClock.value,
+                                style: AppTextStyles.text12.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.subTextColor,
+                                ),
+                              ),
+                            ),
+                            AppSpaces.hSpace8,
+                            Text(
+                              '•',
+                              style: TextStyle(color: AppColors.borderColor),
+                            ),
+                            AppSpaces.hSpace8,
+                            Icon(
+                              Icons.calendar_today_rounded,
+                              size: 11.sp,
+                              color: AppColors.secondary,
+                            ),
+                            AppSpaces.hSpace4,
                             Obx(
                               () => Text(
                                 controller.liveDate.value,
@@ -207,6 +209,78 @@ class LiveShiftClockCard extends GetView<DashboardController> {
                             ),
                           ],
                         ),
+
+                        AppSpaces.vSpace8,
+
+                        // Prominent Shift Timer (00:00:00 when unpunched, running from 0 on check-in, frozen on check-out)
+                        Obx(() {
+                          final today =
+                              controller.dashboardData.value?.todayAttendance;
+                          final isCheckedIn = today?.isCheckedIn ?? false;
+                          final isCheckedOut = (today?.checkOutTime != null &&
+                              today?.checkOutTime != '--:--');
+
+                          String timerText;
+                          String statusText;
+                          Color statusColor;
+
+                          if (isCheckedIn) {
+                            timerText = controller.elapsedShiftTimer.value;
+                            statusText =
+                                'Shift In Progress • Started at ${today?.checkInTime}';
+                            statusColor = AppColors.onTimeColor;
+                          } else if (isCheckedOut) {
+                            timerText = today?.workingHours ?? '00h 00m';
+                            statusText =
+                                'Shift Completed • Ended at ${today?.checkOutTime}';
+                            statusColor = AppColors.secondary;
+                          } else {
+                            timerText = '00:00:00';
+                            statusText =
+                                'Shift Not Started • Swipe to Check In';
+                            statusColor = AppColors.subTextColor;
+                          }
+
+                          return Column(
+                            children: [
+                              Text(
+                                timerText,
+                                style: AppTextStyles.text28.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: isCheckedIn
+                                      ? AppColors.secondary
+                                      : AppColors.textColor,
+                                  letterSpacing: 1.4,
+                                  fontFeatures: const [
+                                    FontFeature.tabularFigures(),
+                                  ],
+                                ),
+                              ),
+                              AppSpaces.vSpace4,
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Container(
+                                    width: 6.r,
+                                    height: 6.r,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: statusColor,
+                                    ),
+                                  ),
+                                  AppSpaces.hSpace6,
+                                  Text(
+                                    statusText,
+                                    style: AppTextStyles.text10.copyWith(
+                                      color: statusColor,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          );
+                        }),
                       ],
                     ),
                   ),
@@ -230,15 +304,14 @@ class LiveShiftClockCard extends GetView<DashboardController> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        // Left: Shift Timing
+                        // Left: Shift Timing (Initially 00:00, then real checkIn - checkOut)
                         Obx(() {
-                          final timing =
-                              controller
+                          final timing = controller
                                   .dashboardData
                                   .value
                                   ?.todayAttendance
                                   .shiftTiming ??
-                              '09:00 AM - 06:00 PM';
+                              '00:00';
                           return Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -261,16 +334,27 @@ class LiveShiftClockCard extends GetView<DashboardController> {
                           );
                         }),
 
-                        // Right: Live Shift Elapsed Counter Pill
+                        // Right: Live Shift Status Pill
                         Obx(() {
-                          final isCheckedIn =
-                              controller
-                                  .dashboardData
-                                  .value
-                                  ?.todayAttendance
-                                  .isCheckedIn ??
-                              false;
-                          final elapsed = controller.elapsedShiftTimer.value;
+                          final today =
+                              controller.dashboardData.value?.todayAttendance;
+                          final isCheckedIn = today?.isCheckedIn ?? false;
+                          final isCheckedOut = (today?.checkOutTime != null &&
+                              today?.checkOutTime != '--:--');
+
+                          String badgeText;
+                          Color badgeColor;
+
+                          if (isCheckedIn) {
+                            badgeText = 'Running';
+                            badgeColor = AppColors.onTimeColor;
+                          } else if (isCheckedOut) {
+                            badgeText = 'Completed';
+                            badgeColor = AppColors.secondary;
+                          } else {
+                            badgeText = 'Not Started';
+                            badgeColor = AppColors.subTextColor;
+                          }
 
                           return Container(
                             padding: EdgeInsets.symmetric(
@@ -278,20 +362,10 @@ class LiveShiftClockCard extends GetView<DashboardController> {
                               vertical: 4.h,
                             ),
                             decoration: BoxDecoration(
-                              color: isCheckedIn
-                                  ? AppColors.onTimeColor.withValues(
-                                      alpha: 0.12,
-                                    )
-                                  : AppColors.borderColor.withValues(
-                                      alpha: 0.4,
-                                    ),
+                              color: badgeColor.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(8.r),
                               border: Border.all(
-                                color: isCheckedIn
-                                    ? AppColors.onTimeColor.withValues(
-                                        alpha: 0.3,
-                                      )
-                                    : AppColors.borderColor,
+                                color: badgeColor.withValues(alpha: 0.3),
                                 width: 1.w,
                               ),
                             ),
@@ -303,22 +377,15 @@ class LiveShiftClockCard extends GetView<DashboardController> {
                                   height: 6.r,
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
-                                    color: isCheckedIn
-                                        ? AppColors.onTimeColor
-                                        : AppColors.subTextColor,
+                                    color: badgeColor,
                                   ),
                                 ),
                                 AppSpaces.hSpace6,
                                 Text(
-                                  isCheckedIn ? elapsed : 'Not Started',
+                                  badgeText,
                                   style: AppTextStyles.text10.copyWith(
                                     fontWeight: FontWeight.bold,
-                                    color: isCheckedIn
-                                        ? AppColors.onTimeColor
-                                        : AppColors.subTextColor,
-                                    fontFeatures: const [
-                                      FontFeature.tabularFigures(),
-                                    ],
+                                    color: badgeColor,
                                   ),
                                 ),
                               ],
@@ -357,26 +424,33 @@ class LiveShiftClockCard extends GetView<DashboardController> {
                         ),
                       ),
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.touch_app_rounded,
-                                size: 16.sp,
-                                color: AppColors.secondary,
-                              ),
-                              AppSpaces.hSpace8,
-                              Text(
-                                'Attendance Actions & Breaks Hub',
-                                style: AppTextStyles.text12.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.textColor,
+                          Expanded(
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.touch_app_rounded,
+                                  size: 16.sp,
+                                  color: AppColors.secondary,
                                 ),
-                              ),
-                            ],
+                                AppSpaces.hSpace8,
+                                Expanded(
+                                  child: Text(
+                                    'Attendance Actions',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: AppTextStyles.text12.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.textColor,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
+                          AppSpaces.hSpace8,
                           Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
                                 'Breaks & More',

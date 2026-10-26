@@ -94,17 +94,17 @@ class DepartmentStaffCard extends StatelessWidget {
                         Container(
                           padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
                           decoration: BoxDecoration(
-                            color: (employee.status == 'Active'
+                            color: (employee.isActive
                                     ? AppColors.success
                                     : AppColors.warning)
                                 .withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(4.r),
                           ),
                           child: Text(
-                            employee.status,
+                            employee.statusLabel,
                             style: AppTextStyles.text10.copyWith(
                               fontWeight: FontWeight.bold,
-                              color: employee.status == 'Active'
+                              color: employee.isActive
                                   ? AppColors.success
                                   : AppColors.warning,
                             ),
@@ -124,7 +124,7 @@ class DepartmentStaffCard extends StatelessWidget {
                     ),
                     AppSpaces.vSpace2,
                     Text(
-                      '#${employee.employeeCode} • ${employee.department}',
+                      '#${employee.employeeCode}${employee.department.isNotEmpty ? ' • ${employee.department}' : ''}${employee.workLocation != null && employee.workLocation!.isNotEmpty ? ' (${employee.workLocation})' : ''}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: AppTextStyles.text10.copyWith(

@@ -124,12 +124,7 @@ class ForgotPasswordView extends GetView<AuthController> {
                     Container(
                       decoration: BoxDecoration(
                         color: AppColors.cardBackground,
-                        borderRadius: BorderRadius.only(
-                          topLeft: Radius.circular(15.r),
-                          topRight: Radius.circular(15.r),
-                          bottomLeft: Radius.circular(12.r),
-                          bottomRight: Radius.circular(12.r),
-                        ),
+                        borderRadius: BorderRadius.circular(15.r),
                         border: Border(
                           bottom: BorderSide(
                             color: AppColors.secondary,
@@ -144,186 +139,195 @@ class ForgotPasswordView extends GetView<AuthController> {
                           ),
                         ],
                       ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(12.r),
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 12.w,
-                            vertical: 18.h,
-                          ),
-                          child: Obx(
-                            () => Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                Text(
-                                  "Forgot Password?",
-                                  textAlign: TextAlign.center,
-                                  style: AppTextStyles.text30.copyWith(
-                                    color: AppColors.textColor,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                AppSpaces.vSpace2,
-                                Text(
-                                  "Enter your registered corporate email to receive a recovery link",
-                                  textAlign: TextAlign.center,
-                                  style: AppTextStyles.text12.copyWith(
-                                    color: AppColors.textColor,
-                                    fontWeight: FontWeight.w400,
-                                  ),
-                                ),
-                                AppSpaces.vSpace20,
-
-                                // Registered Corporate Email Field
-                                CustomTextField(
-                                  labelText: 'Corporate Email Address',
-                                  hintText: 'e.g. employee@acme.pk',
-                                  controller:
-                                      controller.forgotPasswordEmailController,
-                                  focusNode: controller.forgotPasswordFocusNode,
-                                  keyboardType: TextInputType.emailAddress,
-                                  textInputAction: TextInputAction.done,
-                                  prefixIcon: Icon(
-                                    Icons.mail_outline_rounded,
-                                    color: AppColors.hintColor,
-                                    size: 20.sp,
-                                  ),
-                                  onFieldSubmitted: (_) =>
-                                      controller.submitForgotPassword(),
-                                ),
-
-                                // Inline validation error message
-                                if (controller.forgotPasswordError.value !=
-                                        null &&
-                                    controller
-                                        .forgotPasswordError
-                                        .value!
-                                        .isNotEmpty) ...[
-                                  AppSpaces.vSpace8,
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        Icons.error_outline_rounded,
-                                        color: AppColors.error,
-                                        size: 16.sp,
-                                      ),
-                                      AppSpaces.hSpace6,
-                                      Expanded(
-                                        child: Text(
-                                          controller.forgotPasswordError.value!,
-                                          style: AppTextStyles.text12.copyWith(
-                                            color: AppColors.error,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-
-                                // Probing-proof Success Confirmation Message Banner
-                                if (controller
-                                            .forgotPasswordSuccessMessage
-                                            .value !=
-                                        null &&
-                                    controller
-                                        .forgotPasswordSuccessMessage
-                                        .value!
-                                        .isNotEmpty) ...[
-                                  AppSpaces.vSpace14,
-                                  Container(
-                                    decoration: BoxDecoration(
-                                      color: AppColors.secondary.withValues(
-                                        alpha: 0.1,
-                                      ),
-                                      borderRadius: BorderRadius.circular(10.r),
-                                      border: Border.all(
-                                        color: AppColors.secondary.withValues(
-                                          alpha: 0.3,
-                                        ),
-                                        width: 1.w,
-                                      ),
+                      child: Stack(
+                        children: [
+                          Padding(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 12.w,
+                              vertical: 18.h,
+                            ),
+                            child: Obx(
+                              () => Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  Text(
+                                    "Forgot Password?",
+                                    textAlign: TextAlign.center,
+                                    style: AppTextStyles.text30.copyWith(
+                                      color: AppColors.textColor,
+                                      fontWeight: FontWeight.bold,
                                     ),
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 12.w,
-                                      vertical: 10.h,
+                                  ),
+                                  AppSpaces.vSpace2,
+                                  Text(
+                                    "Enter your registered corporate email to receive a recovery link",
+                                    textAlign: TextAlign.center,
+                                    style: AppTextStyles.text12.copyWith(
+                                      color: AppColors.textColor,
+                                      fontWeight: FontWeight.w400,
                                     ),
-                                    child: Row(
+                                  ),
+                                  AppSpaces.vSpace20,
+
+                                  // Registered Corporate Email Field
+                                  CustomTextField(
+                                    labelText: 'Corporate Email Address',
+                                    hintText: 'e.g. employee@acme.pk',
+                                    controller: controller
+                                        .forgotPasswordEmailController,
+                                    focusNode:
+                                        controller.forgotPasswordFocusNode,
+                                    keyboardType: TextInputType.emailAddress,
+                                    textInputAction: TextInputAction.done,
+                                    prefixIcon: Icon(
+                                      Icons.mail_outline_rounded,
+                                      color: AppColors.hintColor,
+                                      size: 20.sp,
+                                    ),
+                                    onFieldSubmitted: (_) =>
+                                        controller.submitForgotPassword(),
+                                  ),
+
+                                  // Inline validation error message
+                                  if (controller.forgotPasswordError.value !=
+                                          null &&
+                                      controller
+                                          .forgotPasswordError
+                                          .value!
+                                          .isNotEmpty) ...[
+                                    AppSpaces.vSpace8,
+                                    Row(
                                       children: [
                                         Icon(
-                                          Icons.check_circle_rounded,
-                                          color: AppColors.secondary,
-                                          size: 20.sp,
+                                          Icons.error_outline_rounded,
+                                          color: AppColors.error,
+                                          size: 16.sp,
                                         ),
-                                        AppSpaces.hSpace8,
+                                        AppSpaces.hSpace6,
                                         Expanded(
                                           child: Text(
                                             controller
-                                                .forgotPasswordSuccessMessage
+                                                .forgotPasswordError
                                                 .value!,
                                             style: AppTextStyles.text12
                                                 .copyWith(
-                                                  color: AppColors.textColor,
+                                                  color: AppColors.error,
                                                   fontWeight: FontWeight.w500,
                                                 ),
                                           ),
                                         ),
                                       ],
                                     ),
-                                  ),
-                                ],
+                                  ],
 
-                                AppSpaces.vSpace20,
-
-                                // Pill-shaped Primary Gradient Action Button
-                                CustomButton(
-                                  isGradient: true,
-                                  text: 'Send Reset Link',
-                                  isLoading:
-                                      controller.isForgotPasswordLoading.value,
-                                  onPressed: () =>
-                                      controller.submitForgotPassword(),
-                                ),
-
-                                AppSpaces.vSpace16,
-
-                                // Return to Sign In Link
-                                Center(
-                                  child: GestureDetector(
-                                    onTap: () => Get.back(),
-                                    child: Padding(
-                                      padding: EdgeInsets.symmetric(
-                                        vertical: 4.h,
-                                      ),
-                                      child: RichText(
-                                        textAlign: TextAlign.center,
-                                        text: TextSpan(
-                                          text: "Remember your password? ",
-                                          style: AppTextStyles.text12.copyWith(
-                                            color: AppColors.subTextColor,
-                                            fontWeight: FontWeight.w400,
+                                  // Probing-proof Success Confirmation Message Banner
+                                  if (controller
+                                              .forgotPasswordSuccessMessage
+                                              .value !=
+                                          null &&
+                                      controller
+                                          .forgotPasswordSuccessMessage
+                                          .value!
+                                          .isNotEmpty) ...[
+                                    AppSpaces.vSpace14,
+                                    Container(
+                                      decoration: BoxDecoration(
+                                        color: AppColors.secondary.withValues(
+                                          alpha: 0.1,
+                                        ),
+                                        borderRadius: BorderRadius.circular(
+                                          10.r,
+                                        ),
+                                        border: Border.all(
+                                          color: AppColors.secondary.withValues(
+                                            alpha: 0.3,
                                           ),
-                                          children: [
-                                            TextSpan(
-                                              text: 'Sign In',
-                                              style: TextStyle(
-                                                color: AppColors.textColor,
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 12.sp,
-                                                fontFamily:
-                                                    AppTextStyles.fontFamily,
-                                              ),
+                                          width: 1.w,
+                                        ),
+                                      ),
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 12.w,
+                                        vertical: 10.h,
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            Icons.check_circle_rounded,
+                                            color: AppColors.secondary,
+                                            size: 20.sp,
+                                          ),
+                                          AppSpaces.hSpace8,
+                                          Expanded(
+                                            child: Text(
+                                              controller
+                                                  .forgotPasswordSuccessMessage
+                                                  .value!,
+                                              style: AppTextStyles.text12
+                                                  .copyWith(
+                                                    color: AppColors.textColor,
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
                                             ),
-                                          ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+
+                                  AppSpaces.vSpace20,
+
+                                  // Pill-shaped Primary Gradient Action Button
+                                  CustomButton(
+                                    isGradient: true,
+                                    text: 'Send Reset Link',
+                                    isLoading: controller
+                                        .isForgotPasswordLoading
+                                        .value,
+                                    onPressed: () =>
+                                        controller.submitForgotPassword(),
+                                  ),
+
+                                  AppSpaces.vSpace16,
+
+                                  // Return to Sign In Link
+                                  Center(
+                                    child: GestureDetector(
+                                      onTap: () => Get.back(),
+                                      child: Padding(
+                                        padding: EdgeInsets.symmetric(
+                                          vertical: 4.h,
+                                        ),
+                                        child: RichText(
+                                          textAlign: TextAlign.center,
+                                          text: TextSpan(
+                                            text: "Remember your password? ",
+                                            style: AppTextStyles.text12
+                                                .copyWith(
+                                                  color: AppColors.subTextColor,
+                                                  fontWeight: FontWeight.w400,
+                                                ),
+                                            children: [
+                                              TextSpan(
+                                                text: 'Sign In',
+                                                style: TextStyle(
+                                                  color: AppColors.textColor,
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 12.sp,
+                                                  fontFamily:
+                                                      AppTextStyles.fontFamily,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
                                         ),
                                       ),
                                     ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
-                        ),
+                        ],
                       ),
                     ),
                   ],

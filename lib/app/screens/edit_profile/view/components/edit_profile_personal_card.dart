@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
@@ -6,6 +7,7 @@ import '../../../../core/utils/app_colors.dart';
 import '../../../../core/utils/app_spaces.dart';
 import '../../../../core/utils/app_text_styles.dart';
 import '../../../../core/widgets/custom_card.dart';
+import '../../../../core/widgets/custom_dropdown.dart';
 import '../../../../core/widgets/custom_text_field.dart';
 import '../../controller/edit_profile_controller.dart';
 
@@ -18,20 +20,20 @@ class EditProfilePersonalCard extends GetView<EditProfileController> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Card Header with Icon
+          // Header with Icon & Self-Service Badge
           Row(
             children: [
               Container(
-                width: 32.r,
-                height: 32.r,
+                width: 34.r,
+                height: 34.r,
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
+                  color: AppColors.secondary.withValues(alpha: 0.12),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
-                  Icons.badge_outlined,
-                  size: 17.sp,
-                  color: AppColors.primary,
+                  Icons.person_pin_rounded,
+                  size: 18.sp,
+                  color: AppColors.secondary,
                 ),
               ),
               AppSpaces.hSpace10,
@@ -40,20 +42,16 @@ class EditProfilePersonalCard extends GetView<EditProfileController> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Personal Details',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.text16.copyWith(
+                      'Contact Information',
+                      style: AppTextStyles.text14.copyWith(
                         fontWeight: FontWeight.bold,
                         color: AppColors.textColor,
                       ),
                     ),
                     AppSpaces.vSpace2,
                     Text(
-                      'Official identity, credentials & vital records',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.text12.copyWith(
+                      'Personal mobile, email & preferred calling name',
+                      style: AppTextStyles.text10.copyWith(
                         color: AppColors.subTextColor,
                         fontWeight: FontWeight.w400,
                       ),
@@ -66,231 +64,107 @@ class EditProfilePersonalCard extends GetView<EditProfileController> {
 
           AppSpaces.vSpace14,
 
-          // Field 1: Full Name
+          // Field 1: Preferred Calling Name (preferred_name: up to 80 chars)
           CustomTextField(
-            labelText: 'Full Name *',
-            hintText: 'Enter your legal full name',
-            controller: controller.nameController,
-            focusNode: controller.nameFocusNode,
+            labelText: 'Preferred Calling Name',
+            hintText: 'e.g. Maryam or Alex (up to 80 chars)',
+            controller: controller.preferredNameController,
+            focusNode: controller.preferredNameFocusNode,
+            validator: controller.validatePreferredName,
+            inputFormatters: [
+              LengthLimitingTextInputFormatter(80),
+              FilteringTextInputFormatter.allow(RegExp(r"[a-zA-Z\s'.\-]")),
+            ],
             prefixIcon: Icon(
-              Icons.person_outline_rounded,
+              Icons.badge_outlined,
               size: 20.sp,
               color: AppColors.subTextColor,
             ),
-            validator: (v) {
-              if (v == null || v.trim().isEmpty) {
-                return 'Please enter your full name';
-              }
-              return null;
-            },
           ),
+          Obx(() => _buildErrorRow(controller.preferredNameError.value)),
 
           AppSpaces.vSpace12,
 
-          // Field 2: Official Corporate Email
+          // Field 2: Personal Phone (personal_phone: up to 20 chars)
           CustomTextField(
-            labelText: 'Official Corporate Email *',
-            hintText: 'imran@Softech Business Services.com',
-            controller: controller.emailController,
-            focusNode: controller.emailFocusNode,
-            keyboardType: TextInputType.emailAddress,
-            prefixIcon: Icon(
-              Icons.email_outlined,
-              size: 20.sp,
-              color: AppColors.subTextColor,
-            ),
-            validator: (v) {
-              if (v == null || v.trim().isEmpty) {
-                return 'Please enter your corporate email';
-              }
-              if (!v.contains('@') || !v.contains('.')) {
-                return 'Please enter a valid email address';
-              }
-              return null;
-            },
-          ),
-
-          AppSpaces.vSpace12,
-
-          // Field 3: Contact Mobile Phone
-          CustomTextField(
-            labelText: 'Contact Mobile Phone *',
-            hintText: '+92 300 1234567',
-            controller: controller.phoneController,
-            focusNode: controller.phoneFocusNode,
+            labelText: 'Personal Mobile Phone',
+            hintText: 'e.g. 0300 2222222 or +92 300 1234567',
+            controller: controller.personalPhoneController,
+            focusNode: controller.personalPhoneFocusNode,
+            validator: controller.validatePersonalPhone,
             keyboardType: TextInputType.phone,
+            inputFormatters: [
+              LengthLimitingTextInputFormatter(20),
+              FilteringTextInputFormatter.allow(RegExp(r'[0-9+\-()\s]')),
+            ],
             prefixIcon: Icon(
-              Icons.phone_outlined,
+              Icons.phone_iphone_rounded,
               size: 20.sp,
               color: AppColors.subTextColor,
             ),
-            validator: (v) {
-              if (v == null || v.trim().isEmpty) {
-                return 'Please enter your contact phone';
-              }
-              return null;
-            },
           ),
+          Obx(() => _buildErrorRow(controller.personalPhoneError.value)),
 
           AppSpaces.vSpace12,
 
-          // Field 4: National ID / CNIC
+          // Field 3: Personal Email (personal_email: up to 255 chars)
           CustomTextField(
-            labelText: 'National ID / CNIC *',
-            hintText: '37405-1234567-1',
-            controller: controller.cnicController,
-            focusNode: controller.cnicFocusNode,
-            keyboardType: TextInputType.text,
+            labelText: 'Personal Email Address',
+            hintText: 'e.g. employee@personal.com',
+            controller: controller.personalEmailController,
+            focusNode: controller.personalEmailFocusNode,
+            validator: controller.validatePersonalEmail,
+            keyboardType: TextInputType.emailAddress,
+            inputFormatters: [
+              LengthLimitingTextInputFormatter(255),
+            ],
             prefixIcon: Icon(
-              Icons.credit_card_rounded,
+              Icons.mail_outline_rounded,
               size: 20.sp,
               color: AppColors.subTextColor,
             ),
-            validator: (v) {
-              if (v == null || v.trim().isEmpty) {
-                return 'Please enter your National ID / CNIC';
-              }
-              return null;
-            },
           ),
+          Obx(() => _buildErrorRow(controller.personalEmailError.value)),
 
           AppSpaces.vSpace12,
 
-          // Field 5: Date of Birth
-          CustomTextField(
-            labelText: 'Date of Birth',
-            hintText: '14 May 1996',
-            controller: controller.dobController,
-            readOnly: true,
-            onTap: () => controller.selectDateOfBirth(context),
-            prefixIcon: Icon(
-              Icons.cake_outlined,
-              size: 20.sp,
-              color: AppColors.subTextColor,
-            ),
-            suffixIcon: Icon(
-              Icons.calendar_month_rounded,
-              size: 20.sp,
-              color: AppColors.secondary,
-            ),
-          ),
-
-          AppSpaces.vSpace12,
-
-          // Field 6: Gender Selection (Segmented Pills)
-          Text(
-            'Gender',
-            style: AppTextStyles.text14.copyWith(
-              fontWeight: FontWeight.w600,
-              color: AppColors.textColor,
-            ),
-          ),
-          SizedBox(height: 8.h),
-          Obx(() {
-            return Row(
-              children: controller.genderOptions.map((g) {
-                final isSelected = controller.selectedGender.value == g;
-                return Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 3.w),
-                    child: InkWell(
-                      onTap: () => controller.setGender(g),
-                      borderRadius: BorderRadius.circular(10.r),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        padding: EdgeInsets.symmetric(vertical: 10.h),
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? AppColors.primary
-                              : AppColors.inputFill,
-                          borderRadius: BorderRadius.circular(10.r),
-                          border: Border.all(
-                            color: isSelected
-                                ? AppColors.primary
-                                : AppColors.borderColor,
-                            width: 1.w,
-                          ),
-                        ),
-                        child: Center(
-                          child: Text(
-                            g,
-                            style: AppTextStyles.text12.copyWith(
-                              fontWeight: isSelected
-                                  ? FontWeight.bold
-                                  : FontWeight.w500,
-                              color: isSelected
-                                  ? AppColors.white
-                                  : AppColors.textColor,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
-            );
-          }),
-
-          AppSpaces.vSpace14,
-
-          // Field 7: Blood Group Selection (Scrollable Pills)
-          Text(
-            'Blood Group',
-            style: AppTextStyles.text14.copyWith(
-              fontWeight: FontWeight.w600,
-              color: AppColors.textColor,
-            ),
-          ),
-          SizedBox(height: 8.h),
-          Obx(() {
-            return SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              physics: const BouncingScrollPhysics(),
-              child: Row(
-                children: controller.bloodGroupOptions.map((bg) {
-                  final isSelected = controller.selectedBloodGroup.value == bg;
-                  return Padding(
-                    padding: EdgeInsets.only(right: 8.w),
-                    child: InkWell(
-                      onTap: () => controller.setBloodGroup(bg),
-                      borderRadius: BorderRadius.circular(10.r),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 14.w,
-                          vertical: 8.h,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? AppColors.secondary
-                              : AppColors.inputFill,
-                          borderRadius: BorderRadius.circular(10.r),
-                          border: Border.all(
-                            color: isSelected
-                                ? AppColors.secondary
-                                : AppColors.borderColor,
-                            width: 1.w,
-                          ),
-                        ),
-                        child: Text(
-                          bg,
-                          style: AppTextStyles.text12.copyWith(
-                            fontWeight: isSelected
-                                ? FontWeight.bold
-                                : FontWeight.w600,
-                            color: isSelected
-                                ? AppColors.white
-                                : AppColors.textColor,
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                }).toList(),
+          // Field 4: Marital Status Dropdown (marital_status)
+          Obx(
+            () => CustomDropdown<String>(
+              labelText: 'Marital Status',
+              hintText: 'Select marital status',
+              items: controller.maritalStatusOptions,
+              initialItem: controller.selectedMaritalStatus.value.isNotEmpty
+                  ? controller.selectedMaritalStatus.value
+                  : null,
+              onChanged: (val) => controller.setMaritalStatus(val),
+              canClearSelection: true,
+              prefixIcon: Icon(
+                Icons.favorite_outline_rounded,
+                size: 20.sp,
+                color: AppColors.subTextColor,
               ),
-            );
-          }),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorRow(String? error) {
+    if (error == null || error.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: EdgeInsets.only(top: 4.h, left: 6.w),
+      child: Row(
+        children: [
+          Icon(Icons.error_outline_rounded, size: 12.sp, color: AppColors.error),
+          AppSpaces.hSpace4,
+          Expanded(
+            child: Text(
+              error,
+              style: AppTextStyles.text10.copyWith(color: AppColors.error),
+            ),
+          ),
         ],
       ),
     );

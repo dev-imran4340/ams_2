@@ -25,17 +25,19 @@ class ProfileHeaderCard extends GetView<ProfileController> {
   Widget build(BuildContext context) {
     return Obx(() {
       final p = controller.profile.value;
-      final name = p?.name ?? AppPreferences.userName ?? 'Maryam Malik';
+      final isOther = controller.isViewingOtherEmployee.value;
+      final name = p?.name ??
+          (isOther ? 'Employee' : (AppPreferences.userName ?? 'Maryam Malik'));
       final designation = p?.designation ?? 'Sales Manager';
       final employeeId = p?.employeeNumber ?? p?.employeeId ?? 'EMP-0002';
       final department = p?.department ?? 'Sales';
       final location = p?.workLocation ?? 'Head office';
       final tenure = p?.tenureYears ?? '3 years 3 months';
       final stage = p?.stageLabel ?? 'Active';
-      final initials = p?.initials ?? 'MM';
+      final initials = p?.initials ?? (isOther ? 'EM' : 'MM');
       final avatarPath = p?.avatarPath;
       final hasLocalAvatar =
-          avatarPath != null && File(avatarPath).existsSync();
+          !isOther && avatarPath != null && File(avatarPath).existsSync();
 
       return CustomCard(
         onTap: isClickable

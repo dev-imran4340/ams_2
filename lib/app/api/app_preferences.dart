@@ -30,6 +30,8 @@ class AppPreferences {
   static const String _keyCard = 'employee_card_data';
   static const String _key2FAChallenge = 'pending_2fa_challenge';
   static const String _keyMeData = 'server_me_full_payload';
+  static const String _keyTodayAttendance = 'today_attendance_state';
+  static const String _keyFcmToken = 'firebase_fcm_token';
 
   /// Initialize local storage container (Must be invoked before runApp in main.dart)
   static Future<void> init() async {
@@ -86,6 +88,7 @@ class AppPreferences {
     await _box.remove(_keyCard);
     await _box.remove(_key2FAChallenge);
     await _box.remove(_keyMeData);
+    await _box.remove(_keyTodayAttendance);
     await _box.write(_keyIsLoggedIn, false);
   }
 
@@ -134,6 +137,13 @@ class AppPreferences {
   static String? get userId => user?['id']?.toString();
   static String? get userName => user?['name']?.toString();
   static String? get userEmail => user?['email']?.toString();
+  static String? get employeeNumber =>
+      user?['employee_number']?.toString() ??
+      getProfileData()?['employee_number']?.toString();
+  static String? get selfEmployeeId =>
+      getProfileData()?['id']?.toString() ?? userId;
+  static String? get selfEmployeeNumber =>
+      getProfileData()?['employee_number']?.toString() ?? employeeNumber;
   static bool get isTwoFactorEnabled => user?['two_factor_enabled'] == true;
 
   // --- Employee Profile Data ---
@@ -313,6 +323,19 @@ class AppPreferences {
     }
   }
 
+  // --- Today Live Attendance State ---
+
+  static Map<String, dynamic>? get todayAttendance =>
+      _box.read<Map<String, dynamic>>(_keyTodayAttendance);
+
+  static Future<void> setTodayAttendance(Map<String, dynamic>? data) async {
+    if (data == null) {
+      await _box.remove(_keyTodayAttendance);
+    } else {
+      await _box.write(_keyTodayAttendance, data);
+    }
+  }
+
   // --- Remember Me & Encrypted Credentials ---
 
   static bool get rememberMe => _box.read<bool>(_keyRememberMe) ?? false;
@@ -437,6 +460,18 @@ class AppPreferences {
       await _box.remove(_keyDeviceId);
     } else {
       await _box.write(_keyDeviceId, id);
+    }
+  }
+
+  // --- Firebase Cloud Messaging (FCM) Token ---
+
+  static String? get fcmToken => _box.read<String>(_keyFcmToken);
+
+  static Future<void> setFcmToken(String? token) async {
+    if (token == null) {
+      await _box.remove(_keyFcmToken);
+    } else {
+      await _box.write(_keyFcmToken, token);
     }
   }
 

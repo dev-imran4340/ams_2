@@ -7,10 +7,11 @@ import '../../../core/utils/app_colors.dart';
 import '../../../core/utils/app_spaces.dart';
 import '../../../core/utils/app_text_styles.dart';
 import '../../../core/widgets/custom_button.dart';
+import '../../../core/widgets/custom_screen_header.dart';
 import '../../../core/widgets/custom_snackbar.dart';
+import '../../../core/widgets/custom_text_field.dart';
+import '../../../core/widgets/employee_ambient_header.dart';
 import '../../../core/widgets/network_boundary_wrapper.dart';
-import '../../../routes/app_routes.dart';
-import '../../index/controller/index_controller.dart';
 import '../controller/profile_controller.dart';
 import 'components/profile_header_card.dart';
 
@@ -36,7 +37,7 @@ class ProfileView extends GetView<ProfileController> {
           return Stack(
             children: [
               // 1. Curved Ambient Gradient Header
-              _buildAmbientHeader(),
+              EmployeeAmbientHeader(height: 230.h),
 
               // 2. Main Scrollable Content Overlapping the Header
               SafeArea(
@@ -55,7 +56,17 @@ class ProfileView extends GetView<ProfileController> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Top Bar with Back, Title, and Edit Profile Action
-                        _buildTopBar(context),
+                        CustomScreenHeader(
+                          title: 'Account & Settings',
+                          subtitle: 'Security, preferences & credentials',
+                          actions: [
+                            CustomScreenHeader.actionButton(
+                              icon: Icons.edit_outlined,
+                              onTap: controller.navigateToEditProfile,
+                              tooltip: 'Edit Profile',
+                            ),
+                          ],
+                        ),
 
                         AppSpaces.vSpace14,
 
@@ -119,169 +130,7 @@ class ProfileView extends GetView<ProfileController> {
     );
   }
 
-  /// Ambient Curved Gradient Header matching executive style
-  Widget _buildAmbientHeader() {
-    return Container(
-      width: double.infinity,
-      height: 220.h,
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [
-            AppColors.liteSecondary,
-            AppColors.liteSecondary,
-            AppColors.liteSecondary,
-            AppColors.liteSecondary,
-            AppColors.secondary,
-            AppColors.primary,
-          ],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ),
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(20.r),
-          bottomRight: Radius.circular(20.r),
-        ),
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            top: -60.r,
-            right: -40.r,
-            child: Container(
-              width: 140.r,
-              height: 140.r,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.primary.withValues(alpha: 0.05),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: 20.r,
-            left: -50.r,
-            child: Container(
-              width: 120.r,
-              height: 120.r,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.secondary.withValues(alpha: 0.05),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
-  /// Top navigation bar with Back Button, Title, and Edit Profile Icon button
-  Widget _buildTopBar(BuildContext context) {
-    return Row(
-      children: [
-        // 1. Back Button: Navigates to Index (Home / Dashboard) smoothly
-        Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: () {
-              HapticFeedback.lightImpact();
-              if (Navigator.canPop(context)) {
-                Get.back();
-              } else if (Get.isRegistered<IndexController>()) {
-                Get.find<IndexController>().changeTab(0);
-              } else {
-                Get.offAllNamed(Routes.INDEX);
-              }
-            },
-            borderRadius: BorderRadius.circular(12.r),
-            child: Container(
-              padding: EdgeInsets.all(8.r),
-              margin: EdgeInsets.only(right: 10.w),
-              decoration: BoxDecoration(
-                color: AppColors.white,
-                borderRadius: BorderRadius.circular(12.r),
-                border: Border.all(
-                  color: AppColors.borderColor,
-                  width: 0.8.w,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.06),
-                    blurRadius: 6.r,
-                    offset: Offset(0, 2.h),
-                  ),
-                ],
-              ),
-              child: Icon(
-                Icons.arrow_back_ios_new_rounded,
-                size: 16.sp,
-                color: AppColors.textColor,
-              ),
-            ),
-          ),
-        ),
-
-        // 2. Title & Subtitle with flex protection
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Account & Settings',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: AppTextStyles.text18.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textColor,
-                ),
-              ),
-              AppSpaces.vSpace2,
-              Text(
-                'Security, preferences & credentials',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: AppTextStyles.text10.copyWith(
-                  color: AppColors.textColor.withValues(alpha: 0.75),
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        AppSpaces.hSpace8,
-
-        // 3. Action: Edit Profile (Icon Button)
-        Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: controller.navigateToEditProfile,
-            borderRadius: BorderRadius.circular(12.r),
-            child: Container(
-              padding: EdgeInsets.all(8.r),
-              decoration: BoxDecoration(
-                color: AppColors.white,
-                borderRadius: BorderRadius.circular(12.r),
-                border: Border.all(
-                  color: AppColors.borderColor,
-                  width: 0.8.w,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.06),
-                    blurRadius: 6.r,
-                    offset: Offset(0, 2.h),
-                  ),
-                ],
-              ),
-              child: Icon(
-                Icons.edit_outlined,
-                size: 18.sp,
-                color: AppColors.secondary,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
 
   /// Base container for small cards with subtle elevation shadow
   Widget _buildSmallCardContainer({
@@ -349,8 +198,9 @@ class ProfileView extends GetView<ProfileController> {
                   child: Switch.adaptive(
                     value: controller.twoFactorAuth.value,
                     onChanged: controller.toggle2FA,
-                    activeTrackColor:
-                        AppColors.secondary.withValues(alpha: 0.35),
+                    activeTrackColor: AppColors.secondary.withValues(
+                      alpha: 0.35,
+                    ),
                     activeThumbColor: AppColors.secondary,
                   ),
                 );
@@ -379,8 +229,9 @@ class ProfileView extends GetView<ProfileController> {
                       height: 6.r,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color:
-                            isEnabled ? AppColors.success : AppColors.subTextColor,
+                        color: isEnabled
+                            ? AppColors.success
+                            : AppColors.subTextColor,
                       ),
                     ),
                     AppSpaces.hSpace4,
@@ -635,11 +486,7 @@ class ProfileView extends GetView<ProfileController> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                Icons.logout_rounded,
-                size: 18.sp,
-                color: AppColors.error,
-              ),
+              Icon(Icons.logout_rounded, size: 18.sp, color: AppColors.error),
               AppSpaces.hSpace8,
               Text(
                 'Log Out',
@@ -715,7 +562,9 @@ class ProfileView extends GetView<ProfileController> {
                 _buildPasswordField('New Password', newPasswordController),
                 AppSpaces.vSpace10,
                 _buildPasswordField(
-                    'Confirm New Password', confirmPasswordController),
+                  'Confirm New Password',
+                  confirmPasswordController,
+                ),
                 AppSpaces.vSpace18,
                 CustomButton(
                   text: 'Update Password',
@@ -756,30 +605,14 @@ class ProfileView extends GetView<ProfileController> {
 
   /// Helper textfield for password input
   Widget _buildPasswordField(String hint, TextEditingController ctrl) {
-    return TextField(
+    return CustomTextField(
       controller: ctrl,
+      hintText: hint,
       obscureText: true,
-      style: AppTextStyles.text12.copyWith(color: AppColors.textColor),
-      decoration: InputDecoration(
-        labelText: hint,
-        labelStyle: AppTextStyles.text10.copyWith(color: AppColors.subTextColor),
-        prefixIcon: Icon(Icons.lock_outline_rounded,
-            size: 16.sp, color: AppColors.secondary),
-        contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
-        filled: true,
-        fillColor: AppColors.inputFill,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10.r),
-          borderSide: BorderSide(color: AppColors.borderColor, width: 0.8.w),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10.r),
-          borderSide: BorderSide(color: AppColors.borderColor, width: 0.8.w),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10.r),
-          borderSide: BorderSide(color: AppColors.secondary, width: 1.2.w),
-        ),
+      prefixIcon: Icon(
+        Icons.lock_outline_rounded,
+        size: 16.sp,
+        color: AppColors.secondary,
       ),
     );
   }
@@ -883,10 +716,7 @@ class ProfileView extends GetView<ProfileController> {
               }),
 
               AppSpaces.vSpace18,
-              CustomButton(
-                text: 'Done',
-                onPressed: () => Navigator.pop(ctx),
-              ),
+              CustomButton(text: 'Done', onPressed: () => Navigator.pop(ctx)),
               AppSpaces.vSpace10,
             ],
           ),
@@ -912,11 +742,7 @@ class ProfileView extends GetView<ProfileController> {
             color: const Color(0xFFEDE7F6),
             borderRadius: BorderRadius.circular(8.r),
           ),
-          child: Icon(
-            icon,
-            size: 16.sp,
-            color: const Color(0xFF5E35B1),
-          ),
+          child: Icon(icon, size: 16.sp, color: const Color(0xFF5E35B1)),
         ),
         AppSpaces.hSpace10,
         Expanded(

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:get/get.dart';
 
 import '../../../api/app_preferences.dart';
+import '../../../core/widgets/custom_snackbar.dart';
 import '../../../routes/app_routes.dart';
 import '../../index/model/me_model.dart';
 import '../../index/repo/index_repo.dart';
@@ -118,11 +119,43 @@ class SessionMeController extends GetxController {
     return AppPreferences.hasPermission(permKey, scope);
   }
 
-  /// Performs secure session termination and redirects to Login screen
+  /// Performs secure session termination: dispatches POST /auth/logout API,
+  /// purges local storage, dismisses dialogs, closes all routes, and redirects to Login.
   Future<void> logout() async {
-    isLoggingOut.value = true;
+    if (isLoggingOut.value) return;
+
     try {
+      isLoggingOut.value = true;
+      final activeRepo = repo ??
+          (Get.isRegistered<IndexRepo>() ? Get.find<IndexRepo>() : IndexRepo());
+
+      // 1. Dispatch POST /auth/logout API call
+      await activeRepo.logout();
+
+      // 2. Clear local storage session
       await AppPreferences.clearSession();
+
+      // 3. Dismiss any active dialogs/sheets
+      if (Get.isDialogOpen == true) {
+        Get.back();
+      }
+      if (Get.isBottomSheetOpen == true) {
+        Get.back();
+      }
+
+      // 4. Close all routes and navigate to Login
+      Get.offAllNamed(Routes.LOGIN);
+
+      CustomSnackbar.showSuccess(
+        title: 'Signed Out',
+        message: 'Your workplace session has been cleared securely.',
+      );
+    } catch (_) {
+      // Guaranteed fallback: clear storage and route to login
+      await AppPreferences.clearSession();
+      if (Get.isDialogOpen == true) {
+        Get.back();
+      }
       Get.offAllNamed(Routes.LOGIN);
     } finally {
       isLoggingOut.value = false;

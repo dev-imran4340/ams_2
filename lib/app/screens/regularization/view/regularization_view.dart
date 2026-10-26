@@ -6,7 +6,9 @@ import 'package:get/get.dart';
 import '../../../core/utils/app_colors.dart';
 import '../../../core/utils/app_spaces.dart';
 import '../../../core/utils/app_text_styles.dart';
+import '../../../core/widgets/custom_screen_header.dart';
 import '../../../core/widgets/custom_state_view.dart';
+import '../../../core/widgets/employee_ambient_header.dart';
 import '../../../core/widgets/network_boundary_wrapper.dart';
 import '../controller/regularization_controller.dart';
 import 'components/adjustment_request_tile.dart';
@@ -36,7 +38,7 @@ class RegularizationView extends GetView<RegularizationController> {
           return Stack(
             children: [
               // 1. Curved Ambient Gradient Header
-              _buildAmbientHeader(),
+              EmployeeAmbientHeader(height: 230.h),
 
               // 2. Main Scrollable Content Overlapping the Header
               SafeArea(
@@ -55,7 +57,10 @@ class RegularizationView extends GetView<RegularizationController> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Top Executive Navigation Bar with Back Button
-                        _buildTopBar(context),
+                        const CustomScreenHeader(
+                          title: 'Attendance Adjustment',
+                          subtitle: 'Regularize missed punch & claim overtime',
+                        ),
 
                         AppSpaces.vSpace14,
 
@@ -100,133 +105,7 @@ class RegularizationView extends GetView<RegularizationController> {
     );
   }
 
-  /// Ambient Curved Gradient Header matching executive style
-  Widget _buildAmbientHeader() {
-    return Container(
-      width: double.infinity,
-      height: 220.h,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppColors.liteSecondary,
-            AppColors.liteSecondary,
-            AppColors.liteSecondary,
-            AppColors.liteSecondary,
-            AppColors.secondary,
-            AppColors.primary,
-          ],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ),
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(20.r),
-          bottomRight: Radius.circular(20.r),
-        ),
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            top: -60.r,
-            right: -40.r,
-            child: Container(
-              width: 140.r,
-              height: 140.r,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.primary.withValues(alpha: 0.05),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: 20.r,
-            left: -50.r,
-            child: Container(
-              width: 120.r,
-              height: 120.r,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.secondary.withValues(alpha: 0.05),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
-  /// Top executive navigation bar with Back Button
-  Widget _buildTopBar(BuildContext context) {
-    return Row(
-      children: [
-        // Glass Back Button Pill
-        Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: () {
-              HapticFeedback.lightImpact();
-              Get.back();
-            },
-            borderRadius: BorderRadius.circular(20.r),
-            child: Container(
-              width: 36.r,
-              height: 36.r,
-              decoration: BoxDecoration(
-                color: AppColors.white,
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: AppColors.white.withValues(alpha: 0.9),
-                  width: 1.w,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.08),
-                    blurRadius: 10.r,
-                    offset: Offset(0, 3.h),
-                  ),
-                ],
-              ),
-              child: Center(
-                child: Icon(
-                  Icons.arrow_back_ios_new_rounded,
-                  size: 15.sp,
-                  color: AppColors.textColor,
-                ),
-              ),
-            ),
-          ),
-        ),
-
-        AppSpaces.hSpace12,
-
-        // Title & Subtitle with flex protection
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Attendance Adjustment',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: AppTextStyles.text18.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textColor,
-                ),
-              ),
-              AppSpaces.vSpace2,
-              Text(
-                'Regularize missed punch & claim overtime',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: AppTextStyles.text10.copyWith(
-                  color: AppColors.textColor.withValues(alpha: 0.75),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
 
   /// Modern Segmented Sliding Glass Switcher
   Widget _buildSegmentSwitcher() {
@@ -238,10 +117,7 @@ class RegularizationView extends GetView<RegularizationController> {
         decoration: BoxDecoration(
           color: AppColors.cardBackground,
           borderRadius: BorderRadius.circular(14.r),
-          border: Border.all(
-            color: AppColors.borderColor,
-            width: 1.w,
-          ),
+          border: Border.all(color: AppColors.borderColor, width: 1.w),
           boxShadow: [
             BoxShadow(
               color: AppColors.primary.withValues(alpha: 0.05),
@@ -369,9 +245,7 @@ class RegularizationView extends GetView<RegularizationController> {
         Obx(
           () => Text(
             '${controller.requests.length} Submissions',
-            style: AppTextStyles.text12.copyWith(
-              color: AppColors.subTextColor,
-            ),
+            style: AppTextStyles.text12.copyWith(color: AppColors.subTextColor),
           ),
         ),
       ],
@@ -389,8 +263,7 @@ class RegularizationView extends GetView<RegularizationController> {
           margin: EdgeInsets.symmetric(vertical: 20.h),
           child: CustomStateView.empty(
             title: 'No Adjustment Records',
-            message:
-                'You have not submitted any missed punch or overtime claims yet.',
+            message: 'You have not submitted any missed punch or overtime claims yet.',
           ),
         );
       }

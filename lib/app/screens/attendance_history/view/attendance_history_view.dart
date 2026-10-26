@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+
 import '../../../core/utils/app_colors.dart';
 import '../../../core/utils/app_spaces.dart';
 import '../../../core/utils/app_text_styles.dart';
+import '../../../core/widgets/custom_screen_header.dart';
 import '../../../core/widgets/custom_state_view.dart';
+import '../../../core/widgets/employee_ambient_header.dart';
 import '../../../core/widgets/network_boundary_wrapper.dart';
 import '../controller/attendance_history_controller.dart';
 import 'components/attendance_calendar_strip.dart';
@@ -29,7 +32,7 @@ class AttendanceHistoryView extends GetView<AttendanceHistoryController> {
       'September',
       'October',
       'November',
-      'December'
+      'December',
     ];
 
     return NetworkBoundaryWrapper(
@@ -63,62 +66,14 @@ class AttendanceHistoryView extends GetView<AttendanceHistoryController> {
           return Stack(
             children: [
               // 1. Curved Ambient Gradient Header
-              Container(
-                width: double.infinity,
-                height: 220.h,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      AppColors.liteSecondary,
-                      AppColors.liteSecondary,
-                      AppColors.liteSecondary,
-                      AppColors.liteSecondary,
-                      AppColors.secondary,
-                      AppColors.primary,
-                    ],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                  ),
-                  borderRadius: BorderRadius.only(
-                    bottomLeft: Radius.circular(20.r),
-                    bottomRight: Radius.circular(20.r),
-                  ),
-                ),
-                child: Stack(
-                  children: [
-                    Positioned(
-                      top: -60.r,
-                      right: -40.r,
-                      child: Container(
-                        width: 140.r,
-                        height: 140.r,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: AppColors.primary.withValues(alpha: 0.05),
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      bottom: 30.r,
-                      left: -50.r,
-                      child: Container(
-                        width: 120.r,
-                        height: 120.r,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: AppColors.secondary.withValues(alpha: 0.05),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              EmployeeAmbientHeader(height: 230.h),
 
               // 2. Main Scrollable Content Overlapping the Header
               SafeArea(
                 child: RefreshIndicator(
-                  onRefresh: () =>
-                      controller.loadMonthlyLogs(controller.selectedMonth.value),
+                  onRefresh: () => controller.loadMonthlyLogs(
+                    controller.selectedMonth.value,
+                  ),
                   color: AppColors.primary,
                   child: SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(
@@ -194,8 +149,8 @@ class AttendanceHistoryView extends GetView<AttendanceHistoryController> {
                           itemCount: controller.logs.length,
                           itemBuilder: (context, index) {
                             final log = controller.logs[index];
-                            final isSelected = controller.selectedDate.value !=
-                                    null &&
+                            final isSelected =
+                                controller.selectedDate.value != null &&
                                 controller.selectedDate.value!.day ==
                                     log.date.day;
 
@@ -223,42 +178,10 @@ class AttendanceHistoryView extends GetView<AttendanceHistoryController> {
 
   /// Top executive navigation bar with Month Switcher Capsule and Export Action Button
   Widget _buildTopBar(String monthStr) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        // Title & Subtitle with flex protection
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Attendance History',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: AppTextStyles.text18.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textColor,
-                ),
-              ),
-              AppSpaces.vSpace2,
-              Text(
-                'Verified punches & telemetry',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: AppTextStyles.text10.copyWith(
-                  color: AppColors.textColor.withValues(alpha: 0.75),
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        AppSpaces.hSpace8,
-
-        // Actions: Month Switcher Capsule & Export PDF Button
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
+    return CustomScreenHeader(
+      title: 'Attendance History',
+      subtitle: 'Verified punches & telemetry',
+      actions: [
             // Month Switcher Capsule
             Container(
               padding: EdgeInsets.symmetric(horizontal: 2.w, vertical: 2.h),
@@ -357,14 +280,12 @@ class AttendanceHistoryView extends GetView<AttendanceHistoryController> {
                             Icons.file_download_outlined,
                             size: 17.sp,
                             color: AppColors.secondary,
-                          ),
-                  ),
-                ),
               ),
             ),
-          ],
+          ),
         ),
-      ],
-    );
-  }
+      ),
+    ],
+  );
+}
 }

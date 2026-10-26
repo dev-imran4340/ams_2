@@ -659,6 +659,347 @@ class EmployeeProfileModel {
     );
   }
 
+  /// Generates a strongly typed mock profile for any specific employee, matching
+  /// department staff members (Ayesha Khan, Farhan Ahmed, Zainab Noor) or any dynamic ID.
+  factory EmployeeProfileModel.mockForEmployee(
+    String empId, {
+    String? nameHint,
+    String? codeHint,
+    String? deptHint,
+    String? desigHint,
+  }) {
+    // 1. Ayesha Khan (EMP-0001)
+    if (empId == '01j00000000000000000000001' ||
+        codeHint == 'EMP-0001' ||
+        nameHint?.toLowerCase().contains('ayesha') == true) {
+      return const EmployeeProfileModel(
+        id: '01j00000000000000000000001',
+        employeeNumber: 'EMP-0001',
+        name: 'Ayesha Khan',
+        email: 'ayesha@acme.pk',
+        phone: '0300 1234567',
+        cnic: '42201-8765432-1',
+        dob: '1995-04-12',
+        gender: 'female',
+        bloodGroup: 'B+',
+        employeeId: 'EMP-0001',
+        designation: 'Officer',
+        department: 'Sales',
+        joiningDate: '2025-10-22',
+        reportingManager: 'Maryam Malik',
+        shiftName: 'Morning Standard Shift',
+        shiftTime: '08:30 AM - 05:30 PM',
+        graceMinutes: 15,
+        workLocation: 'Head office',
+        stage: 'active',
+        firstName: 'Ayesha',
+        lastName: 'Khan',
+        preferredName: null,
+        hasPhoto: false,
+        stageLabel: 'Active',
+        sections: [
+          ProfileSectionModel(key: 'overview', label: 'Overview'),
+          ProfileSectionModel(key: 'personal', label: 'Personal'),
+          ProfileSectionModel(key: 'job', label: 'Job'),
+          ProfileSectionModel(key: 'attendance', label: 'Attendance'),
+          ProfileSectionModel(key: 'documents', label: 'Documents'),
+          ProfileSectionModel(key: 'bank', label: 'Bank details'),
+          ProfileSectionModel(key: 'account', label: 'Sign-in and card'),
+          ProfileSectionModel(key: 'history', label: 'History'),
+        ],
+        job: ProfileJobModel(
+          legalEntity: 'Acme Textiles (Pvt) Ltd',
+          workLocation: 'Head office',
+          department: 'Sales',
+          subDepartment: 'Direct Sales',
+          designation: 'Officer',
+          grade: 'L-2',
+          employmentType: 'full_time',
+          contractType: 'permanent',
+          joinedOn: '2025-10-22',
+          lengthOfService: '1 year',
+        ),
+        contact: ProfileContactModel(
+          workEmail: 'ayesha@acme.pk',
+          workPhone: '0300 1234567',
+        ),
+        personal: ProfilePersonalModel(
+          gender: 'female',
+          dateOfBirth: '1995-04-12',
+          bloodGroup: 'B+',
+          maritalStatus: 'single',
+          nationality: 'PK',
+          personalEmail: 'ayesha.personal@gmail.com',
+          personalPhone: '0300 1234567',
+          address: ProfileAddressModel(
+            line1: 'House 12, Street 4',
+            city: 'Karachi',
+            country: 'PK',
+          ),
+        ),
+        emergencyContacts: [
+          ProfileEmergencyContactModel(
+            name: 'Bilal Khan',
+            relationship: 'Brother',
+            phone: '0300 7654321',
+          ),
+        ],
+        documents: [],
+        address: 'House 12, Street 4, Karachi',
+        city: 'Karachi',
+        postalCode: '75500',
+        emergencyContactName: 'Bilal Khan',
+        emergencyContactPhone: '0300 7654321',
+        emergencyContactRelation: 'Brother',
+        biometricEnabled: true,
+        remindersEnabled: true,
+        geofenceAutoCheck: true,
+        tenureYears: '1 year',
+        attendanceScore: 96.5,
+      );
+    }
+
+    // 2. Farhan Ahmed (EMP-1042)
+    if (empId == '01m5kmp9fmnb75vnt7z1k2pb01' ||
+        codeHint == 'EMP-1042' ||
+        nameHint?.toLowerCase().contains('farhan') == true) {
+      return const EmployeeProfileModel(
+        id: '01m5kmp9fmnb75vnt7z1k2pb01',
+        employeeNumber: 'EMP-1042',
+        name: 'Farhan Ahmed',
+        email: 'farhan.ahmed@kumash.com',
+        phone: '+92 333 4128976',
+        cnic: '35202-9876543-1',
+        dob: '1990-08-15',
+        gender: 'male',
+        bloodGroup: 'O+',
+        employeeId: 'EMP-1042',
+        designation: 'Senior Systems Analyst',
+        department: 'Operations',
+        joiningDate: '2023-03-01',
+        reportingManager: 'Operations Director',
+        shiftName: 'Operations Technical Shift',
+        shiftTime: '10:00 AM - 07:00 PM',
+        graceMinutes: 10,
+        workLocation: 'Regional office',
+        stage: 'active',
+        firstName: 'Farhan',
+        lastName: 'Ahmed',
+        stageLabel: 'Active',
+        sections: [
+          ProfileSectionModel(key: 'overview', label: 'Overview'),
+          ProfileSectionModel(key: 'personal', label: 'Personal'),
+          ProfileSectionModel(key: 'job', label: 'Job'),
+          ProfileSectionModel(key: 'attendance', label: 'Attendance'),
+          ProfileSectionModel(key: 'documents', label: 'Documents'),
+          ProfileSectionModel(key: 'bank', label: 'Bank details'),
+          ProfileSectionModel(key: 'account', label: 'Sign-in and card'),
+          ProfileSectionModel(key: 'history', label: 'History'),
+        ],
+        job: ProfileJobModel(
+          legalEntity: 'Kumash (Pvt) Ltd',
+          workLocation: 'Regional office',
+          department: 'Operations',
+          subDepartment: 'Infrastructure & Systems',
+          designation: 'Senior Systems Analyst',
+          grade: 'L-4',
+          employmentType: 'full_time',
+          contractType: 'permanent',
+          joinedOn: '2023-03-01',
+          lengthOfService: '3 years 7 months',
+        ),
+        contact: ProfileContactModel(
+          workEmail: 'farhan.ahmed@kumash.com',
+          workPhone: '+92 333 4128976',
+        ),
+        personal: ProfilePersonalModel(
+          gender: 'male',
+          dateOfBirth: '1990-08-15',
+          bloodGroup: 'O+',
+          maritalStatus: 'married',
+          nationality: 'PK',
+          personalEmail: 'farhan.sys@gmail.com',
+          personalPhone: '+92 333 4128976',
+          address: ProfileAddressModel(
+            line1: 'Apartment 402, Executive Heights, Gulberg III',
+            city: 'Lahore',
+            country: 'PK',
+          ),
+        ),
+        emergencyContacts: [
+          ProfileEmergencyContactModel(
+            name: 'Rehana Ahmed',
+            relationship: 'Mother',
+            phone: '+92 301 2233445',
+          ),
+        ],
+        documents: [],
+        address: 'Apartment 402, Executive Heights, Gulberg III, Lahore',
+        city: 'Lahore',
+        postalCode: '54000',
+        emergencyContactName: 'Rehana Ahmed',
+        emergencyContactPhone: '+92 301 2233445',
+        emergencyContactRelation: 'Mother',
+        biometricEnabled: true,
+        remindersEnabled: true,
+        geofenceAutoCheck: false,
+        tenureYears: '3 years 7 months',
+        attendanceScore: 98.0,
+      );
+    }
+
+    // 3. Zainab Noor (EMP-1154)
+    if (empId == '01m5kmp9fmnb75vnt7z1k2pb04' ||
+        codeHint == 'EMP-1154' ||
+        nameHint?.toLowerCase().contains('zainab') == true) {
+      return const EmployeeProfileModel(
+        id: '01m5kmp9fmnb75vnt7z1k2pb04',
+        employeeNumber: 'EMP-1154',
+        name: 'Zainab Noor',
+        email: 'zainab.noor@kumash.com',
+        phone: '+92 321 7766554',
+        cnic: '61101-1234567-2',
+        dob: '1998-11-20',
+        gender: 'female',
+        bloodGroup: 'A+',
+        employeeId: 'EMP-1154',
+        designation: 'Department Associate',
+        department: 'Operations',
+        joiningDate: '2024-02-01',
+        reportingManager: 'Farhan Ahmed',
+        shiftName: 'General Corporate Shift',
+        shiftTime: '09:00 AM - 06:00 PM',
+        graceMinutes: 15,
+        workLocation: 'Head office',
+        stage: 'probation',
+        firstName: 'Zainab',
+        lastName: 'Noor',
+        stageLabel: 'Probation',
+        sections: [
+          ProfileSectionModel(key: 'overview', label: 'Overview'),
+          ProfileSectionModel(key: 'personal', label: 'Personal'),
+          ProfileSectionModel(key: 'job', label: 'Job'),
+          ProfileSectionModel(key: 'attendance', label: 'Attendance'),
+          ProfileSectionModel(key: 'documents', label: 'Documents'),
+          ProfileSectionModel(key: 'bank', label: 'Bank details'),
+          ProfileSectionModel(key: 'account', label: 'Sign-in and card'),
+          ProfileSectionModel(key: 'history', label: 'History'),
+        ],
+        job: ProfileJobModel(
+          legalEntity: 'Kumash (Pvt) Ltd',
+          workLocation: 'Head office',
+          department: 'Operations',
+          subDepartment: 'Admin Support',
+          designation: 'Department Associate',
+          grade: 'L-1',
+          employmentType: 'full_time',
+          contractType: 'probation',
+          joinedOn: '2024-02-01',
+          probationEndsOn: '2024-08-01',
+          lengthOfService: '8 months',
+        ),
+        contact: ProfileContactModel(
+          workEmail: 'zainab.noor@kumash.com',
+          workPhone: '+92 321 7766554',
+        ),
+        personal: ProfilePersonalModel(
+          gender: 'female',
+          dateOfBirth: '1998-11-20',
+          bloodGroup: 'A+',
+          maritalStatus: 'single',
+          nationality: 'PK',
+          personalEmail: 'zainab.noor.personal@gmail.com',
+          personalPhone: '+92 321 7766554',
+          address: ProfileAddressModel(
+            line1: 'Flat 12, Pine Court, Sector G-11',
+            city: 'Islamabad',
+            country: 'PK',
+          ),
+        ),
+        emergencyContacts: [
+          ProfileEmergencyContactModel(
+            name: 'Dr. Noor',
+            relationship: 'Father',
+            phone: '+92 300 4433221',
+          ),
+        ],
+        documents: [],
+        address: 'Flat 12, Pine Court, Sector G-11, Islamabad',
+        city: 'Islamabad',
+        postalCode: '44000',
+        emergencyContactName: 'Dr. Noor',
+        emergencyContactPhone: '+92 300 4433221',
+        emergencyContactRelation: 'Father',
+        biometricEnabled: true,
+        remindersEnabled: true,
+        geofenceAutoCheck: true,
+        tenureYears: '8 months',
+        attendanceScore: 94.0,
+      );
+    }
+
+    // 4. Maryam Malik (Self Profile Ground Truth)
+    if (empId == '01m5kmp9g8wxp9ssn3aed8awzm' ||
+        codeHint == 'EMP-0002' ||
+        nameHint?.toLowerCase().contains('maryam') == true) {
+      return EmployeeProfileModel.mock();
+    }
+
+    // 5. Dynamic fallback for any other employee ID / parameters
+    final resolvedName = nameHint ?? 'Staff Member';
+    final nameParts = resolvedName.split(' ');
+    final fName = nameParts.isNotEmpty ? nameParts.first : 'Staff';
+    final lName = nameParts.length > 1 ? nameParts.sublist(1).join(' ') : 'Member';
+    final resolvedCode = codeHint ??
+        (empId.length > 8
+            ? 'EMP-${empId.substring(empId.length - 4).toUpperCase()}'
+            : 'EMP-0099');
+    final resolvedDept = deptHint ?? 'Operations';
+    final resolvedDesig = desigHint ?? 'Executive Officer';
+
+    return EmployeeProfileModel(
+      id: empId,
+      employeeNumber: resolvedCode,
+      name: resolvedName,
+      email: '${fName.toLowerCase()}.${lName.toLowerCase()}@example.com',
+      phone: '+92 300 9876543',
+      cnic: '42101-1234567-1',
+      dob: '1994-06-18',
+      gender: 'male',
+      bloodGroup: 'B+',
+      employeeId: resolvedCode,
+      designation: resolvedDesig,
+      department: resolvedDept,
+      joiningDate: '2023-09-01',
+      reportingManager: 'Executive Management',
+      shiftName: 'General Corporate Shift',
+      shiftTime: '09:00 AM - 06:00 PM',
+      graceMinutes: 15,
+      workLocation: 'Head office',
+      stage: 'active',
+      firstName: fName,
+      lastName: lName,
+      stageLabel: 'Active',
+      sections: EmployeeProfileModel.defaultSections,
+      job: ProfileJobModel(
+        legalEntity: 'Kumash (Pvt) Ltd',
+        workLocation: 'Head office',
+        department: resolvedDept,
+        designation: resolvedDesig,
+        employmentType: 'full_time',
+        contractType: 'permanent',
+        joinedOn: '2023-09-01',
+        lengthOfService: '2 years 2 months',
+      ),
+      contact: ProfileContactModel(
+        workEmail: '${fName.toLowerCase()}.${lName.toLowerCase()}@example.com',
+        workPhone: '+92 300 9876543',
+      ),
+      tenureYears: '2 years 2 months',
+      attendanceScore: 97.0,
+    );
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,

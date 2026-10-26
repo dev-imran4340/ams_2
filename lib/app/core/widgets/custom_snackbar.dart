@@ -3,6 +3,7 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:get/get.dart';
 import 'package:top_snackbar_flutter/custom_snack_bar.dart';
 import 'package:top_snackbar_flutter/top_snack_bar.dart';
+
 import '../utils/app_colors.dart';
 import '../utils/app_text_styles.dart';
 
@@ -46,7 +47,7 @@ class CustomSnackbar {
           message: message,
           backgroundColor: backgroundColor,
           snackPosition: SnackPosition.TOP,
-          duration: const Duration(seconds: 2),
+          duration: const Duration(seconds: 1),
         );
       } catch (_) {}
     }
@@ -68,7 +69,7 @@ class CustomSnackbar {
             backgroundColor: AppColors.success,
             textStyle: AppTextStyles.text14.copyWith(color: AppColors.white),
           ),
-          displayDuration: const Duration(milliseconds: 500),
+          displayDuration: const Duration(milliseconds: 200),
         );
         return;
       }
@@ -93,7 +94,7 @@ class CustomSnackbar {
             backgroundColor: AppColors.error,
             textStyle: AppTextStyles.text14.copyWith(color: AppColors.white),
           ),
-          displayDuration: const Duration(milliseconds: 500),
+          displayDuration: const Duration(milliseconds: 200),
         );
         return;
       }
@@ -139,7 +140,7 @@ class CustomSnackbar {
             backgroundColor: AppColors.blue,
             textStyle: AppTextStyles.text14.copyWith(color: AppColors.white),
           ),
-          displayDuration: const Duration(seconds: 3),
+          displayDuration: const Duration(seconds: 1),
         );
         return;
       }

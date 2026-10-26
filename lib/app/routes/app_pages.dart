@@ -23,6 +23,7 @@ import '../screens/attendance_history/view/attendance_history_view.dart';
 import '../screens/attendance_history/controller/attendance_history_controller.dart';
 import '../screens/attendance_history/repo/attendance_history_repo.dart';
 
+import '../screens/leaves/view/leave_requests_view.dart';
 import '../screens/leaves/controller/leave_controller.dart';
 import '../screens/leaves/repo/leave_repo.dart';
 
@@ -94,6 +95,11 @@ import '../screens/edit_profile/repo/edit_profile_repo.dart';
 import '../screens/employees/controller/department_employees_controller.dart';
 import '../screens/employees/repo/department_employees_repo.dart';
 import '../screens/main_shell/controller/session_me_controller.dart';
+
+import '../screens/notifications/view/notifications_view.dart';
+import '../screens/notifications/view/notification_preferences_view.dart';
+import '../screens/notifications/controller/notification_controller.dart';
+import '../screens/notifications/repo/notification_repo.dart';
 
 class AppPages {
   // Initial Entry Route
@@ -179,6 +185,7 @@ class AppPages {
       binding: BindingsBuilder(() {
         Get.lazyPut(() => DashboardRepo(), fenix: true);
         Get.lazyPut(() => DashboardController(repo: Get.find()), fenix: true);
+        Get.lazyPut(() => SessionMeController(), fenix: true);
       }),
     ),
 
@@ -407,7 +414,7 @@ class AppPages {
       }),
     ),
 
-    // 21. Profile Screen
+    // 21. Profile Screen (Hub with Cards, Settings, 2FA & Logout)
     GetPage(
       name: Routes.PROFILE,
       page: () => const ProfileView(),
@@ -428,6 +435,45 @@ class AppPages {
         Get.lazyPut(() => ProfileRepo(), fenix: true);
         Get.lazyPut(
           () => ProfileController(repo: Get.find()),
+          fenix: true,
+        );
+      }),
+    ),
+
+    // 23. Requests & Approvals Inbox Screen
+    GetPage(
+      name: Routes.LEAVE,
+      page: () => const LeaveRequestsView(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => LeaveRepo(), fenix: true);
+        Get.lazyPut(
+          () => LeaveController(repo: Get.find()),
+          fenix: true,
+        );
+      }),
+    ),
+
+    // 24. In-App Notifications Screen (The Bell)
+    GetPage(
+      name: Routes.NOTIFICATIONS,
+      page: () => const NotificationsView(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => NotificationRepo(), fenix: true);
+        Get.lazyPut(
+          () => NotificationController(repo: Get.find()),
+          fenix: true,
+        );
+      }),
+    ),
+
+    // 25. Notification Preferences Screen (Channel Toggles)
+    GetPage(
+      name: Routes.NOTIFICATION_PREFERENCES,
+      page: () => const NotificationPreferencesView(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => NotificationRepo(), fenix: true);
+        Get.lazyPut(
+          () => NotificationController(repo: Get.find()),
           fenix: true,
         );
       }),

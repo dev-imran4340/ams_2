@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
@@ -27,19 +28,19 @@ class EditProfileEmergencyCard extends GetView<EditProfileController> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header with Icon
+          // Header with Icon & Mode Indicator
           Row(
             children: [
               Container(
-                width: 32.r,
-                height: 32.r,
+                width: 34.r,
+                height: 34.r,
                 decoration: BoxDecoration(
                   color: AppColors.warning.withValues(alpha: 0.12),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   Icons.contact_emergency_rounded,
-                  size: 17.sp,
+                  size: 18.sp,
                   color: AppColors.warning,
                 ),
               ),
@@ -50,9 +51,7 @@ class EditProfileEmergencyCard extends GetView<EditProfileController> {
                   children: [
                     Text(
                       'Emergency Contact',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.text16.copyWith(
+                      style: AppTextStyles.text14.copyWith(
                         fontWeight: FontWeight.bold,
                         color: AppColors.textColor,
                       ),
@@ -60,9 +59,7 @@ class EditProfileEmergencyCard extends GetView<EditProfileController> {
                     AppSpaces.vSpace2,
                     Text(
                       'Next of kin & immediate emergency dispatch',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.text12.copyWith(
+                      style: AppTextStyles.text10.copyWith(
                         color: AppColors.subTextColor,
                         fontWeight: FontWeight.w400,
                       ),
@@ -75,99 +72,161 @@ class EditProfileEmergencyCard extends GetView<EditProfileController> {
 
           AppSpaces.vSpace14,
 
-          // Contact Person Name
+          // Contact Person Name (name: required, up to 80 chars)
           CustomTextField(
             labelText: 'Emergency Contact Person *',
-            hintText: 'e.g. Tariq Mehmood',
+            hintText: 'e.g. Bilal Khan',
             controller: controller.emergencyNameController,
             focusNode: controller.emergencyNameFocusNode,
+            validator: controller.validateEmergencyName,
+            inputFormatters: [
+              LengthLimitingTextInputFormatter(80),
+              FilteringTextInputFormatter.allow(RegExp(r"[a-zA-Z\s'.\-]")),
+            ],
             prefixIcon: Icon(
-              Icons.person_pin_rounded,
+              Icons.person_outline_rounded,
               size: 20.sp,
               color: AppColors.subTextColor,
             ),
-            validator: (v) {
-              if (v == null || v.trim().isEmpty) {
-                return 'Please enter emergency contact name';
-              }
-              return null;
-            },
           ),
+          Obx(() => _buildErrorRow(controller.emergencyNameError.value)),
 
           AppSpaces.vSpace12,
 
-          // Relationship Field with Quick Chips
+          // Relationship (relationship: required, up to 40 chars)
           CustomTextField(
-            labelText: 'Relationship to Employee *',
-            hintText: 'e.g. Brother, Father, Spouse',
+            labelText: 'Relationship *',
+            hintText: 'e.g. Brother, Spouse, Father',
             controller: controller.emergencyRelationController,
             focusNode: controller.emergencyRelationFocusNode,
+            validator: controller.validateEmergencyRelation,
+            inputFormatters: [
+              LengthLimitingTextInputFormatter(40),
+              FilteringTextInputFormatter.allow(RegExp(r"[a-zA-Z\s'.\-]")),
+            ],
             prefixIcon: Icon(
-              Icons.people_outline_rounded,
+              Icons.family_restroom_rounded,
               size: 20.sp,
               color: AppColors.subTextColor,
             ),
-            validator: (v) {
-              if (v == null || v.trim().isEmpty) {
-                return 'Please enter relationship';
-              }
-              return null;
-            },
           ),
+          Obx(() => _buildErrorRow(controller.emergencyRelationError.value)),
 
           AppSpaces.vSpace8,
 
-          // Quick Relationship Chips
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            child: Row(
-              children: _suggestedRelations.map((rel) {
-                return Padding(
-                  padding: EdgeInsets.only(right: 6.w),
-                  child: ActionChip(
-                    label: Text(
-                      rel,
-                      style: AppTextStyles.text10.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                    backgroundColor: AppColors.primary.withValues(alpha: 0.06),
-                    side: BorderSide(
-                      color: AppColors.primary.withValues(alpha: 0.2),
+          // Quick relationship suggestion chips
+          Wrap(
+            spacing: 6.w,
+            runSpacing: 6.h,
+            children: _suggestedRelations.map((rel) {
+              return InkWell(
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  controller.emergencyRelationController.text = rel;
+                  controller.emergencyRelationError.value = null;
+                },
+                borderRadius: BorderRadius.circular(16.r),
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(16.r),
+                    border: Border.all(
+                      color: AppColors.borderColor,
                       width: 0.8.w,
                     ),
-                    padding: EdgeInsets.symmetric(horizontal: 6.w),
-                    onPressed: () {
-                      controller.emergencyRelationController.text = rel;
-                    },
                   ),
-                );
-              }).toList(),
-            ),
+                  child: Text(
+                    rel,
+                    style: AppTextStyles.text10.copyWith(
+                      color: AppColors.textColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
           ),
 
           AppSpaces.vSpace12,
 
-          // Emergency Phone Number
+          // Primary Phone (phone: required, up to 20 chars)
           CustomTextField(
             labelText: 'Emergency Phone Number *',
-            hintText: '+92 321 7654321',
+            hintText: 'e.g. 0300 3333333',
             controller: controller.emergencyPhoneController,
             focusNode: controller.emergencyPhoneFocusNode,
+            validator: controller.validateEmergencyPhone,
             keyboardType: TextInputType.phone,
+            inputFormatters: [
+              LengthLimitingTextInputFormatter(20),
+              FilteringTextInputFormatter.allow(RegExp(r'[0-9+\-()\s]')),
+            ],
             prefixIcon: Icon(
-              Icons.phone_in_talk_rounded,
+              Icons.phone_rounded,
               size: 20.sp,
               color: AppColors.subTextColor,
             ),
-            validator: (v) {
-              if (v == null || v.trim().isEmpty) {
-                return 'Please enter emergency phone number';
-              }
-              return null;
-            },
+          ),
+          Obx(() => _buildErrorRow(controller.emergencyPhoneError.value)),
+
+          AppSpaces.vSpace12,
+
+          // Alternative Phone (alternative_phone: optional, up to 20 chars)
+          CustomTextField(
+            labelText: 'Alternative Phone (Optional)',
+            hintText: 'e.g. 0321 4444444',
+            controller: controller.emergencyAltPhoneController,
+            focusNode: controller.emergencyAltPhoneFocusNode,
+            validator: controller.validateEmergencyAltPhone,
+            keyboardType: TextInputType.phone,
+            inputFormatters: [
+              LengthLimitingTextInputFormatter(20),
+              FilteringTextInputFormatter.allow(RegExp(r'[0-9+\-()\s]')),
+            ],
+            prefixIcon: Icon(
+              Icons.phone_outlined,
+              size: 20.sp,
+              color: AppColors.subTextColor,
+            ),
+          ),
+          Obx(() => _buildErrorRow(controller.emergencyAltPhoneError.value)),
+
+          AppSpaces.vSpace12,
+
+          // Physical Address (address: optional, up to 255 chars)
+          CustomTextField(
+            labelText: 'Home / Workplace Address (Optional)',
+            hintText: 'Street address or landmark',
+            controller: controller.emergencyAddressController,
+            focusNode: controller.emergencyAddressFocusNode,
+            inputFormatters: [
+              LengthLimitingTextInputFormatter(255),
+            ],
+            prefixIcon: Icon(
+              Icons.location_on_outlined,
+              size: 20.sp,
+              color: AppColors.subTextColor,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorRow(String? error) {
+    if (error == null || error.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: EdgeInsets.only(top: 4.h, left: 6.w),
+      child: Row(
+        children: [
+          Icon(Icons.error_outline_rounded, size: 12.sp, color: AppColors.error),
+          AppSpaces.hSpace4,
+          Expanded(
+            child: Text(
+              error,
+              style: AppTextStyles.text10.copyWith(color: AppColors.error),
+            ),
           ),
         ],
       ),

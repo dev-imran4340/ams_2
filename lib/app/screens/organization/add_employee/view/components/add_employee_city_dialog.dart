@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import '../../../../../core/utils/app_colors.dart';
 import '../../../../../core/utils/app_spaces.dart';
 import '../../../../../core/utils/app_text_styles.dart';
+import '../../../../../core/widgets/custom_text_field.dart';
 import '../../controller/add_employee_controller.dart';
 
 class AddEmployeeCityDialog {
@@ -65,50 +66,32 @@ class AddEmployeeCityDialog {
                 AppSpaces.vSpace12,
 
                 // Search field
-                TextField(
+                CustomTextField(
                   controller: controller.citySearchController,
+                  hintText: 'Search city...',
                   onChanged: controller.filterCities,
-                  style: AppTextStyles.text14.copyWith(color: AppColors.textColor),
-                  decoration: InputDecoration(
-                    hintText: 'Search city...',
-                    hintStyle: AppTextStyles.text14.copyWith(color: AppColors.hintColor),
-                    prefixIcon: Icon(
-                      Icons.search_rounded,
-                      size: 20.sp,
-                      color: AppColors.secondary,
-                    ),
-                    suffixIcon: Obx(() {
-                      final hasText = controller.filteredCities.length != controller.cities.length ||
-                          controller.citySearchController.text.isNotEmpty;
-                      if (!hasText) return const SizedBox.shrink();
-                      return IconButton(
-                        icon: Icon(
-                          Icons.clear_rounded,
-                          size: 18.sp,
-                          color: AppColors.subTextColor,
-                        ),
-                        onPressed: () {
-                          controller.citySearchController.clear();
-                          controller.filterCities('');
-                        },
-                      );
-                    }),
-                    filled: true,
-                    fillColor: AppColors.inputFill,
-                    contentPadding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12.r),
-                      borderSide: BorderSide(color: AppColors.borderColor, width: 1.w),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12.r),
-                      borderSide: BorderSide(color: AppColors.borderColor, width: 1.w),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12.r),
-                      borderSide: BorderSide(color: AppColors.secondary, width: 1.5.w),
-                    ),
+                  prefixIcon: Icon(
+                    Icons.search_rounded,
+                    size: 20.sp,
+                    color: AppColors.secondary,
                   ),
+                  suffixIcon: Obx(() {
+                    final hasText = controller.filteredCities.length !=
+                            controller.cities.length ||
+                        controller.citySearchController.text.isNotEmpty;
+                    if (!hasText) return const SizedBox.shrink();
+                    return IconButton(
+                      icon: Icon(
+                        Icons.clear_rounded,
+                        size: 18.sp,
+                        color: AppColors.subTextColor,
+                      ),
+                      onPressed: () {
+                        controller.citySearchController.clear();
+                        controller.filterCities('');
+                      },
+                    );
+                  }),
                 ),
 
                 AppSpaces.vSpace14,

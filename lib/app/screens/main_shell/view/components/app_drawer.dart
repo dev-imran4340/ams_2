@@ -22,8 +22,7 @@ class AppDrawer extends StatelessWidget {
         Get.currentRoute == Routes.INDEX &&
         Get.isRegistered<IndexController>()) {
       final indexCtrl = Get.find<IndexController>();
-      final profileIdx =
-          indexCtrl.navTabs.indexWhere((t) => t.id == 'profile');
+      final profileIdx = indexCtrl.navTabs.indexWhere((t) => t.id == 'profile');
       if (profileIdx != -1) {
         indexCtrl.changeTab(profileIdx);
         return;
@@ -106,7 +105,7 @@ class AppDrawer extends StatelessWidget {
                         subtitle: 'Personal details, contract, bank & history',
                         icon: Icons.person_outline_rounded,
                         accentTint: AppColors.primary,
-                        onTap: () => _navigateToRoute(Routes.PROFILE),
+                        onTap: () => _navigateToRoute(Routes.PROFILE_DETAILS),
                       ),
 
                       // Card 1: Digital ID Card (Module: core - Always Visible)

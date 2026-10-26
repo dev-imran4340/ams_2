@@ -27,6 +27,9 @@ abstract class Routes {
   static const ATTENDANCE_ACTIONS = '/attendance-actions';
   static const EDIT_PROFILE = '/edit-profile';
   static const PROFILE_DETAILS = '/profile-details';
+  static const LEAVE = '/leave';
+  static const NOTIFICATIONS = '/notifications';
+  static const NOTIFICATION_PREFERENCES = '/notification-preferences';
 }
 
 

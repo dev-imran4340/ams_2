@@ -45,4 +45,25 @@ class IndexRepo {
       return null;
     }
   }
+
+  /// Terminates the current active session on the backend via POST /api/v1/auth/logout.
+  /// Server responds with 204 No Content.
+  Future<bool> logout() async {
+    try {
+      await ApiClient.request(
+        endpoint: ApiEndpoints.logout,
+        method: HttpMethod.post,
+        tag: '$_tag -> logout()',
+        showToastOnError: false,
+      );
+      return true;
+    } catch (e, stackTrace) {
+      ExceptionHandler.handle(
+        ApiException(message: 'Remote logout failed: $e'),
+        tag: '$_tag -> logout() [${stackTrace.toString().split('\n').first}]',
+        showToast: false,
+      );
+      return false;
+    }
+  }
 }

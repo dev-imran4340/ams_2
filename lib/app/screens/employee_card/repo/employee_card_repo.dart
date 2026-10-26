@@ -86,7 +86,7 @@ class EmployeeCardRepo {
       }
 
       // 2. Fallback to generating authentic corporate PDF
-      pdfBytes ??= CardPdfGenerator.createCardPdfBytes(card);
+      pdfBytes ??= await CardPdfGenerator.createCardPdfBytes(card);
 
       await file.writeAsBytes(pdfBytes, flush: true);
       return file;

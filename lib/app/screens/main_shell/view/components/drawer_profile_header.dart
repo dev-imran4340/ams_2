@@ -26,7 +26,8 @@ class DrawerProfileHeader extends StatelessWidget {
     HapticFeedback.lightImpact();
     Get.back(); // Dismiss drawer smoothly
 
-    if (Get.currentRoute == Routes.INDEX && Get.isRegistered<IndexController>()) {
+    if (Get.currentRoute == Routes.INDEX &&
+        Get.isRegistered<IndexController>()) {
       final indexCtrl = Get.find<IndexController>();
       final profileIdx = indexCtrl.navTabs.indexWhere((t) => t.id == 'profile');
       if (profileIdx != -1) {
@@ -166,7 +167,9 @@ class DrawerProfileHeader extends StatelessWidget {
                                   vertical: 3.h,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: AppColors.white.withValues(alpha: 0.15),
+                                  color: AppColors.white.withValues(
+                                    alpha: 0.15,
+                                  ),
                                   borderRadius: BorderRadius.circular(10.r),
                                 ),
                                 child: Row(
@@ -202,7 +205,9 @@ class DrawerProfileHeader extends StatelessWidget {
                               color: AppColors.white.withValues(alpha: 0.14),
                               borderRadius: BorderRadius.circular(12.r),
                               border: Border.all(
-                                color: AppColors.secondary.withValues(alpha: 0.35),
+                                color: AppColors.secondary.withValues(
+                                  alpha: 0.35,
+                                ),
                                 width: 1.w,
                               ),
                             ),

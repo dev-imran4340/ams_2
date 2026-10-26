@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+
 import '../../index/controller/index_controller.dart';
 
 import '../../../api/app_preferences.dart';
@@ -9,7 +10,10 @@ import '../../../core/utils/app_colors.dart';
 import '../../../core/utils/app_spaces.dart';
 import '../../../core/utils/app_text_styles.dart';
 import '../../../core/widgets/custom_state_view.dart';
+import '../../../core/widgets/employee_ambient_header.dart';
 import '../../../core/widgets/network_boundary_wrapper.dart';
+import '../../../routes/app_routes.dart';
+import '../../main_shell/controller/session_me_controller.dart';
 import '../controller/dashboard_controller.dart';
 import 'components/dashboard_quick_actions.dart';
 import 'components/live_shift_clock_card.dart';
@@ -22,9 +26,10 @@ class DashboardView extends GetView<DashboardController> {
 
   @override
   Widget build(BuildContext context) {
+    final sessionController = Get.isRegistered<SessionMeController>()
+        ? Get.find<SessionMeController>()
+        : Get.put(SessionMeController(), permanent: true);
     final user = AppPreferences.getUser();
-    final String userName = user?.name ?? 'Malik Muhammad Imran';
-    final String designation = user?.designation ?? 'Senior Software Engineer';
 
     return NetworkBoundaryWrapper(
       onRetry: controller.loadDashboard,
@@ -50,70 +55,26 @@ class DashboardView extends GetView<DashboardController> {
             );
           }
 
+          final meUser = sessionController.user.value;
+          final String userName = meUser?.name ?? user?.name ?? 'Maryam Malik';
+          final String designation =
+              AppPreferences.getProfileData()?['designation']?.toString() ??
+              user?.designation ??
+              'Sales Manager';
+
           return Stack(
             children: [
-              // 1. Curved Ambient Gradient Header (Identical to Login Screen Language)
-              Container(
-                width: double.infinity,
-                height: 280.h,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      AppColors.liteSecondary,
-                      AppColors.liteSecondary,
-                      AppColors.liteSecondary,
-                      AppColors.liteSecondary,
-                      AppColors.secondary,
-                      AppColors.primary,
-                    ],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                  ),
-                  borderRadius: BorderRadius.only(
-                    bottomLeft: Radius.circular(20.r),
-                    bottomRight: Radius.circular(20.r),
-                  ),
-                ),
-                child: Stack(
-                  children: [
-                    // Ambient Decorative Top-Right Ring
-                    Positioned(
-                      top: -70.r,
-                      right: -45.r,
-                      child: Container(
-                        width: 160.r,
-                        height: 160.r,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: AppColors.primary.withValues(alpha: 0.05),
-                        ),
-                      ),
-                    ),
-                    // Ambient Decorative Bottom-Left Glow
-                    Positioned(
-                      bottom: 45.r,
-                      left: -65.r,
-                      child: Container(
-                        width: 130.r,
-                        height: 130.r,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: AppColors.secondary.withValues(alpha: 0.05),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              // 1. Curved Ambient Gradient Header
+              EmployeeAmbientHeader(height: 230.h),
 
               // 2. Main Scrollable Content Overlapping the Header
               SafeArea(
                 child: RefreshIndicator(
                   onRefresh: controller.loadDashboard,
-                  color: AppColors.primary, 
+                  color: AppColors.primary,
                   child: SingleChildScrollView(
                     padding: EdgeInsets.symmetric(
-                      horizontal: 14.w, 
+                      horizontal: 14.w,
                       vertical: 10.h,
                     ),
                     child: Column(
@@ -138,26 +99,33 @@ class DashboardView extends GetView<DashboardController> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Row(
-                              children: [
-                                Container(
-                                  width: 4.w,
-                                  height: 16.h,
-                                  decoration: BoxDecoration(
-                                    color: AppColors.secondary,
-                                    borderRadius: BorderRadius.circular(2.r),
+                            Expanded(
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 4.w,
+                                    height: 16.h,
+                                    decoration: BoxDecoration(
+                                      color: AppColors.secondary,
+                                      borderRadius: BorderRadius.circular(2.r),
+                                    ),
                                   ),
-                                ),
-                                AppSpaces.hSpace8,
-                                Text(
-                                  "Today's Overview",
-                                  style: AppTextStyles.text16.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.textColor,
+                                  AppSpaces.hSpace8,
+                                  Expanded(
+                                    child: Text(
+                                      "Today's Overview",
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: AppTextStyles.text16.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.textColor,
+                                      ),
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
+                            AppSpaces.hSpace8,
                             Container(
                               padding: EdgeInsets.symmetric(
                                 horizontal: 10.w,
@@ -356,7 +324,8 @@ class DashboardView extends GetView<DashboardController> {
             size: 22.sp,
           ),
           onPressed: () {
-            // Handle notification button press
+            HapticFeedback.lightImpact();
+            Get.toNamed(Routes.NOTIFICATIONS);
           },
         ),
 
@@ -370,11 +339,7 @@ class DashboardView extends GetView<DashboardController> {
             shadowColor: AppColors.primary.withValues(alpha: 0.08),
             elevation: 10,
           ),
-          icon: Icon(
-            Icons.menu_rounded,
-            color: AppColors.primary,
-            size: 22.sp,
-          ),
+          icon: Icon(Icons.menu_rounded, color: AppColors.primary, size: 22.sp),
           onPressed: () {
             HapticFeedback.lightImpact();
             if (Get.isRegistered<IndexController>()) {

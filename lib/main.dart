@@ -1,8 +1,11 @@
+import 'package:ams_2/firebase_options.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
 import 'app/api/app_preferences.dart';
+import 'app/services/push_notification_service.dart';
 import 'app/routes/app_pages.dart';
 
 Future<void> main() async {
@@ -10,12 +13,19 @@ Future<void> main() async {
 
   // Initialize GetStorage persistence
   await AppPreferences.init();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+);
+
+  // Initialize Firebase Cloud Messaging & Push Notification Service
+  await PushNotificationService.instance.initialize();
 
   // Initialize ThemeController permanently for dynamic theme switching
   // Get.put(ThemeController(), permanent: true);
 
   runApp(const MyApp());
 }
+
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});

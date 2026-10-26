@@ -47,8 +47,42 @@ class ProfileRepo {
       }
     } catch (_) {}
 
-    // 3. Fallback to Ground Truth Mock Data matching the user's exact specification
-    return EmployeeProfileModel.mock();
+    // 3. No dummy data: return null
+    return null;
+  }
+
+  /// Fetches employee profile by ID from GET /api/v1/employees/{id}.
+  /// Strictly adheres to doc/api.md and uses identical response format as /me/profile.
+  Future<EmployeeProfileModel?> fetchEmployeeProfile(
+    String employeeId, {
+    String? nameHint,
+    String? codeHint,
+    String? deptHint,
+    String? desigHint,
+  }) async {
+    try {
+      final response = await ApiClient.request(
+        endpoint: ApiEndpoints.employeeDetails(employeeId),
+        method: HttpMethod.get,
+        tag: '$_tag -> fetchEmployeeProfile($employeeId)',
+        showToastOnError: false,
+      );
+
+      if (response != null && response is Map) {
+        final Map<String, dynamic> responseMap =
+            Map<String, dynamic>.from(response);
+        return EmployeeProfileModel.fromJson(responseMap);
+      }
+    } catch (e, stackTrace) {
+      ExceptionHandler.handle(
+        ApiException(message: 'Remote employee profile fetch failed: $e'),
+        tag:
+            '$_tag -> fetchEmployeeProfile() [${stackTrace.toString().split('\n').first}]',
+      );
+    }
+
+    // Zero dummy data: return null on failure
+    return null;
   }
 
   /// Updates workplace profile credentials
@@ -100,6 +134,27 @@ class ProfileRepo {
         ApiException(message: 'Failed to update preferences: $e'),
         tag:
             '$_tag -> updatePreferences() [${stackTrace.toString().split('\n').first}]',
+      );
+      return false;
+    }
+  }
+
+  /// Terminates the active session on the server via POST /api/v1/auth/logout.
+  /// Server responds with 204 No Content.
+  Future<bool> logout() async {
+    try {
+      await ApiClient.request(
+        endpoint: ApiEndpoints.logout,
+        method: HttpMethod.post,
+        tag: '$_tag -> logout()',
+        showToastOnError: false,
+      );
+      return true;
+    } catch (e, stackTrace) {
+      ExceptionHandler.handle(
+        ApiException(message: 'Remote logout failed: $e'),
+        tag: '$_tag -> logout() [${stackTrace.toString().split('\n').first}]',
+        showToast: false,
       );
       return false;
     }

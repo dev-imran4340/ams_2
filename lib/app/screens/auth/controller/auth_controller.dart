@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 
 import '../../../api/app_preferences.dart';
 import '../../../api/exception_handler.dart';
+import '../../../services/push_notification_service.dart';
 import '../../../core/utils/device_info_helper.dart';
 import '../../../routes/app_routes.dart';
 import '../components/saved_account_sheet.dart';
@@ -304,6 +305,9 @@ class AuthController extends GetxController {
           '🔑 [AuthController -> login()] Session token successfully persisted to local storage (AppPreferences): ${AppPreferences.token}',
         );
 
+        // Register FCM device push token with AMS 2 backend
+        PushNotificationService.instance.registerDevicePushToken();
+
         Get.offAllNamed(Routes.INDEX);
       } else {
         loginError.value = response.message ?? 'Authentication failed. Please verify your credentials.';
@@ -385,6 +389,9 @@ class AuthController extends GetxController {
           Get.back();
         }
 
+        // Register FCM device push token with AMS 2 backend
+        PushNotificationService.instance.registerDevicePushToken();
+
         Get.offAllNamed(Routes.INDEX);
       }
     } catch (e) {
@@ -444,6 +451,10 @@ class AuthController extends GetxController {
           refreshToken: response.refreshToken,
           user: response.user,
         );
+
+        // Register FCM device push token with AMS 2 backend
+        PushNotificationService.instance.registerDevicePushToken();
+
         Get.offAllNamed(Routes.INDEX);
       }
     } catch (e) {

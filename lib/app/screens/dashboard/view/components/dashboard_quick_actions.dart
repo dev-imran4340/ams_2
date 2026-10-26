@@ -1,18 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import '../../../../api/app_preferences.dart';
 import '../../../../core/utils/app_colors.dart';
 import '../../../../core/utils/app_spaces.dart';
 import '../../../../core/utils/app_text_styles.dart';
 import '../../../../core/widgets/custom_snackbar.dart';
 import '../../../../routes/app_routes.dart';
 import '../../../index/controller/index_controller.dart';
+import '../../../main_shell/controller/session_me_controller.dart';
 
 class DashboardQuickActions extends StatelessWidget {
   const DashboardQuickActions({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final session = Get.isRegistered<SessionMeController>()
+        ? Get.find<SessionMeController>()
+        : null;
+    final hasLeave =
+        session?.hasModule('leave') ?? AppPreferences.hasModule('leave');
+    final hasAttendance = session?.hasModule('attendance') ??
+        AppPreferences.hasModule('attendance');
+    final hasOvertime = (session?.hasModule('attendance') ??
+            AppPreferences.hasModule('attendance')) ||
+        (session?.hasModule('payroll') ?? AppPreferences.hasModule('payroll'));
+    final hasTasks = session?.hasModule('core') ?? true;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -20,26 +34,33 @@ class DashboardQuickActions extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(
-              children: [
-                Container(
-                  width: 4.w,
-                  height: 16.h,
-                  decoration: BoxDecoration(
-                    color: AppColors.secondary,
-                    borderRadius: BorderRadius.circular(2.r),
+            Expanded(
+              child: Row(
+                children: [
+                  Container(
+                    width: 4.w,
+                    height: 16.h,
+                    decoration: BoxDecoration(
+                      color: AppColors.secondary,
+                      borderRadius: BorderRadius.circular(2.r),
+                    ),
                   ),
-                ),
-                AppSpaces.hSpace8,
-                Text(
-                  'Quick Services',
-                  style: AppTextStyles.text16.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textColor,
+                  AppSpaces.hSpace8,
+                  Expanded(
+                    child: Text(
+                      'Quick Services',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.text16.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textColor,
+                      ),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
+            AppSpaces.hSpace8,
             Text(
               'Self Service',
               style: AppTextStyles.text10.copyWith(
@@ -52,7 +73,7 @@ class DashboardQuickActions extends StatelessWidget {
 
         AppSpaces.vSpace12,
 
-        // 4 Action Buttons Row
+        // 4 Action Buttons Row (Driven by active modules)
         Row(
           children: [
             Expanded(
@@ -61,12 +82,17 @@ class DashboardQuickActions extends StatelessWidget {
                 title: 'Apply\nLeave',
                 color: AppColors.secondary,
                 onTap: () {
+                  if (!hasLeave) {
+                    CustomSnackbar.showInfo(
+                      message:
+                          'Leave module is not included in your company plan.',
+                    );
+                    return;
+                  }
                   if (Get.isRegistered<IndexController>()) {
                     Get.find<IndexController>().changeTab(2);
                   } else {
-                    CustomSnackbar.showInfo(
-                      message: 'Leave Request portal is opening soon.',
-                    );
+                    Get.toNamed(Routes.LEAVE);
                   }
                 },
               ),
@@ -78,6 +104,13 @@ class DashboardQuickActions extends StatelessWidget {
                 title: 'Punch\nHistory',
                 color: AppColors.primary,
                 onTap: () {
+                  if (!hasAttendance) {
+                    CustomSnackbar.showInfo(
+                      message:
+                          'Attendance history is not enabled in your company plan.',
+                    );
+                    return;
+                  }
                   if (Get.isRegistered<IndexController>()) {
                     Get.find<IndexController>().changeTab(1);
                   } else {
@@ -93,6 +126,13 @@ class DashboardQuickActions extends StatelessWidget {
                 title: 'Overtime\nClaim',
                 color: AppColors.warning,
                 onTap: () {
+                  if (!hasOvertime) {
+                    CustomSnackbar.showInfo(
+                      message:
+                          'Overtime claims are not enabled in your company plan.',
+                    );
+                    return;
+                  }
                   Get.toNamed(
                     Routes.REGULARIZATION,
                     arguments: {'segmentIndex': 1},
@@ -107,6 +147,13 @@ class DashboardQuickActions extends StatelessWidget {
                 title: 'Daily\nTasks',
                 color: AppColors.info,
                 onTap: () {
+                  if (!hasTasks) {
+                    CustomSnackbar.showInfo(
+                      message:
+                          'Tasks module is not included in your plan.',
+                    );
+                    return;
+                  }
                   Get.toNamed(Routes.TASKS);
                 },
               ),

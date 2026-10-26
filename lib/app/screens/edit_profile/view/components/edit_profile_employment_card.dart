@@ -15,13 +15,83 @@ class EditProfileEmploymentCard extends GetView<EditProfileController> {
   Widget build(BuildContext context) {
     return Obx(() {
       final p = controller.currentProfile.value;
-      final employeeId = p?.employeeId ?? 'EMP-1024';
-      final department = p?.department ?? 'Engineering & Mobility';
-      final designation =
-          p?.designation ?? 'Senior Software Engineer & Tech Lead';
-      final reportingLead =
-          p?.reportingManager ?? 'Hamza Sheikh (Lead Architect)';
-      final shift = p?.shiftName ?? 'General Corporate Shift';
+
+      final items = <Widget>[];
+
+      void addRow(IconData icon, String label, String? value) {
+        if (value != null && value.trim().isNotEmpty && value.trim() != 'null') {
+          if (items.isNotEmpty) {
+            items.add(_buildDivider());
+          }
+          items.add(_buildReadOnlyRow(icon: icon, label: label, value: value.trim()));
+        }
+      }
+
+      addRow(Icons.person_rounded, 'Legal Full Name', p?.name);
+      addRow(
+        Icons.badge_outlined,
+        'Employee Code',
+        p?.employeeNumber.isNotEmpty == true
+            ? p!.employeeNumber
+            : (p?.employeeId.isNotEmpty == true ? p!.employeeId : null),
+      );
+      addRow(
+        Icons.work_outline_rounded,
+        'Designation',
+        p?.designation.isNotEmpty == true
+            ? p!.designation
+            : p?.job?.designation,
+      );
+      addRow(
+        Icons.domain_rounded,
+        'Department',
+        p?.department.isNotEmpty == true
+            ? p!.department
+            : p?.job?.department,
+      );
+      addRow(
+        Icons.location_city_rounded,
+        'Work Location',
+        p?.workLocation.isNotEmpty == true
+            ? p!.workLocation
+            : p?.job?.workLocation,
+      );
+      addRow(
+        Icons.cake_outlined,
+        'Date of Birth',
+        p?.dob.isNotEmpty == true
+            ? p!.dob
+            : p?.personal?.dateOfBirth,
+      );
+      addRow(
+        Icons.flag_outlined,
+        'Nationality',
+        p?.personal?.nationality,
+      );
+      addRow(
+        Icons.phone_in_talk_rounded,
+        'Work Phone',
+        p?.contact?.workPhone,
+      );
+      addRow(
+        Icons.alternate_email_rounded,
+        'Official Work Email',
+        p?.contact?.workEmail != null && p!.contact!.workEmail!.trim().isNotEmpty
+            ? p.contact!.workEmail
+            : (p?.email.isNotEmpty == true ? p!.email : null),
+      );
+      addRow(
+        Icons.credit_card_rounded,
+        'National Identity / CNIC',
+        p?.cnic.isNotEmpty == true ? p!.cnic : null,
+      );
+      addRow(
+        Icons.event_available_rounded,
+        'Date of Joining',
+        p?.joiningDate.isNotEmpty == true
+            ? p!.joiningDate
+            : p?.job?.joinedOn,
+      );
 
       return CustomCard(
         child: Column(
@@ -30,47 +100,37 @@ class EditProfileEmploymentCard extends GetView<EditProfileController> {
             // Header with Locked Badge
             Row(
               children: [
+                Container(
+                  width: 34.r,
+                  height: 34.r,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.lock_person_rounded,
+                    size: 18.sp,
+                    color: AppColors.primary,
+                  ),
+                ),
+                AppSpaces.hSpace10,
                 Expanded(
-                  child: Row(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        width: 32.r,
-                        height: 32.r,
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.domain_rounded,
-                          size: 17.sp,
-                          color: AppColors.primary,
+                      Text(
+                        'Official HR Records',
+                        style: AppTextStyles.text14.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textColor,
                         ),
                       ),
-                      AppSpaces.hSpace10,
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Organization & Role',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: AppTextStyles.text14.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.textColor,
-                              ),
-                            ),
-                            AppSpaces.vSpace2,
-                            Text(
-                              'Corporate placement & shift',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: AppTextStyles.text10.copyWith(
-                                color: AppColors.subTextColor,
-                                fontWeight: FontWeight.w400,
-                              ),
-                            ),
-                          ],
+                      AppSpaces.vSpace2,
+                      Text(
+                        'Read-only corporate employment records',
+                        style: AppTextStyles.text10.copyWith(
+                          color: AppColors.subTextColor,
+                          fontWeight: FontWeight.w400,
                         ),
                       ),
                     ],
@@ -78,15 +138,12 @@ class EditProfileEmploymentCard extends GetView<EditProfileController> {
                 ),
                 AppSpaces.hSpace8,
                 Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 8.w,
-                    vertical: 3.h,
-                  ),
+                  padding: EdgeInsets.symmetric(horizontal: 7.w, vertical: 3.h),
                   decoration: BoxDecoration(
-                    color: AppColors.inputFill,
+                    color: AppColors.error.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(6.r),
                     border: Border.all(
-                      color: AppColors.borderColor,
+                      color: AppColors.error.withValues(alpha: 0.25),
                       width: 0.8.w,
                     ),
                   ),
@@ -94,16 +151,17 @@ class EditProfileEmploymentCard extends GetView<EditProfileController> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
-                        Icons.lock_outline_rounded,
-                        size: 11.sp,
-                        color: AppColors.subTextColor,
+                        Icons.lock_rounded,
+                        size: 10.sp,
+                        color: AppColors.error,
                       ),
                       AppSpaces.hSpace4,
                       Text(
-                        'HR Managed',
+                        'HR ONLY',
                         style: AppTextStyles.text10.copyWith(
                           fontWeight: FontWeight.bold,
-                          color: AppColors.subTextColor,
+                          color: AppColors.error,
+                          letterSpacing: 0.3,
                         ),
                       ),
                     ],
@@ -112,119 +170,107 @@ class EditProfileEmploymentCard extends GetView<EditProfileController> {
               ],
             ),
 
-            AppSpaces.vSpace14,
+            AppSpaces.vSpace12,
 
-            // Read-only Details Grid/List
-            _buildReadOnlyTile(
-              label: 'EMPLOYEE ID',
-              value: employeeId,
-              icon: Icons.tag_rounded,
-            ),
-            AppSpaces.vSpace10,
-            _buildReadOnlyTile(
-              label: 'DESIGNATION',
-              value: designation,
-              icon: Icons.work_outline_rounded,
-            ),
-            AppSpaces.vSpace10,
-            _buildReadOnlyTile(
-              label: 'DEPARTMENT',
-              value: department,
-              icon: Icons.apartment_rounded,
-            ),
-            AppSpaces.vSpace10,
-            _buildReadOnlyTile(
-              label: 'REPORTING MANAGER',
-              value: reportingLead,
-              icon: Icons.supervisor_account_outlined,
-            ),
-            AppSpaces.vSpace10,
-            _buildReadOnlyTile(
-              label: 'ASSIGNED SHIFT',
-              value: shift,
-              icon: Icons.schedule_rounded,
-            ),
-
-            AppSpaces.vSpace14,
-
-            // Enterprise Disclaimer Banner
+            // Informational Notice Banner
             Container(
               padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.04),
-                borderRadius: BorderRadius.circular(8.r),
+                color: AppColors.primary.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(10.r),
                 border: Border.all(
-                  color: AppColors.primary.withValues(alpha: 0.1),
+                  color: AppColors.borderColor,
                   width: 0.8.w,
                 ),
               ),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Icon(
                     Icons.info_outline_rounded,
-                    size: 14.sp,
+                    size: 16.sp,
                     color: AppColors.secondary,
                   ),
                   AppSpaces.hSpace8,
                   Expanded(
                     child: Text(
-                      'Official organization roles, reporting managers, and shifts can only be altered by your HR portal administrator.',
+                      'Name, date of birth, nationality, work phone and job details are official corporate records managed strictly by HR administrators.',
                       style: AppTextStyles.text10.copyWith(
-                        color: AppColors.subTextColor,
-                        height: 1.3,
+                        color: AppColors.textColor,
+                        height: 1.4,
                       ),
                     ),
                   ),
                 ],
               ),
             ),
+
+            AppSpaces.vSpace14,
+
+            if (items.isNotEmpty)
+              ...items
+            else
+              Padding(
+                padding: EdgeInsets.symmetric(vertical: 12.h),
+                child: Center(
+                  child: Text(
+                    'No official records available',
+                    style: AppTextStyles.text12.copyWith(
+                      color: AppColors.subTextColor,
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
       );
     });
   }
 
-  Widget _buildReadOnlyTile({
+  Widget _buildReadOnlyRow({
+    required IconData icon,
     required String label,
     required String value,
-    required IconData icon,
   }) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 9.h),
-      decoration: BoxDecoration(
-        color: AppColors.inputFill,
-        borderRadius: BorderRadius.circular(10.r),
-      ),
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 5.h),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Icon(icon, size: 16.sp, color: AppColors.primary),
+          Icon(icon, size: 16.sp, color: AppColors.secondary),
           AppSpaces.hSpace10,
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: AppTextStyles.text10.copyWith(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 8.5.sp,
-                    color: AppColors.subTextColor,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                AppSpaces.vSpace2,
-                Text(
-                  value,
-                  style: AppTextStyles.text12.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textColor,
-                  ),
-                ),
-              ],
+            flex: 5,
+            child: Text(
+              label,
+              style: AppTextStyles.text12.copyWith(
+                color: AppColors.subTextColor,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          AppSpaces.hSpace8,
+          Expanded(
+            flex: 6,
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              style: AppTextStyles.text12.copyWith(
+                color: AppColors.textColor,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildDivider() {
+    return Divider(
+      height: 10.h,
+      thickness: 0.8.w,
+      color: AppColors.borderColor.withValues(alpha: 0.5),
     );
   }
 }

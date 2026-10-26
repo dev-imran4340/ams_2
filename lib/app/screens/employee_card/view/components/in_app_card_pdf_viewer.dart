@@ -65,17 +65,18 @@ class InAppCardPdfViewer extends GetView<EmployeeCardController> {
   /// Top Bar with drag handle, title, page indicator & close button
   Widget _buildHeader() {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
       decoration: BoxDecoration(
         color: AppColors.cardBackground,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
-        border: Border(
-          bottom: BorderSide(color: AppColors.borderColor, width: 1.w),
-        ),
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // Drag handle
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+            child: Column(
+              children: [
+                // Drag handle
           Center(
             child: Container(
               width: 44.w,
@@ -166,8 +167,16 @@ class InAppCardPdfViewer extends GetView<EmployeeCardController> {
           ),
         ],
       ),
-    );
-  }
+    ),
+    Divider(
+      height: 1.w,
+      thickness: 1.w,
+      color: AppColors.borderColor,
+    ),
+  ],
+),
+);
+}
 
   /// High-Fidelity A4 Document Canvas
   Widget _buildPdfDocumentSheet(EmployeeCardDetails card) {
