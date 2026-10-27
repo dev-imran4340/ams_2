@@ -6,6 +6,7 @@ import '../../../../core/utils/app_colors.dart';
 import '../../../../core/utils/app_spaces.dart';
 import '../../../../core/utils/app_text_styles.dart';
 import '../../../../core/widgets/custom_card.dart';
+import '../../../../core/widgets/custom_state_view.dart';
 import '../../controller/profile_controller.dart';
 
 class ProfilePersonalTab extends GetView<ProfileController> {
@@ -73,6 +74,13 @@ class ProfilePersonalTab extends GetView<ProfileController> {
       }
       if (country != null && country.trim().isNotEmpty) {
         addressRows.add(_PersonalRowData(Icons.public_outlined, 'Country', country));
+      }
+
+      if (personalRows.isEmpty && addressRows.isEmpty && emergencies.isEmpty) {
+        return CustomStateView.empty(
+          title: 'No Personal Details',
+          message: 'No personal details are available for this profile.',
+        );
       }
 
       return Column(
@@ -170,102 +178,38 @@ class ProfilePersonalTab extends GetView<ProfileController> {
             AppSpaces.vSpace14,
           ],
 
-          // 3. Emergency Contacts Card
-          CustomCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 32.r,
-                          height: 32.r,
-                          decoration: BoxDecoration(
-                            color: AppColors.error.withValues(alpha: 0.1),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            Icons.emergency_outlined,
-                            size: 16.sp,
-                            color: AppColors.error,
-                          ),
+          // 3. Emergency Contacts Card (Only if emergency contacts exist)
+          if (emergencies.isNotEmpty) ...[
+            CustomCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 32.r,
+                        height: 32.r,
+                        decoration: BoxDecoration(
+                          color: AppColors.error.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
                         ),
-                        AppSpaces.hSpace8,
-                        Text(
-                          'Emergency Contacts',
-                          style: AppTextStyles.text14.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textColor,
-                          ),
-                        ),
-                      ],
-                    ),
-                    if (emergencies.isEmpty)
-                      InkWell(
-                        onTap: controller.navigateToEditProfile,
-                        borderRadius: BorderRadius.circular(8.r),
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 8.w,
-                            vertical: 4.h,
-                          ),
-                          child: Text(
-                            '+ Add',
-                            style: AppTextStyles.text12.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.secondary,
-                            ),
-                          ),
+                        child: Icon(
+                          Icons.emergency_outlined,
+                          size: 16.sp,
+                          color: AppColors.error,
                         ),
                       ),
-                  ],
-                ),
-                AppSpaces.vSpace14,
-                if (emergencies.isEmpty)
-                  Container(
-                    width: double.infinity,
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 14.w,
-                      vertical: 14.h,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.inputFill,
-                      borderRadius: BorderRadius.circular(10.r),
-                      border: Border.all(
-                        color: AppColors.borderColor,
-                        width: 0.8.w,
+                      AppSpaces.hSpace8,
+                      Text(
+                        'Emergency Contacts',
+                        style: AppTextStyles.text14.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textColor,
+                        ),
                       ),
-                    ),
-                    child: Column(
-                      children: [
-                        Icon(
-                          Icons.contact_phone_outlined,
-                          size: 24.sp,
-                          color: AppColors.subTextColor,
-                        ),
-                        AppSpaces.vSpace6,
-                        Text(
-                          'No Emergency Contacts Listed',
-                          style: AppTextStyles.text12.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textColor,
-                          ),
-                        ),
-                        AppSpaces.vSpace2,
-                        Text(
-                          'Add emergency contact details for urgent workplace notices.',
-                          textAlign: TextAlign.center,
-                          style: AppTextStyles.text10.copyWith(
-                            color: AppColors.subTextColor,
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                else
+                    ],
+                  ),
+                  AppSpaces.vSpace14,
                   ...emergencies.map((contact) {
                     final cName = contact.name ?? '';
                     final cRel = contact.relationship ?? '';
@@ -322,9 +266,10 @@ class ProfilePersonalTab extends GetView<ProfileController> {
                       ),
                     );
                   }),
-              ],
+                ],
+              ),
             ),
-          ),
+          ],
         ],
       );
     });

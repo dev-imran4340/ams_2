@@ -34,4 +34,12 @@ class ApiEndpoints {
   static const String notificationsReadAll = '/notifications/read-all';
   static const String notificationPreferences = '/me/notification-preferences';
   static const String pushTokens = '/push-tokens';
+
+  // 6. Attendance & Shifts (Phase 9 & 10 Live Engine)
+  static const String attendanceToday = '/me/attendance/today';
+  static const String attendance = '/me/attendance';
+  static const String attendanceSummary = '/me/attendance/summary';
+  static const String attendanceCorrections = '/me/attendance/corrections';
+  static const String attendancePunches = '/me/attendance/punches';
+  static const String meFace = '/me/face';
 }

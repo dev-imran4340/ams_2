@@ -6,6 +6,7 @@ import '../../../../core/utils/app_colors.dart';
 import '../../../../core/utils/app_spaces.dart';
 import '../../../../core/utils/app_text_styles.dart';
 import '../../../../core/widgets/custom_card.dart';
+import '../../../../core/widgets/custom_state_view.dart';
 import '../../controller/profile_controller.dart';
 
 class ProfileJobTab extends GetView<ProfileController> {
@@ -77,6 +78,13 @@ class ProfileJobTab extends GetView<ProfileController> {
       }
       if (contractEnds != null && contractEnds.trim().isNotEmpty) {
         contractRows.add(_JobRowData(Icons.event_busy_rounded, 'Contract Expiry', contractEnds));
+      }
+
+      if (placementRows.isEmpty && contractRows.isEmpty) {
+        return CustomStateView.empty(
+          title: 'No Job Details',
+          message: 'No corporate employment records are available for this profile.',
+        );
       }
 
       return Column(

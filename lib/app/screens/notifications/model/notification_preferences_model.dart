@@ -14,11 +14,7 @@ class ChannelPreferenceModel {
 
   factory ChannelPreferenceModel.fromJson(Map<String, dynamic>? json) {
     if (json == null) {
-      return const ChannelPreferenceModel(
-        mail: true,
-        bell: true,
-        push: true,
-      );
+      return const ChannelPreferenceModel(mail: true, bell: true, push: true);
     }
     return ChannelPreferenceModel(
       mail: json['mail'] == true,
@@ -27,17 +23,9 @@ class ChannelPreferenceModel {
     );
   }
 
-  Map<String, dynamic> toJson() => {
-        'mail': mail,
-        'bell': bell,
-        'push': push,
-      };
+  Map<String, dynamic> toJson() => {'mail': mail, 'bell': bell, 'push': push};
 
-  ChannelPreferenceModel copyWith({
-    bool? mail,
-    bool? bell,
-    bool? push,
-  }) {
+  ChannelPreferenceModel copyWith({bool? mail, bool? bell, bool? push}) {
     return ChannelPreferenceModel(
       mail: mail ?? this.mail,
       bell: bell ?? this.bell,
@@ -50,9 +38,18 @@ class ChannelPreferenceModel {
 class NotificationPreferencesModel {
   final Map<String, ChannelPreferenceModel> categories;
 
-  const NotificationPreferencesModel({
-    required this.categories,
-  });
+  const NotificationPreferencesModel({required this.categories});
+
+  /// Factory providing corporate baseline preferences defined in doc/api.md.
+  /// Allows instantaneous, zero-lag UI rendering before server sync completes.
+  static NotificationPreferencesModel get baseline => const NotificationPreferencesModel(
+        categories: {
+          'approval_needed': ChannelPreferenceModel(mail: true, bell: true, push: true),
+          'request_approved': ChannelPreferenceModel(mail: true, bell: true, push: true),
+          'request_rejected': ChannelPreferenceModel(mail: true, bell: true, push: true),
+          'approval_reminder': ChannelPreferenceModel(mail: true, bell: true, push: false),
+        },
+      );
 
   factory NotificationPreferencesModel.fromJson(Map<String, dynamic> json) {
     Map<String, dynamic> source = json;
@@ -98,7 +95,8 @@ class NotificationPreferencesModel {
   ChannelPreferenceModel get approvalNeeded => getForKind('approval_needed');
   ChannelPreferenceModel get requestApproved => getForKind('request_approved');
   ChannelPreferenceModel get requestRejected => getForKind('request_rejected');
-  ChannelPreferenceModel get approvalReminder => getForKind('approval_reminder');
+  ChannelPreferenceModel get approvalReminder =>
+      getForKind('approval_reminder');
 
   /// Official localized label from doc/api.md & server response specifications
   static String getKindLabel(String kind) {
@@ -122,15 +120,17 @@ class NotificationPreferencesModel {
       case 'leave_cancelled':
         return 'Leave Cancelled';
       case 'leave_expiring':
-        return 'Leave Balance Expiring';
+        return 'Leave Expiring';
       case 'payslip_ready':
         return 'Payslip Ready';
       default:
         return kind
             .split('_')
-            .map((word) => word.isNotEmpty
-                ? '${word[0].toUpperCase()}${word.substring(1)}'
-                : '')
+            .map(
+              (word) => word.isNotEmpty
+                  ? '${word[0].toUpperCase()}${word.substring(1)}'
+                  : '',
+            )
             .join(' ');
     }
   }

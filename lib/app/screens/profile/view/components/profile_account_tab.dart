@@ -17,58 +17,78 @@ class ProfileAccountTab extends GetView<ProfileController> {
   Widget build(BuildContext context) {
     return Obx(() {
       final p = controller.profile.value;
-      final email = p?.email ?? 'maryam@example.com';
-      final empId = p?.employeeNumber ?? 'EMP-0002';
+      final isOther = controller.isViewingOtherEmployee.value;
+      final email = (p?.email.isNotEmpty == true)
+          ? p!.email
+          : (p?.contact?.workEmail?.isNotEmpty == true
+              ? p!.contact!.workEmail
+              : (isOther ? null : AppPreferences.userEmail));
+      final empId = (p?.employeeNumber.isNotEmpty == true)
+          ? p!.employeeNumber
+          : (p?.employeeId.isNotEmpty == true
+              ? p!.employeeId
+              : (isOther ? null : AppPreferences.employeeNumber));
       final is2FA = AppPreferences.isTwoFactorEnabled;
+
+      final rows = <_AccountRowData>[];
+      if (email != null && email.trim().isNotEmpty) {
+        rows.add(_AccountRowData('Login Identifier', email, Icons.alternate_email_rounded));
+      }
+      if (empId != null && empId.trim().isNotEmpty) {
+        rows.add(_AccountRowData('Employee Identifier', empId, Icons.badge_outlined));
+      }
+      if (!isOther) {
+        rows.add(_AccountRowData(
+          'Two-Factor Authentication',
+          is2FA ? 'Enabled' : 'Disabled (Optional)',
+          Icons.phonelink_lock_rounded,
+        ));
+      }
 
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 1. Sign-In Credentials & Identity
-          CustomCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 32.r,
-                      height: 32.r,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.08),
-                        shape: BoxShape.circle,
+          if (rows.isNotEmpty) ...[
+            CustomCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 32.r,
+                        height: 32.r,
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.08),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.lock_outline_rounded,
+                          size: 16.sp,
+                          color: AppColors.primary,
+                        ),
                       ),
-                      child: Icon(
-                        Icons.lock_outline_rounded,
-                        size: 16.sp,
-                        color: AppColors.primary,
+                      AppSpaces.hSpace8,
+                      Text(
+                        'Account & Security',
+                        style: AppTextStyles.text14.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textColor,
+                        ),
                       ),
-                    ),
-                    AppSpaces.hSpace8,
-                    Text(
-                      'Account & Security',
-                      style: AppTextStyles.text14.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textColor,
-                      ),
-                    ),
+                    ],
+                  ),
+                  AppSpaces.vSpace14,
+                  for (int i = 0; i < rows.length; i++) ...[
+                    _buildInfoRow(rows[i].label, rows[i].value, rows[i].icon),
+                    if (i < rows.length - 1) _buildDivider(),
                   ],
-                ),
-                AppSpaces.vSpace14,
-                _buildInfoRow('Login Identifier', email, Icons.alternate_email_rounded),
-                _buildDivider(),
-                _buildInfoRow('Employee Identifier', empId, Icons.badge_outlined),
-                _buildDivider(),
-                _buildInfoRow(
-                  'Two-Factor Authentication',
-                  is2FA ? 'Enabled' : 'Disabled (Optional)',
-                  Icons.phonelink_lock_rounded,
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-
-          AppSpaces.vSpace14,
+            AppSpaces.vSpace14,
+          ],
 
           // 2. Digital ID Card Launcher Card (No Action - PDF opens in future)
           CustomCard(
@@ -235,4 +255,11 @@ class ProfileAccountTab extends GetView<ProfileController> {
       ),
     );
   }
+}
+
+class _AccountRowData {
+  final String label;
+  final String value;
+  final IconData icon;
+  const _AccountRowData(this.label, this.value, this.icon);
 }

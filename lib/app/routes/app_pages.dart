@@ -23,6 +23,10 @@ import '../screens/attendance_history/view/attendance_history_view.dart';
 import '../screens/attendance_history/controller/attendance_history_controller.dart';
 import '../screens/attendance_history/repo/attendance_history_repo.dart';
 
+import '../screens/attendance_summary/view/attendance_summary_view.dart';
+import '../screens/attendance_summary/controller/attendance_summary_controller.dart';
+import '../screens/attendance_summary/repo/attendance_summary_repo.dart';
+
 import '../screens/leaves/view/leave_requests_view.dart';
 import '../screens/leaves/controller/leave_controller.dart';
 import '../screens/leaves/repo/leave_repo.dart';
@@ -197,6 +201,19 @@ class AppPages {
         Get.lazyPut(() => AttendanceHistoryRepo(), fenix: true);
         Get.lazyPut(
           () => AttendanceHistoryController(repo: Get.find()),
+          fenix: true,
+        );
+      }),
+    ),
+
+    // 5.1 Standalone Attendance Summary Screen
+    GetPage(
+      name: Routes.ATTENDANCE_SUMMARY,
+      page: () => const AttendanceSummaryView(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => AttendanceSummaryRepo(), fenix: true);
+        Get.lazyPut(
+          () => AttendanceSummaryController(repo: Get.find()),
           fenix: true,
         );
       }),
@@ -457,6 +474,8 @@ class AppPages {
     GetPage(
       name: Routes.NOTIFICATIONS,
       page: () => const NotificationsView(),
+      transition: Transition.cupertino,
+      transitionDuration: const Duration(milliseconds: 250),
       binding: BindingsBuilder(() {
         Get.lazyPut(() => NotificationRepo(), fenix: true);
         Get.lazyPut(
@@ -470,12 +489,18 @@ class AppPages {
     GetPage(
       name: Routes.NOTIFICATION_PREFERENCES,
       page: () => const NotificationPreferencesView(),
+      transition: Transition.cupertino,
+      transitionDuration: const Duration(milliseconds: 250),
       binding: BindingsBuilder(() {
-        Get.lazyPut(() => NotificationRepo(), fenix: true);
-        Get.lazyPut(
-          () => NotificationController(repo: Get.find()),
-          fenix: true,
-        );
+        if (!Get.isRegistered<NotificationRepo>()) {
+          Get.lazyPut(() => NotificationRepo(), fenix: true);
+        }
+        if (!Get.isRegistered<NotificationController>()) {
+          Get.lazyPut(
+            () => NotificationController(repo: Get.find()),
+            fenix: true,
+          );
+        }
       }),
     ),
   ];

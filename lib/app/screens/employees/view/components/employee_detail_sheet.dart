@@ -23,6 +23,12 @@ class EmployeeDetailSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+       final heroParts = [
+                          if (employee.designation.trim().isNotEmpty)
+                            employee.designation.trim(),
+                          if (employee.employeeCode.trim().isNotEmpty)
+                            employee.employeeCode.trim(),
+                        ];
     return Container(
       padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 24.h),
       decoration: BoxDecoration(
@@ -115,13 +121,16 @@ class EmployeeDetailSheet extends StatelessWidget {
                             ),
                           ],
                         ),
-                        AppSpaces.vSpace2,
-                        Text(
-                          '${employee.designation} • ${employee.employeeCode}',
-                          style: AppTextStyles.text12.copyWith(
-                            color: AppColors.subTextColor,
+                     
+                        if (heroParts.isNotEmpty) ...[
+                          AppSpaces.vSpace2,
+                          Text(
+                            heroParts.join(' • '),
+                            style: AppTextStyles.text12.copyWith(
+                              color: AppColors.subTextColor,
+                            ),
                           ),
-                        ),
+                        ],
                       ],
                     ),
                   ),
@@ -132,71 +141,118 @@ class EmployeeDetailSheet extends StatelessWidget {
               Container(height: 1.h, color: AppColors.borderColor),
               AppSpaces.vSpace14,
 
-              // 2. Employment & Corporate Overview
-              _buildSectionTitle('EMPLOYMENT PROFILE'),
-              AppSpaces.vSpace8,
-              _buildInfoRow(Icons.business_rounded, 'Department', employee.department),
-              AppSpaces.vSpace6,
-              _buildInfoRow(Icons.alternate_email_rounded, 'Official Email', employee.email),
-              AppSpaces.vSpace6,
-              _buildInfoRow(Icons.event_available_rounded, 'Joining Date', employee.joiningDate),
+              // 2. Employment & Corporate Overview (Only non-empty rows)
+              Builder(
+                builder: (context) {
+                  final employmentRows = <Widget>[];
+                  if (employee.department.trim().isNotEmpty) {
+                    employmentRows.add(_buildInfoRow(
+                        Icons.business_rounded, 'Department', employee.department));
+                  }
+                  if (employee.email.trim().isNotEmpty) {
+                    if (employmentRows.isNotEmpty) employmentRows.add(AppSpaces.vSpace6);
+                    employmentRows.add(_buildInfoRow(
+                        Icons.alternate_email_rounded, 'Official Email', employee.email));
+                  }
+                  if (employee.joiningDate.trim().isNotEmpty) {
+                    if (employmentRows.isNotEmpty) employmentRows.add(AppSpaces.vSpace6);
+                    employmentRows.add(_buildInfoRow(
+                        Icons.event_available_rounded, 'Joining Date', employee.joiningDate));
+                  }
 
-              // 3. Sensitive Data Section (Gated strictly by 'employees.sensitive.view')
-              if (canViewSensitive) ...[
-                AppSpaces.vSpace18,
-                Container(
-                  padding: EdgeInsets.all(12.w),
-                  decoration: BoxDecoration(
-                    color: AppColors.inputFill.withValues(alpha: 0.4),
-                    borderRadius: BorderRadius.circular(15.r),
-                    border: Border.all(
-                      color: AppColors.secondary.withValues(alpha: 0.25),
-                      width: 1.w,
-                    ),
-                  ),
-                  child: Column(
+                  if (employmentRows.isEmpty) return const SizedBox.shrink();
+
+                  return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Icon(Icons.shield_rounded, size: 16.sp, color: AppColors.secondary),
-                          AppSpaces.hSpace6,
-                          Text(
-                            'CONFIDENTIAL / SENSITIVE DATA',
-                            style: AppTextStyles.text10.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.secondary,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ],
-                      ),
-                      AppSpaces.vSpace10,
-                      _buildInfoRow(
+                      _buildSectionTitle('EMPLOYMENT PROFILE'),
+                      AppSpaces.vSpace8,
+                      ...employmentRows,
+                    ],
+                  );
+                },
+              ),
+
+              // 3. Sensitive Data Section (Strictly gated & only non-empty fields)
+              if (canViewSensitive) ...[
+                Builder(
+                  builder: (context) {
+                    final sensitiveRows = <Widget>[];
+                    if (employee.personalPhone != null &&
+                        employee.personalPhone!.trim().isNotEmpty) {
+                      sensitiveRows.add(_buildInfoRow(
                         Icons.phone_iphone_rounded,
                         'Personal Phone',
-                        employee.personalPhone ?? 'Confidential',
-                      ),
-                      AppSpaces.vSpace6,
-                      _buildInfoRow(
+                        employee.personalPhone!,
+                      ));
+                    }
+                    if (employee.residentialAddress != null &&
+                        employee.residentialAddress!.trim().isNotEmpty) {
+                      if (sensitiveRows.isNotEmpty) sensitiveRows.add(AppSpaces.vSpace6);
+                      sensitiveRows.add(_buildInfoRow(
                         Icons.home_rounded,
                         'Residential Address',
-                        employee.residentialAddress ?? 'Confidential',
-                      ),
-                      AppSpaces.vSpace6,
-                      _buildInfoRow(
+                        employee.residentialAddress!,
+                      ));
+                    }
+                    if (employee.emergencyContact != null &&
+                        employee.emergencyContact!.trim().isNotEmpty) {
+                      if (sensitiveRows.isNotEmpty) sensitiveRows.add(AppSpaces.vSpace6);
+                      sensitiveRows.add(_buildInfoRow(
                         Icons.contact_phone_rounded,
                         'Emergency Contact',
-                        employee.emergencyContact ?? 'Confidential',
-                      ),
-                      AppSpaces.vSpace6,
-                      _buildInfoRow(
+                        employee.emergencyContact!,
+                      ));
+                    }
+                    if (employee.passportOrCnicExpiry != null &&
+                        employee.passportOrCnicExpiry!.trim().isNotEmpty) {
+                      if (sensitiveRows.isNotEmpty) sensitiveRows.add(AppSpaces.vSpace6);
+                      sensitiveRows.add(_buildInfoRow(
                         Icons.badge_rounded,
                         'Passport / CNIC Expiry',
-                        employee.passportOrCnicExpiry ?? 'Confidential',
+                        employee.passportOrCnicExpiry!,
+                      ));
+                    }
+
+                    if (sensitiveRows.isEmpty) return const SizedBox.shrink();
+
+                    return Padding(
+                      padding: EdgeInsets.only(top: 18.h),
+                      child: Container(
+                        padding: EdgeInsets.all(12.w),
+                        decoration: BoxDecoration(
+                          color: AppColors.inputFill.withValues(alpha: 0.4),
+                          borderRadius: BorderRadius.circular(15.r),
+                          border: Border.all(
+                            color: AppColors.secondary.withValues(alpha: 0.25),
+                            width: 1.w,
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.shield_rounded,
+                                    size: 16.sp, color: AppColors.secondary),
+                                AppSpaces.hSpace6,
+                                Text(
+                                  'CONFIDENTIAL / SENSITIVE DATA',
+                                  style: AppTextStyles.text10.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.secondary,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            AppSpaces.vSpace10,
+                            ...sensitiveRows,
+                          ],
+                        ),
                       ),
-                    ],
-                  ),
+                    );
+                  },
                 ),
               ],
 

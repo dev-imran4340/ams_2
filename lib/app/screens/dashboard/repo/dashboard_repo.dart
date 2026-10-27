@@ -1,127 +1,230 @@
 import 'dart:async';
+import 'dart:io';
+import 'dart:math';
+
+import 'package:http/http.dart' as http;
+
+import '../../../api/api_client.dart';
+import '../../../api/api_endpoints.dart';
 import '../../../api/app_preferences.dart';
+import '../../../api/exception_handler.dart';
 import '../model/dashboard_model.dart';
 
 class DashboardRepo {
-  /// Fetches UI mock attendance and monthly summary metrics
+  static const String _tag = 'DashboardRepo / DashboardScreen';
+
+  /// Fetches live today attendance state and monthly summary in parallel.
+  /// Strict Invariant: Returns null on complete failure. ZERO fallback or dummy data injection.
   Future<DashboardDataModel?> fetchDashboardData() async {
-    // Brief delay to simulate smooth UI state transition
-    await Future.delayed(const Duration(milliseconds: 200));
+    try {
+      final results = await Future.wait([
+        fetchTodayAttendance(),
+        fetchMonthlySummary(),
+      ]);
 
-    TodayAttendanceModel today;
-    final savedAttendance = AppPreferences.todayAttendance;
-    if (savedAttendance != null) {
-      try {
-        today = TodayAttendanceModel.fromJson(savedAttendance);
-      } catch (_) {
-        today = _defaultUncheckedAttendance();
+      final today = results[0] as TodayAttendanceModel?;
+      final summary = results[1] as MonthlySummaryModel?;
+
+      // If both remote endpoints returned null (network/server error), return null so UI renders CustomStateView
+      if (today == null && summary == null) {
+        return null;
       }
-    } else {
-      today = _defaultUncheckedAttendance();
-    }
 
-    return DashboardDataModel(
-      todayAttendance: today,
-      monthlySummary: MonthlySummaryModel(
-        totalDays: 30,
-        presentDays: today.isCheckedIn || today.checkOutTime != '--:--' ? 22 : 21,
-        lateDays: 2,
-        absentDays: 0,
-        attendanceRate: 94.5,
-        monthName: 'October 2026',
-      ),
-    );
-  }
-
-  TodayAttendanceModel _defaultUncheckedAttendance() {
-    return TodayAttendanceModel(
-      checkInTime: '--:--',
-      checkOutTime: '--:--',
-      workingHours: '00h 00m',
-      shiftRemaining: '09h 00m',
-      overtime: '+00h 00m',
-      isCheckedIn: false,
-      status: 'Not Checked In',
-      officeRadiusStatus: 'Inside Office Perimeter (25m)',
-      shiftTiming: '00:00',
-      shiftName: 'General Shift',
-      checkInDateTime: null,
-    );
-  }
-
-  /// Toggles punch in/out attendance state with real-time timestamps
-  Future<TodayAttendanceModel?> togglePunch(bool isCheckIn) async {
-    await Future.delayed(const Duration(milliseconds: 250));
-
-    final now = DateTime.now();
-    final formattedTime = _formatTime(now);
-
-    final savedAttendance = AppPreferences.todayAttendance;
-    TodayAttendanceModel prev;
-    if (savedAttendance != null) {
-      try {
-        prev = TodayAttendanceModel.fromJson(savedAttendance);
-      } catch (_) {
-        prev = _defaultUncheckedAttendance();
-      }
-    } else {
-      prev = _defaultUncheckedAttendance();
-    }
-
-    TodayAttendanceModel updated;
-
-    if (isCheckIn) {
-      // User checks in: record real-time timestamp, set timer from 0
-      updated = TodayAttendanceModel(
-        checkInTime: formattedTime,
-        checkOutTime: '--:--',
-        workingHours: '00h 00m',
-        shiftRemaining: '09h 00m',
-        overtime: '+00h 00m',
-        isCheckedIn: true,
-        status: 'On Time',
-        officeRadiusStatus: 'Inside Office Perimeter (25m)',
-        shiftTiming: '$formattedTime - In Progress',
-        shiftName: 'General Shift',
-        checkInDateTime: now,
+      return DashboardDataModel(
+        todayAttendance: today ??
+            const TodayAttendanceModel(
+              checkInTime: '--:--',
+              checkOutTime: '--:--',
+              workingHours: '0:00',
+              shiftRemaining: '00h 00m',
+              overtime: '0:00',
+              isCheckedIn: false,
+              status: 'Not Checked In',
+              officeRadiusStatus: 'Standby',
+              shiftTiming: '--:--',
+              shiftName: 'General Shift',
+            ),
+        monthlySummary: summary ??
+            const MonthlySummaryModel(
+              totalDays: 0,
+              presentDays: 0,
+              lateDays: 0,
+              absentDays: 0,
+              attendanceRate: 0.0,
+              monthName: '',
+            ),
       );
-    } else {
-      // User checks out: record real-time check-out, calculate total time between check-in and check-out
-      final checkInDt = prev.checkInDateTime ?? now;
-      final diff = now.difference(checkInDt);
-      final hours = diff.inHours.toString().padLeft(2, '0');
-      final mins = (diff.inMinutes % 60).toString().padLeft(2, '0');
-      final workingHoursStr = '${hours}h ${mins}m';
+    } catch (e, stackTrace) {
+      ExceptionHandler.handle(
+        ApiException(message: 'Failed to fetch dashboard data: $e'),
+        tag: '$_tag -> fetchDashboardData() [${stackTrace.toString().split('\n').first}]',
+      );
+      return null;
+    }
+  }
 
-      final effectiveCheckIn =
-          prev.checkInTime == '--:--' ? formattedTime : prev.checkInTime;
+  /// Fetches live punch state, allowed buttons, requirements, and day stats from GET /me/attendance/today
+  Future<TodayAttendanceModel?> fetchTodayAttendance() async {
+    try {
+      dynamic response = await ApiClient.request(
+        endpoint: ApiEndpoints.attendanceToday,
+        method: HttpMethod.get,
+        tag: '$_tag -> fetchTodayAttendance()',
+        showToastOnError: false,
+      );
 
-      updated = TodayAttendanceModel(
-        checkInTime: effectiveCheckIn,
-        checkOutTime: formattedTime,
-        workingHours: workingHoursStr,
-        shiftRemaining: '00h 00m',
-        overtime: diff.inHours >= 9 ? '+0${diff.inHours - 9}h 00m' : '+00h 00m',
-        isCheckedIn: false,
-        status: 'Completed',
-        officeRadiusStatus: 'Inside Office Perimeter (25m)',
-        shiftTiming: '$effectiveCheckIn - $formattedTime',
-        shiftName: 'General Shift',
-        checkInDateTime: null, // Timer stops!
+      // Resilient fallback in case server route is mapped to /me/attendance
+      response ??= await ApiClient.request(
+        endpoint: ApiEndpoints.attendance,
+        method: HttpMethod.get,
+        tag: '$_tag -> fetchTodayAttendance(fallback)',
+        showToastOnError: false,
+      );
+
+      if (response != null && response is Map && response['data'] != null) {
+        final data = Map<String, dynamic>.from(response['data'] as Map);
+        final model = TodayAttendanceModel.fromApiJson(data);
+
+        // Cache live state for offline / shell reference
+        await AppPreferences.setTodayAttendance(model.toJson());
+
+        return model;
+      }
+    } catch (e, stackTrace) {
+      ExceptionHandler.handle(
+        ApiException(message: 'Today attendance fetch failed: $e'),
+        tag: '$_tag -> fetchTodayAttendance() [${stackTrace.toString().split('\n').first}]',
       );
     }
-
-    // Persist today's attendance in AppPreferences
-    await AppPreferences.setTodayAttendance(updated.toJson());
-
-    return updated;
+    return null;
   }
 
-  String _formatTime(DateTime dt) {
-    final hour = dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour);
-    final period = dt.hour >= 12 ? 'PM' : 'AM';
-    final minuteStr = dt.minute.toString().padLeft(2, '0');
-    final hourStr = hour.toString().padLeft(2, '0');
-    return '$hourStr:$minuteStr $period';
+  /// Fetches monthly attendance analytics breakdown from GET /me/attendance/summary
+  Future<MonthlySummaryModel?> fetchMonthlySummary() async {
+    try {
+      final response = await ApiClient.request(
+        endpoint: ApiEndpoints.attendanceSummary,
+        method: HttpMethod.get,
+        tag: '$_tag -> fetchMonthlySummary()',
+        showToastOnError: false,
+      );
+
+      if (response != null && response is Map && response['data'] != null) {
+        final data = Map<String, dynamic>.from(response['data'] as Map);
+        final meta = response['meta'] is Map
+            ? Map<String, dynamic>.from(response['meta'] as Map)
+            : null;
+
+        return MonthlySummaryModel.fromApiJson(data, meta: meta);
+      }
+    } catch (e, stackTrace) {
+      ExceptionHandler.handle(
+        ApiException(message: 'Monthly summary fetch failed: $e'),
+        tag: '$_tag -> fetchMonthlySummary() [${stackTrace.toString().split('\n').first}]',
+      );
+    }
+    return null;
+  }
+
+  /// Submits an attendance punch action via POST /me/attendance/punches
+  /// Supports JSON and Multipart (when photoFile is attached for selfie verification)
+  Future<TodayAttendanceModel?> submitPunch({
+    required String kind,
+    double? latitude,
+    double? longitude,
+    int? accuracyMeters,
+    bool isMocked = false,
+    File? photoFile,
+    String? faceMatch,
+    double? faceScore,
+    bool? faceConsent,
+  }) async {
+    try {
+      final String idempotencyKey =
+          'punch_${DateTime.now().microsecondsSinceEpoch}_${Random().nextInt(999999)}';
+
+      if (photoFile != null) {
+        // Multipart request when selfie photo is attached
+        final fields = <String, String>{
+          'kind': kind,
+          'idempotency_key': idempotencyKey,
+        };
+
+        if (latitude != null && longitude != null) {
+          fields['latitude'] = latitude.toString();
+          fields['longitude'] = longitude.toString();
+          fields['accuracy_m'] = (accuracyMeters ?? 10).toString();
+          fields['is_mocked'] = isMocked ? 'true' : 'false';
+        }
+        if (faceMatch != null) {
+          fields['face_match'] = faceMatch;
+        }
+        if (faceScore != null) {
+          fields['face_score'] = faceScore.toStringAsFixed(4);
+        }
+        if (faceConsent != null) {
+          fields['face_consent'] = faceConsent ? 'true' : 'false';
+        }
+
+        final multipartFile = await http.MultipartFile.fromPath(
+          'photo',
+          photoFile.path,
+        );
+
+        final response = await ApiClient.requestMultipart(
+          method: HttpMethod.post,
+          endpoint: ApiEndpoints.attendancePunches,
+          fields: fields,
+          files: [multipartFile],
+          tag: '$_tag -> submitPunch(multipart, $kind)',
+          showToastOnError: true,
+        );
+
+        if (response != null && response is Map && response['data'] != null) {
+          final data = Map<String, dynamic>.from(response['data'] as Map);
+          return TodayAttendanceModel.fromApiJson(data);
+        }
+
+        return await fetchTodayAttendance();
+      }
+
+      // Normal JSON payload
+      final body = <String, dynamic>{
+        'kind': kind,
+        'idempotency_key': idempotencyKey,
+      };
+
+      if (latitude != null && longitude != null) {
+        body['latitude'] = latitude;
+        body['longitude'] = longitude;
+        body['accuracy_m'] = accuracyMeters ?? 10;
+        body['is_mocked'] = isMocked;
+      }
+      if (faceMatch != null) body['face_match'] = faceMatch;
+      if (faceScore != null) body['face_score'] = faceScore;
+      if (faceConsent != null) body['face_consent'] = faceConsent;
+
+      final response = await ApiClient.request(
+        endpoint: ApiEndpoints.attendancePunches,
+        method: HttpMethod.post,
+        body: body,
+        tag: '$_tag -> submitPunch($kind)',
+        showToastOnError: true,
+      );
+
+      if (response != null && response is Map && response['data'] != null) {
+        final data = Map<String, dynamic>.from(response['data'] as Map);
+        return TodayAttendanceModel.fromApiJson(data);
+      }
+
+      // If response body doesn't return updated day state, re-fetch live state
+      return await fetchTodayAttendance();
+    } catch (e, stackTrace) {
+      ExceptionHandler.handle(
+        ApiException(message: 'Punch submission failed: $e'),
+        tag: '$_tag -> submitPunch($kind) [${stackTrace.toString().split('\n').first}]',
+      );
+      return null;
+    }
   }
 }

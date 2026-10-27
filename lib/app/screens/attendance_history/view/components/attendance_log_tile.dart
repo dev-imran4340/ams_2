@@ -20,24 +20,23 @@ class AttendanceLogTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Color statusColor;
-    switch (log.status) {
-      case 'On-Time':
-        statusColor = AppColors.onTimeColor;
-        break;
-      case 'Late':
-        statusColor = AppColors.warning;
-        break;
-      case 'Absent':
-        statusColor = AppColors.absentColor;
-        break;
-      case 'Leave':
-        statusColor = AppColors.info;
-        break;
-      case 'Holiday':
-        statusColor = AppColors.subTextColor;
-        break;
-      default:
-        statusColor = AppColors.subTextColor;
+    if (log.flags.contains('late') || log.lateMinutes > 0) {
+      statusColor = AppColors.warning;
+    } else {
+      switch (log.tone) {
+        case 'emerald':
+          statusColor = AppColors.onTimeColor;
+          break;
+        case 'amber':
+          statusColor = AppColors.warning;
+          break;
+        case 'rose':
+          statusColor = AppColors.absentColor;
+          break;
+        case 'slate':
+        default:
+          statusColor = AppColors.subTextColor;
+      }
     }
 
     return Container(
@@ -147,7 +146,7 @@ class AttendanceLogTile extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8.r),
                       ),
                       child: Text(
-                        log.status,
+                        log.statusLabel,
                         style: AppTextStyles.text10.copyWith(
                           fontWeight: FontWeight.bold,
                           color: statusColor,

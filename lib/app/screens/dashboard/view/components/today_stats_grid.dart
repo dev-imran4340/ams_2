@@ -16,10 +16,16 @@ class TodayStatsGrid extends GetView<DashboardController> {
       final today = controller.dashboardData.value?.todayAttendance;
       final checkIn = today?.checkInTime ?? '--:--';
       final checkOut = today?.checkOutTime ?? '--:--';
-      final totalHours = today?.workingHours ?? '00h 00m';
-      final overtime = today?.overtime ?? '+00h 00m';
+      final totalHours = today?.workingHours ?? '0:00';
+      final overtime = today?.overtime ?? '0:00';
       final isCheckedIn = today?.isCheckedIn ?? false;
       final isCheckedOut = (checkOut != '--:--');
+
+      final targetSubtitle = (today != null && today.plannedMinutes > 0)
+          ? 'Target: ${(today.plannedMinutes ~/ 60)}h ${(today.plannedMinutes % 60).toString().padLeft(2, '0')}m'
+          : 'Target: Standard';
+
+      final isOvertimeActive = (overtime != '0:00' && overtime != '+00h 00m' && overtime != '00:00');
 
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -74,7 +80,7 @@ class TodayStatsGrid extends GetView<DashboardController> {
                   value: totalHours,
                   subtitle: isCheckedIn
                       ? 'Live Shift Time'
-                      : (isCheckedOut ? 'Total Logged' : 'Target: 09h 00m'),
+                      : (isCheckedOut ? 'Total Logged' : targetSubtitle),
                   tag: isCheckedIn
                       ? 'Active'
                       : (isCheckedOut ? 'Completed' : 'Standard'),
@@ -90,15 +96,70 @@ class TodayStatsGrid extends GetView<DashboardController> {
                 child: _buildStatCard(
                   title: 'Overtime',
                   value: overtime,
-                  subtitle: 'Rate: 1.5x Std',
-                  tag: overtime != '+00h 00m' ? 'Logged' : 'None',
-                  tagColor: overtime != '+00h 00m' ? AppColors.warning : AppColors.subTextColor,
+                  subtitle: 'Approved & Pending',
+                  tag: isOvertimeActive ? 'Logged' : 'None',
+                  tagColor: isOvertimeActive ? AppColors.warning : AppColors.subTextColor,
                   icon: Icons.more_time_rounded,
                   accentColor: AppColors.warning,
                 ),
               ),
             ],
           ),
+          AppSpaces.vSpace12,
+          Builder(builder: (context) {
+            final int lateMin = today?.lateMinutes ?? 0;
+            final int shortMin = today?.shortMinutes ?? 0;
+            final int earlyOutMin = today?.earlyOutMinutes ?? 0;
+            String complianceVal = 'On Track';
+            String complianceSub = 'No Penalties';
+            String complianceTag = 'Compliant';
+            Color complianceColor = AppColors.onTimeColor;
+
+            if (lateMin > 0) {
+              complianceVal = '${lateMin}m Late';
+              complianceSub = earlyOutMin > 0 ? '${earlyOutMin}m Early Exit' : 'Late Arrival';
+              complianceTag = 'Late';
+              complianceColor = AppColors.warning;
+            } else if (shortMin > 0) {
+              complianceVal = '${shortMin}m Short';
+              complianceSub = 'Shift Incomplete';
+              complianceTag = 'Short';
+              complianceColor = AppColors.absentColor;
+            }
+
+            final bool isOnBreak = today?.isOnBreak ?? false;
+            final int breakMin = today?.breakMinutes ?? 0;
+
+            return Row(
+              children: [
+                Expanded(
+                  child: _buildStatCard(
+                    title: 'Breaks Logged',
+                    value: '${breakMin}m',
+                    subtitle: isOnBreak
+                        ? 'Currently On Break'
+                        : (today?.usesBreaks == true ? 'Breaks Allowed' : 'Disabled'),
+                    tag: isOnBreak ? 'On Break' : (breakMin > 0 ? 'Logged' : 'None'),
+                    tagColor: isOnBreak ? AppColors.warning : AppColors.secondary,
+                    icon: Icons.coffee_rounded,
+                    accentColor: isOnBreak ? AppColors.warning : AppColors.secondary,
+                  ),
+                ),
+                AppSpaces.hSpace12,
+                Expanded(
+                  child: _buildStatCard(
+                    title: 'Compliance',
+                    value: complianceVal,
+                    subtitle: complianceSub,
+                    tag: complianceTag,
+                    tagColor: complianceColor,
+                    icon: Icons.verified_user_rounded,
+                    accentColor: complianceColor,
+                  ),
+                ),
+              ],
+            );
+          }),
         ],
       );
     });

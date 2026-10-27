@@ -35,8 +35,8 @@ class AttendanceHistoryController extends GetxController {
         logs.assignAll(result.logs);
         summary.value = result.summary;
 
-        // Auto-select today (Oct 13, 2026) or first available non-empty log
-        final todayTarget = DateTime(2026, 10, 13);
+        // Auto-select today or first available non-empty log
+        final todayTarget = DateTime.now();
         final defaultLog = logs.firstWhereOrNull(
               (l) =>
                   l.date.year == todayTarget.year &&
@@ -48,7 +48,15 @@ class AttendanceHistoryController extends GetxController {
         if (defaultLog != null) {
           selectedDate.value = defaultLog.date;
           selectedDayLog.value = defaultLog;
+        } else {
+          selectedDate.value = null;
+          selectedDayLog.value = null;
         }
+      } else {
+        logs.clear();
+        summary.value = null;
+        selectedDate.value = null;
+        selectedDayLog.value = null;
       }
     } finally {
       isLoading.value = false;

@@ -17,7 +17,6 @@ import '../../main_shell/controller/session_me_controller.dart';
 import '../controller/dashboard_controller.dart';
 import 'components/dashboard_quick_actions.dart';
 import 'components/live_shift_clock_card.dart';
-import 'components/monthly_summary_card.dart';
 import 'components/recent_activity_timeline.dart';
 import 'components/today_stats_grid.dart';
 
@@ -56,11 +55,11 @@ class DashboardView extends GetView<DashboardController> {
           }
 
           final meUser = sessionController.user.value;
-          final String userName = meUser?.name ?? user?.name ?? 'Maryam Malik';
+          final String userName = meUser?.name ?? user?.name ?? 'Employee';
           final String designation =
               AppPreferences.getProfileData()?['designation']?.toString() ??
               user?.designation ??
-              'Sales Manager';
+              'Staff';
 
           return Stack(
             children: [
@@ -175,36 +174,7 @@ class DashboardView extends GetView<DashboardController> {
 
                         AppSpaces.vSpace20,
 
-                        // 4. Section: Monthly Performance Summary
-                        Row(
-                          children: [
-                            Container(
-                              width: 4.w,
-                              height: 16.h,
-                              decoration: BoxDecoration(
-                                color: AppColors.primary,
-                                borderRadius: BorderRadius.circular(2.r),
-                              ),
-                            ),
-                            AppSpaces.hSpace8,
-                            Text(
-                              'Attendance Analytics',
-                              style: AppTextStyles.text16.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.textColor,
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        AppSpaces.vSpace12,
-
-                        // Monthly Summary Card
-                        const MonthlySummaryCard(),
-
-                        AppSpaces.vSpace20,
-
-                        // 5. Section: Today's Punch Activity Log
+                        // 4. Section: Today's Punch Activity Log
                         const RecentActivityTimeline(),
 
                         AppSpaces.vSpace24,

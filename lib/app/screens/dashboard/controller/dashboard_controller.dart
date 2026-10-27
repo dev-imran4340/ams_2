@@ -1,9 +1,13 @@
 import 'dart:async';
+import 'dart:io';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import '../../../core/widgets/custom_snackbar.dart';
+import '../../../routes/app_routes.dart';
 import '../model/dashboard_model.dart';
 import '../repo/dashboard_repo.dart';
+import '../view/components/selfie_punch_sheet.dart';
 
 class DashboardController extends GetxController {
   final DashboardRepo repo;
@@ -13,11 +17,14 @@ class DashboardController extends GetxController {
   // Observables
   final RxBool isLoading = false.obs;
   final RxBool isPunching = false.obs;
+  final RxBool isBreakLoading = false.obs;
   final Rxn<DashboardDataModel> dashboardData = Rxn<DashboardDataModel>();
 
   final RxString liveClock = ''.obs;
   final RxString liveDate = ''.obs;
-  final RxString elapsedShiftTimer = '00h 00m 00s'.obs;
+  final RxString elapsedShiftTimer = '00:00:00'.obs;
+  final RxString elapsedHoursMinutes = '00:00'.obs;
+  final RxString elapsedSeconds = '00'.obs;
 
   // Active Live Running Clock Timer
   Timer? _clockTimer;
@@ -29,7 +36,7 @@ class DashboardController extends GetxController {
     loadDashboard();
   }
 
-  /// Starts 1-second periodic timer for live clock & running shift duration
+  /// Starts 1-second periodic timer for real-time clock & running shift duration
   void _startLiveClock() {
     _updateClock();
     _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -38,7 +45,7 @@ class DashboardController extends GetxController {
     });
   }
 
-  /// Formats and updates the real-time clock and date
+  /// Formats and updates the real-time clock and date natively
   void _updateClock() {
     final now = DateTime.now();
     final hour = now.hour > 12
@@ -51,7 +58,6 @@ class DashboardController extends GetxController {
 
     liveClock.value = '$hourStr:$minute:$second $period';
 
-    // Format readable date (e.g. "Tuesday, 13 Oct 2026")
     const weekdays = [
       'Monday',
       'Tuesday',
@@ -87,9 +93,17 @@ class DashboardController extends GetxController {
       if (today?.isCheckedIn == false) {
         if (today?.checkOutTime != null && today?.checkOutTime != '--:--') {
           elapsedShiftTimer.value = '${today!.workingHours} (Done)';
+          elapsedHoursMinutes.value = today.workingHours;
+          elapsedSeconds.value = '00';
         } else {
-          elapsedShiftTimer.value = '00h 00m 00s';
+          elapsedShiftTimer.value = '00:00:00';
+          elapsedHoursMinutes.value = '00:00';
+          elapsedSeconds.value = '00';
         }
+      } else {
+        elapsedShiftTimer.value = '00:00:00';
+        elapsedHoursMinutes.value = '00:00';
+        elapsedSeconds.value = '00';
       }
       return;
     }
@@ -97,7 +111,9 @@ class DashboardController extends GetxController {
     final now = DateTime.now();
     final difference = now.difference(today.checkInDateTime!);
     if (difference.isNegative) {
-      elapsedShiftTimer.value = '00h 00m 00s';
+      elapsedShiftTimer.value = '00:00:00';
+      elapsedHoursMinutes.value = '00:00';
+      elapsedSeconds.value = '00';
       return;
     }
 
@@ -106,8 +122,10 @@ class DashboardController extends GetxController {
     final seconds = (difference.inSeconds % 60).toString().padLeft(2, '0');
 
     elapsedShiftTimer.value = '${hours}h ${minutes}m ${seconds}s';
+    elapsedHoursMinutes.value = '$hours:$minutes';
+    elapsedSeconds.value = seconds;
 
-    // Also update todayAttendance workingHours reactively so stats cards show live progression
+    // Reactively sync workingHours so card metrics show live elapsed progression
     final currentHours = '${hours}h ${minutes}m';
     if (today.workingHours != currentHours && dashboardData.value != null) {
       dashboardData.value = DashboardDataModel(
@@ -117,32 +135,88 @@ class DashboardController extends GetxController {
     }
   }
 
-  /// Loads initial dashboard state
+  /// Loads live dashboard telemetry from server with Zero Dummy Fallback Policy
   Future<void> loadDashboard() async {
     try {
       isLoading.value = true;
       final result = await repo.fetchDashboardData();
-      if (result != null) {
-        dashboardData.value = result;
-        _updateRunningShiftTimer();
-      }
+      dashboardData.value = result;
+      _updateRunningShiftTimer();
     } finally {
       isLoading.value = false;
     }
   }
 
-  /// Action method to trigger check-in / check-out with confirmation & haptics
+  /// Action method to trigger check-in / check-out based strictly on server state.allowed
   Future<void> handlePunchAction() async {
     if (isPunching.value || isLoading.value) return;
 
     final currentAttendance = dashboardData.value?.todayAttendance;
-    final bool isCheckingIn = !(currentAttendance?.isCheckedIn ?? false);
+    if (currentAttendance == null) {
+      CustomSnackbar.showError(message: 'Attendance data is unavailable.');
+      return;
+    }
+
+    // Server Decides Access: Determine punch action from state.allowed
+    final allowed = currentAttendance.allowed;
+    String? punchKind;
+
+    if (!currentAttendance.isCheckedIn) {
+      if (allowed.contains('in')) {
+        punchKind = 'in';
+      } else {
+        final refusal = currentAttendance.refusals['in']?.message ??
+            'Check-in is not allowed right now.';
+        CustomSnackbar.showError(message: refusal);
+        return;
+      }
+    } else {
+      if (allowed.contains('out')) {
+        punchKind = 'out';
+      } else {
+        final refusal = currentAttendance.refusals['out']?.message ??
+            'Check-out is not allowed right now.';
+        CustomSnackbar.showError(message: refusal);
+        return;
+      }
+    }
+
+    final requires = currentAttendance.requires;
+
+    // 1. Requirement Check: AI Face Recognition Biometric
+    if (requires != null && requires.face != 'off') {
+      final punchCompleted = await Get.toNamed(
+        Routes.FACE_RECOGNITION,
+        arguments: {
+          'isPunchMode': true,
+          'punchKind': punchKind,
+          'requires': requires,
+        },
+      );
+      if (punchCompleted == true) {
+        await loadDashboard();
+      }
+      return;
+    }
+
+    // 2. Requirement Check: Front Camera Selfie Photo Verification
+    File? selfiePhoto;
+    if (requires?.photo == true) {
+      selfiePhoto = await _openSelfieCaptureModal(punchKind);
+      if (selfiePhoto == null) {
+        // User cancelled selfie capture
+        return;
+      }
+    }
 
     try {
       isPunching.value = true;
       await HapticFeedback.mediumImpact();
 
-      final updatedAttendance = await repo.togglePunch(isCheckingIn);
+      final updatedAttendance = await repo.submitPunch(
+        kind: punchKind,
+        photoFile: selfiePhoto,
+      );
 
       if (updatedAttendance != null) {
         if (dashboardData.value != null) {
@@ -155,18 +229,109 @@ class DashboardController extends GetxController {
         _updateRunningShiftTimer();
 
         CustomSnackbar.showSuccess(
-          message: isCheckingIn
+          message: punchKind == 'in'
               ? 'Checked in successfully! Shift started.'
               : 'Checked out successfully! Shift logged.',
         );
       } else {
-        CustomSnackbar.showError(
-          message: 'Unable to record punch. Please try again.',
-        );
+        // If punch call failed or rejected by server rule, refresh today state
+        await loadDashboard();
       }
     } finally {
       isPunching.value = false;
     }
+  }
+
+  /// Action method to trigger start_break / end_break based on state.allowed and state.on_break
+  Future<void> handleBreakAction() async {
+    if (isBreakLoading.value || isPunching.value || isLoading.value) return;
+
+    final currentAttendance = dashboardData.value?.todayAttendance;
+    if (currentAttendance == null) {
+      CustomSnackbar.showError(message: 'Attendance data is unavailable.');
+      return;
+    }
+
+    final isOnBreak = currentAttendance.isOnBreak;
+    final allowed = currentAttendance.allowed;
+    final String punchKind = isOnBreak ? 'break_end' : 'break_start';
+
+    if (!allowed.contains(punchKind)) {
+      final refusal = currentAttendance.refusals[punchKind]?.message ??
+          (isOnBreak
+              ? 'Ending break is not allowed right now.'
+              : 'Starting break is not allowed right now.');
+      CustomSnackbar.showError(message: refusal);
+      return;
+    }
+
+    final requires = currentAttendance.requires;
+
+    // 1. Requirement Check: AI Face Recognition Biometric
+    if (requires != null && requires.face != 'off') {
+      final punchCompleted = await Get.toNamed(
+        Routes.FACE_RECOGNITION,
+        arguments: {
+          'isPunchMode': true,
+          'punchKind': punchKind,
+          'requires': requires,
+        },
+      );
+      if (punchCompleted == true) {
+        await loadDashboard();
+      }
+      return;
+    }
+
+    // 2. Requirement Check: Front Camera Selfie Photo Verification
+    File? selfiePhoto;
+    if (requires?.photo == true) {
+      selfiePhoto = await _openSelfieCaptureModal(punchKind);
+      if (selfiePhoto == null) {
+        return;
+      }
+    }
+
+    try {
+      isBreakLoading.value = true;
+      await HapticFeedback.mediumImpact();
+
+      final updatedAttendance = await repo.submitPunch(
+        kind: punchKind,
+        photoFile: selfiePhoto,
+      );
+
+      if (updatedAttendance != null) {
+        if (dashboardData.value != null) {
+          dashboardData.value = DashboardDataModel(
+            todayAttendance: updatedAttendance,
+            monthlySummary: dashboardData.value!.monthlySummary,
+          );
+        }
+
+        _updateRunningShiftTimer();
+
+        CustomSnackbar.showSuccess(
+          message: isOnBreak
+              ? 'Break ended! Welcome back to your shift.'
+              : 'Break started! Enjoy your break.',
+        );
+      } else {
+        await loadDashboard();
+      }
+    } finally {
+      isBreakLoading.value = false;
+    }
+  }
+
+  /// Opens the front-camera selfie capture bottom sheet for photo attendance verification
+  Future<File?> _openSelfieCaptureModal(String punchKind) async {
+    return await Get.bottomSheet<File?>(
+      SelfiePunchSheet(punchKind: punchKind),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      enableDrag: true,
+    );
   }
 
   @override

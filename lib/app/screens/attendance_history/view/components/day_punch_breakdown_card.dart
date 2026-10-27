@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import '../../../../core/utils/app_colors.dart';
 import '../../../../core/utils/app_spaces.dart';
 import '../../../../core/utils/app_text_styles.dart';
+import '../../../../core/widgets/custom_card.dart';
 import '../../controller/attendance_history_controller.dart';
 
 class DayPunchBreakdownCard extends GetView<AttendanceHistoryController> {
@@ -19,44 +20,36 @@ class DayPunchBreakdownCard extends GetView<AttendanceHistoryController> {
       }
 
       Color statusColor;
-      switch (log.status) {
-        case 'On-Time':
-          statusColor = AppColors.onTimeColor;
-          break;
-        case 'Late':
-          statusColor = AppColors.warning;
-          break;
-        case 'Absent':
-          statusColor = AppColors.absentColor;
-          break;
-        case 'Leave':
-          statusColor = AppColors.info;
-          break;
-        case 'Holiday':
-          statusColor = AppColors.subTextColor;
-          break;
-        default:
-          statusColor = AppColors.subTextColor;
+      if (log.flags.contains('late') || log.lateMinutes > 0) {
+        statusColor = AppColors.warning;
+      } else {
+        switch (log.tone) {
+          case 'emerald':
+            statusColor = AppColors.onTimeColor;
+            break;
+          case 'amber':
+            statusColor = AppColors.warning;
+            break;
+          case 'rose':
+            statusColor = AppColors.absentColor;
+            break;
+          case 'slate':
+          default:
+            statusColor = AppColors.subTextColor;
+        }
       }
 
-      return Container(
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color: AppColors.cardBackground,
-          borderRadius: BorderRadius.circular(16.r),
-          border: Border.all(
-            color: AppColors.borderColor,
-            width: 1.w,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primary.withValues(alpha: 0.06),
-              blurRadius: 18.r,
-              offset: Offset(0, 6.h),
-            ),
-          ],
-        ),
-        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 14.h),
+      final shiftName = log.shift?.name ?? 'Day Shift';
+      final shiftCode = log.shift?.code ?? 'DAY';
+      final shiftTiming = (log.shift != null && log.shift!.starts.isNotEmpty)
+          ? '${log.shift!.starts} - ${log.shift!.ends}'
+          : '09:00 - 17:00';
+      final targetHours = log.plannedMinutes > 0
+          ? '${(log.plannedMinutes ~/ 60)}h ${(log.plannedMinutes % 60).toString().padLeft(2, '0')}m'
+          : 'Standard';
+
+      return CustomCard(
+        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 14.h),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -64,42 +57,52 @@ class DayPunchBreakdownCard extends GetView<AttendanceHistoryController> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: EdgeInsets.all(7.r),
-                      decoration: BoxDecoration(
-                        color: AppColors.secondary.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(8.r),
-                      ),
-                      child: Icon(
-                        Icons.event_available_rounded,
-                        size: 16.sp,
-                        color: AppColors.secondary,
-                      ),
-                    ),
-                    AppSpaces.hSpace8,
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          log.formattedDate,
-                          style: AppTextStyles.text14.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textColor,
-                          ),
+                Expanded(
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: EdgeInsets.all(7.r),
+                        decoration: BoxDecoration(
+                          color: AppColors.secondary.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(8.r),
                         ),
-                        AppSpaces.vSpace2,
-                        Text(
-                          '${log.dayName} • Scheduled Shift 09:00 AM - 06:00 PM',
-                          style: AppTextStyles.text10.copyWith(
-                            color: AppColors.subTextColor,
-                          ),
+                        child: Icon(
+                          Icons.event_available_rounded,
+                          size: 16.sp,
+                          color: AppColors.secondary,
                         ),
-                      ],
-                    ),
-                  ],
+                      ),
+                      AppSpaces.hSpace8,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              log.formattedDate,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTextStyles.text14.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textColor,
+                              ),
+                            ),
+                            AppSpaces.vSpace2,
+                            Text(
+                              '$shiftName ($shiftCode) • $shiftTiming',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTextStyles.text10.copyWith(
+                                color: AppColors.subTextColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
+
+                AppSpaces.hSpace8,
 
                 // Status Capsule Pill
                 Container(
@@ -115,12 +118,26 @@ class DayPunchBreakdownCard extends GetView<AttendanceHistoryController> {
                       width: 1.w,
                     ),
                   ),
-                  child: Text(
-                    log.status,
-                    style: AppTextStyles.text10.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: statusColor,
-                    ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 5.r,
+                        height: 5.r,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: statusColor,
+                        ),
+                      ),
+                      AppSpaces.hSpace4,
+                      Text(
+                        log.statusLabel,
+                        style: AppTextStyles.text10.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: statusColor,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -155,7 +172,7 @@ class DayPunchBreakdownCard extends GetView<AttendanceHistoryController> {
               children: [
                 Expanded(
                   child: _buildMetricTile(
-                    title: 'Net Working',
+                    title: 'Net Worked',
                     value: log.workingHours,
                     icon: Icons.timer_rounded,
                     accentColor: AppColors.secondary,
@@ -164,27 +181,119 @@ class DayPunchBreakdownCard extends GetView<AttendanceHistoryController> {
                 AppSpaces.hSpace8,
                 Expanded(
                   child: _buildMetricTile(
-                    title: 'Break Taken',
-                    value: log.breakDuration,
-                    icon: Icons.coffee_rounded,
-                    accentColor: AppColors.warning,
+                    title: 'Target Time',
+                    value: targetHours,
+                    icon: Icons.flag_rounded,
+                    accentColor: AppColors.primary,
                   ),
                 ),
               ],
             ),
 
+            // Compliance & Deviations Row (Late, Early Out, Short Time)
+            if (log.lateMinutes > 0 || log.earlyOutMinutes > 0 || log.shortMinutes > 0 || log.breakMinutes > 0) ...[
+              AppSpaces.vSpace12,
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
+                decoration: BoxDecoration(
+                  color: AppColors.inputFill.withValues(alpha: 0.45),
+                  borderRadius: BorderRadius.circular(10.r),
+                  border: Border.all(
+                    color: AppColors.borderColor.withValues(alpha: 0.7),
+                    width: 0.8.w,
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    if (log.lateMinutes > 0)
+                      _buildMiniBadge(
+                        label: 'Late',
+                        value: '${log.lateMinutes}m',
+                        color: AppColors.warning,
+                      ),
+                    if (log.earlyOutMinutes > 0)
+                      _buildMiniBadge(
+                        label: 'Early Out',
+                        value: '${log.earlyOutMinutes}m',
+                        color: AppColors.warning,
+                      ),
+                    if (log.shortMinutes > 0)
+                      _buildMiniBadge(
+                        label: 'Short',
+                        value: '${log.shortMinutes}m',
+                        color: AppColors.absentColor,
+                      ),
+                    if (log.breakMinutes > 0)
+                      _buildMiniBadge(
+                        label: 'Break',
+                        value: '${log.breakMinutes}m',
+                        color: AppColors.secondary,
+                      ),
+                  ],
+                ),
+              ),
+            ],
+
+            // Real Punch Segments Timeline (if available)
+            if (log.segments.isNotEmpty) ...[
+              AppSpaces.vSpace12,
+              Text(
+                'Punch Segments',
+                style: AppTextStyles.text10.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.subTextColor,
+                ),
+              ),
+              AppSpaces.vSpace6,
+              Column(
+                children: log.segments.map((seg) {
+                  final starts = seg.starts ?? '--:--';
+                  final ends = seg.ends ?? '--:--';
+                  return Container(
+                    margin: EdgeInsets.only(bottom: 4.h),
+                    padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+                    decoration: BoxDecoration(
+                      color: AppColors.inputFill.withValues(alpha: 0.35),
+                      borderRadius: BorderRadius.circular(8.r),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              seg.kind == 'work' ? Icons.work_outline_rounded : Icons.coffee_rounded,
+                              size: 13.sp,
+                              color: AppColors.secondary,
+                            ),
+                            AppSpaces.hSpace6,
+                            Text(
+                              seg.kind.toUpperCase(),
+                              style: AppTextStyles.text10.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Text(
+                          '$starts - $ends',
+                          style: AppTextStyles.text10.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ),
+            ],
+
             AppSpaces.vSpace12,
 
-            // Divider
-            Divider(
-              color: AppColors.borderColor,
-              thickness: 1.h,
-              height: 1.h,
-            ),
-
-            AppSpaces.vSpace10,
-
-            // Bottom Location & Cloud Sync Verification Bar
+            // Bottom Location & Status Verification Bar
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -200,7 +309,7 @@ class DayPunchBreakdownCard extends GetView<AttendanceHistoryController> {
                     ),
                     AppSpaces.hSpace6,
                     Text(
-                      '${log.workLocation} • Geofence Verified (25m)',
+                      '${log.timezone} • Shift Verified',
                       style: AppTextStyles.text10.copyWith(
                         fontWeight: FontWeight.w500,
                         color: AppColors.textColor,
@@ -217,7 +326,7 @@ class DayPunchBreakdownCard extends GetView<AttendanceHistoryController> {
                     ),
                     AppSpaces.hSpace4,
                     Text(
-                      'Synced',
+                      'Live Record',
                       style: AppTextStyles.text10.copyWith(
                         fontWeight: FontWeight.w600,
                         color: AppColors.secondary,
@@ -231,6 +340,31 @@ class DayPunchBreakdownCard extends GetView<AttendanceHistoryController> {
         ),
       );
     });
+  }
+
+  Widget _buildMiniBadge({
+    required String label,
+    required String value,
+    required Color color,
+  }) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 5.r,
+          height: 5.r,
+          decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+        ),
+        AppSpaces.hSpace4,
+        Text(
+          '$label: $value',
+          style: AppTextStyles.text10.copyWith(
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _buildMetricTile({
@@ -260,25 +394,29 @@ class DayPunchBreakdownCard extends GetView<AttendanceHistoryController> {
             child: Icon(icon, size: 14.sp, color: accentColor),
           ),
           AppSpaces.hSpace8,
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: AppTextStyles.text10.copyWith(
-                  color: AppColors.subTextColor,
-                  fontWeight: FontWeight.w400,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: AppTextStyles.text10.copyWith(
+                    color: AppColors.subTextColor,
+                    fontWeight: FontWeight.w400,
+                  ),
                 ),
-              ),
-              AppSpaces.vSpace2,
-              Text(
-                value,
-                style: AppTextStyles.text12.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textColor,
+                AppSpaces.vSpace2,
+                Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.text12.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textColor,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),

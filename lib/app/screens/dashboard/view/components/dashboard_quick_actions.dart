@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import '../../../../api/app_preferences.dart';
@@ -22,10 +23,6 @@ class DashboardQuickActions extends StatelessWidget {
         session?.hasModule('leave') ?? AppPreferences.hasModule('leave');
     final hasAttendance = session?.hasModule('attendance') ??
         AppPreferences.hasModule('attendance');
-    final hasOvertime = (session?.hasModule('attendance') ??
-            AppPreferences.hasModule('attendance')) ||
-        (session?.hasModule('payroll') ?? AppPreferences.hasModule('payroll'));
-    final hasTasks = session?.hasModule('core') ?? true;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -73,14 +70,52 @@ class DashboardQuickActions extends StatelessWidget {
 
         AppSpaces.vSpace12,
 
-        // 4 Action Buttons Row (Driven by active modules)
+        // 4 Action Buttons Row (First button: Attendance Summary)
         Row(
           children: [
             Expanded(
               child: _buildActionTile(
+                icon: Icons.insights_rounded,
+                title: 'Attendance\nSummary',
+                color: AppColors.secondary,
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  if (!hasAttendance) {
+                    CustomSnackbar.showInfo(
+                      message:
+                          'Attendance module is not included in your company plan.',
+                    );
+                    return;
+                  }
+                  Get.toNamed(Routes.ATTENDANCE_SUMMARY);
+                },
+              ),
+            ),
+            AppSpaces.hSpace10,
+            Expanded(
+              child: _buildActionTile(
+                icon: Icons.touch_app_rounded,
+                title: 'Attendance\nActions',
+                color: AppColors.primary,
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  if (!hasAttendance) {
+                    CustomSnackbar.showInfo(
+                      message:
+                          'Attendance module is not included in your company plan.',
+                    );
+                    return;
+                  }
+                  Get.toNamed(Routes.ATTENDANCE_ACTIONS);
+                },
+              ),
+            ),
+            AppSpaces.hSpace10,
+            Expanded(
+              child: _buildActionTile(
                 icon: Icons.event_busy_rounded,
                 title: 'Apply\nLeave',
-                color: AppColors.secondary,
+                color: AppColors.warning,
                 onTap: () {
                   if (!hasLeave) {
                     CustomSnackbar.showInfo(
@@ -102,7 +137,7 @@ class DashboardQuickActions extends StatelessWidget {
               child: _buildActionTile(
                 icon: Icons.history_rounded,
                 title: 'Punch\nHistory',
-                color: AppColors.primary,
+                color: AppColors.info,
                 onTap: () {
                   if (!hasAttendance) {
                     CustomSnackbar.showInfo(
@@ -116,45 +151,6 @@ class DashboardQuickActions extends StatelessWidget {
                   } else {
                     Get.toNamed(Routes.ATTENDANCE_HISTORY);
                   }
-                },
-              ),
-            ),
-            AppSpaces.hSpace10,
-            Expanded(
-              child: _buildActionTile(
-                icon: Icons.more_time_rounded,
-                title: 'Overtime\nClaim',
-                color: AppColors.warning,
-                onTap: () {
-                  if (!hasOvertime) {
-                    CustomSnackbar.showInfo(
-                      message:
-                          'Overtime claims are not enabled in your company plan.',
-                    );
-                    return;
-                  }
-                  Get.toNamed(
-                    Routes.REGULARIZATION,
-                    arguments: {'segmentIndex': 1},
-                  );
-                },
-              ),
-            ),
-            AppSpaces.hSpace10,
-            Expanded(
-              child: _buildActionTile(
-                icon: Icons.checklist_rounded,
-                title: 'Daily\nTasks',
-                color: AppColors.info,
-                onTap: () {
-                  if (!hasTasks) {
-                    CustomSnackbar.showInfo(
-                      message:
-                          'Tasks module is not included in your plan.',
-                    );
-                    return;
-                  }
-                  Get.toNamed(Routes.TASKS);
                 },
               ),
             ),

@@ -38,6 +38,21 @@ class MyApp extends StatelessWidget {
       designSize: const Size(375, 812), // Standard mobile reference frame
       minTextAdapt: true,
       splitScreenMode: true,
+ fontSizeResolver: (fontSize, instance) {
+            final screenWidth = instance.screenWidth;
+            // Mobile (< 650px): exact default behavior of flutter_screenutil (scaleText)
+            if (screenWidth < 650.0) {
+              return (fontSize * instance.scaleText).toDouble();
+            }
+            // Tablet (650px - 1024px): slightly compact font scale for tablet mobile view
+            else if (screenWidth < 1024.0) {
+              return (fontSize * 0.92).toDouble();
+            }
+            // Desktop / Web (>= 1024px): standard desktop typography (1.0x)
+            else {
+              return fontSize.toDouble();
+            }
+          },
       builder: (context, child) {
         // return Obx(() {
           return GetMaterialApp(

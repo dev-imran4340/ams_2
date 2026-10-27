@@ -6,6 +6,7 @@ import '../../../core/utils/app_colors.dart';
 import '../../../core/utils/app_spaces.dart';
 import '../../../core/utils/app_text_styles.dart';
 import '../../../core/widgets/custom_screen_header.dart';
+import '../../../core/widgets/custom_state_view.dart';
 import '../../../core/widgets/employee_ambient_header.dart';
 import '../../../core/widgets/network_boundary_wrapper.dart';
 import '../controller/profile_controller.dart';
@@ -148,9 +149,16 @@ class _ProfileDetailsViewState extends State<ProfileDetailsView> {
                                 final isOther =
                                     controller.isViewingOtherEmployee.value;
                                 final p = controller.profile.value;
+                                final desig = p?.designation ?? p?.job?.designation ?? '';
+                                final dept = p?.department ?? p?.job?.department ?? '';
+                                final parts = [
+                                  if (desig.trim().isNotEmpty) desig.trim(),
+                                  if (dept.trim().isNotEmpty) dept.trim(),
+                                ];
                                 final subtitle = isOther
-                                    ? '${p?.designation ?? "Employee"}${p?.department.isNotEmpty == true ? " • ${p!.department}" : ""}'
+                                    ? (parts.isNotEmpty ? parts.join(' • ') : '')
                                     : 'Employment credentials & service records';
+                                if (subtitle.isEmpty) return const SizedBox.shrink();
                                 return Text(
                                   subtitle,
                                   maxLines: 1,
@@ -255,6 +263,12 @@ class _ProfileDetailsViewState extends State<ProfileDetailsView> {
         return const ProfileAttendanceTab(key: ValueKey('tab_attendance'));
       case 'documents':
         return const ProfileDocumentsTab(key: ValueKey('tab_documents'));
+      case 'pay':
+        return CustomStateView.empty(
+          key: const ValueKey('tab_pay'),
+          title: 'No Pay Details',
+          message: 'Payroll details are not available for this profile.',
+        );
       case 'bank':
         return const ProfileBankTab(key: ValueKey('tab_bank'));
       case 'account':

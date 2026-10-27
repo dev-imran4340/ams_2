@@ -26,18 +26,33 @@ class ProfileHeaderCard extends GetView<ProfileController> {
     return Obx(() {
       final p = controller.profile.value;
       final isOther = controller.isViewingOtherEmployee.value;
-      final name = p?.name ??
-          (isOther ? 'Employee' : (AppPreferences.userName ?? 'Maryam Malik'));
-      final designation = p?.designation ?? 'Sales Manager';
-      final employeeId = p?.employeeNumber ?? p?.employeeId ?? 'EMP-0002';
-      final department = p?.department ?? 'Sales';
-      final location = p?.workLocation ?? 'Head office';
-      final tenure = p?.tenureYears ?? '3 years 3 months';
-      final stage = p?.stageLabel ?? 'Active';
-      final initials = p?.initials ?? (isOther ? 'EM' : 'MM');
+      final name = (p?.name != null && p!.name.trim().isNotEmpty)
+          ? p.name
+          : (isOther ? '' : (AppPreferences.userName ?? ''));
+      final designation = p?.designation ?? p?.job?.designation;
+      final employeeId = p?.employeeNumber ?? p?.employeeId;
+      final department = p?.department ?? p?.job?.department;
+      final location = p?.workLocation ?? p?.job?.workLocation;
+      final tenure = p?.tenureYears ?? p?.job?.lengthOfService;
+      final stage = p?.stageLabel ?? p?.stage;
+      final initials = p?.initials ?? (name.isNotEmpty ? name[0] : 'E');
       final avatarPath = p?.avatarPath;
       final hasLocalAvatar =
           !isOther && avatarPath != null && File(avatarPath).existsSync();
+
+      // Subtitle parts: employeeId and location
+      final subtitleParts = <String>[];
+      if (employeeId != null && employeeId.trim().isNotEmpty) {
+        subtitleParts.add('#$employeeId');
+      }
+      if (location != null && location.trim().isNotEmpty) {
+        subtitleParts.add(location);
+      }
+      final subtitleText = subtitleParts.join(' • ');
+
+      // Quick Stats: Department & Service/Tenure
+      final hasDept = department != null && department.trim().isNotEmpty;
+      final hasTenure = tenure != null && tenure.trim().isNotEmpty;
 
       return CustomCard(
         onTap: isClickable
@@ -127,113 +142,119 @@ class ProfileHeaderCard extends GetView<ProfileController> {
                     children: [
                       Row(
                         children: [
-                          Expanded(
-                            child: Text(
-                              name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: AppTextStyles.text16.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.textColor,
+                          if (name.isNotEmpty)
+                            Expanded(
+                              child: Text(
+                                name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppTextStyles.text16.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textColor,
+                                ),
                               ),
                             ),
-                          ),
-                          Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 7.w,
-                              vertical: 2.h,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.secondary.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(6.r),
-                            ),
-                            child: Text(
-                              stage,
-                              style: AppTextStyles.text10.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.secondary,
+                          if (stage != null && stage.trim().isNotEmpty) ...[
+                            if (name.isNotEmpty) AppSpaces.hSpace6,
+                            Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 7.w,
+                                vertical: 2.h,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.secondary.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(6.r),
+                              ),
+                              child: Text(
+                                stage,
+                                style: AppTextStyles.text10.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.secondary,
+                                ),
                               ),
                             ),
-                          ),
+                          ],
                         ],
                       ),
-                      AppSpaces.vSpace2,
-                      Text(
-                        designation,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTextStyles.text12.copyWith(
-                          color: AppColors.secondary,
-                          fontWeight: FontWeight.w600,
+                      if (designation != null && designation.trim().isNotEmpty) ...[
+                        AppSpaces.vSpace2,
+                        Text(
+                          designation,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTextStyles.text12.copyWith(
+                            color: AppColors.secondary,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                      ),
-                      AppSpaces.vSpace4,
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.badge_outlined,
-                            size: 13.sp,
-                            color: AppColors.subTextColor,
-                          ),
-                          AppSpaces.hSpace4,
-                          Flexible(
-                            child: Text(
-                              '#$employeeId • $location',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: AppTextStyles.text10.copyWith(
-                                fontWeight: FontWeight.w500,
-                                color: AppColors.subTextColor,
+                      ],
+                      if (subtitleText.isNotEmpty) ...[
+                        AppSpaces.vSpace4,
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.badge_outlined,
+                              size: 13.sp,
+                              color: AppColors.subTextColor,
+                            ),
+                            AppSpaces.hSpace4,
+                            Flexible(
+                              child: Text(
+                                subtitleText,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppTextStyles.text10.copyWith(
+                                  fontWeight: FontWeight.w500,
+                                  color: AppColors.subTextColor,
+                                ),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
                 ),
               ],
             ),
 
-            AppSpaces.vSpace12,
-
-            // Quick Stats Pill Row: Department | Location | Tenure
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
-              decoration: BoxDecoration(
-                color: AppColors.inputFill,
-                borderRadius: BorderRadius.circular(10.r),
-                border: Border.all(
-                  color: AppColors.borderColor,
-                  width: 0.8.w,
+            if (hasDept || hasTenure) ...[
+              AppSpaces.vSpace12,
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
+                decoration: BoxDecoration(
+                  color: AppColors.inputFill,
+                  borderRadius: BorderRadius.circular(10.r),
+                  border: Border.all(
+                    color: AppColors.borderColor,
+                    width: 0.8.w,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    if (hasDept)
+                      Expanded(
+                        child: _buildStatItem(
+                          label: 'DEPARTMENT',
+                          value: department,
+                          icon: Icons.domain_rounded,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    if (hasDept && hasTenure) _buildDivider(),
+                    if (hasTenure)
+                      Expanded(
+                        child: _buildStatItem(
+                          label: 'SERVICE',
+                          value: tenure,
+                          icon: Icons.timeline_rounded,
+                          color: AppColors.secondary,
+                        ),
+                      ),
+                  ],
                 ),
               ),
-              child: Row(
-                children: [
-                  // Stat 1: Department
-                  Expanded(
-                    child: _buildStatItem(
-                      label: 'DEPARTMENT',
-                      value: department,
-                      icon: Icons.domain_rounded,
-                      color: AppColors.primary,
-                    ),
-                  ),
-
-                  _buildDivider(),
-
-                  // Stat 2: Tenure
-                  Expanded(
-                    child: _buildStatItem(
-                      label: 'SERVICE',
-                      value: tenure,
-                      icon: Icons.timeline_rounded,
-                      color: AppColors.secondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            ],
 
             if (isClickable) ...[
               AppSpaces.vSpace12,

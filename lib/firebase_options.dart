@@ -57,19 +57,19 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyAfiuKItC2wI-MNZl--VEmokZMY9NlQ75I',
-    appId: '1:427740214487:android:4db14effb222da6211ac92',
-    messagingSenderId: '427740214487',
-    projectId: 'ams-2-82435',
-    storageBucket: 'ams-2-82435.firebasestorage.app',
+    apiKey: 'AIzaSyAi_T2F19RGfT6fDbo1rB81Z56ntHK9FXE',
+    appId: '1:60621144977:android:7e588858d40f5572f91030',
+    messagingSenderId: '60621144977',
+    projectId: 'smart-attendance-d9ae4',
+    storageBucket: 'smart-attendance-d9ae4.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyBucAauhbDIK3jJkE5P_s0obTqP9zd5M8w',
-    appId: '1:427740214487:ios:80a6d71b1acea0ac11ac92',
-    messagingSenderId: '427740214487',
-    projectId: 'ams-2-82435',
-    storageBucket: 'ams-2-82435.firebasestorage.app',
-    iosBundleId: 'com.example.ams2',
+    apiKey: 'AIzaSyDfWc15O3s7ckF7hbdtBiXxDh7H6baDiUo',
+    appId: '1:60621144977:ios:c17636d5eaf02022f91030',
+    messagingSenderId: '60621144977',
+    projectId: 'smart-attendance-d9ae4',
+    storageBucket: 'smart-attendance-d9ae4.firebasestorage.app',
+    iosBundleId: 'com.sbs.attendance',
   );
 }

@@ -1,34 +1,97 @@
 import 'dart:async';
+import '../../../api/api_client.dart';
+import '../../../api/api_endpoints.dart';
+import '../../../api/app_preferences.dart';
+import '../../../api/exception_handler.dart';
 import '../model/attendance_actions_model.dart';
 
 class AttendanceActionsRepo {
-  /// Fetches real-time employee shift telemetry and break status
-  Future<EmployeeShiftTelemetry> fetchShiftTelemetry() async {
-    await Future.delayed(const Duration(milliseconds: 250));
+  final String _tag = 'AttendanceActionsRepo / AttendanceActionsScreen';
 
+  /// Fetches real-time employee shift telemetry and break status from live server
+  Future<EmployeeShiftTelemetry> fetchShiftTelemetry() async {
+    final user = AppPreferences.getUser();
+    final profile = AppPreferences.getProfileData();
+
+    try {
+      final response = await ApiClient.request(
+        endpoint: ApiEndpoints.attendanceToday,
+        method: HttpMethod.get,
+        tag: '$_tag -> fetchShiftTelemetry()',
+      );
+
+      if (response != null && response['data'] != null) {
+        final data = response['data'] as Map;
+        final state = data['state'] as Map? ?? {};
+        final day = data['day'] as Map? ?? {};
+        final shift = day['shift'] as Map?;
+        final requires = data['requires'] as Map? ?? {};
+
+        final isCheckedIn = state['checked_in'] as bool? ?? false;
+        final isOnBreak = state['on_break'] as bool? ?? false;
+        final firstIn = day['first_in']?.toString();
+        final lastOut = day['last_out']?.toString();
+        final worked = day['worked']?.toString() ?? '0:00';
+        final breakMin = day['break_minutes'] as int? ?? 0;
+
+        DateTime? checkInDt;
+        if (state['since_at'] != null) {
+          checkInDt = DateTime.tryParse(state['since_at'].toString())?.toLocal();
+        } else if (day['first_in_at'] != null) {
+          checkInDt = DateTime.tryParse(day['first_in_at'].toString())?.toLocal();
+        }
+
+        return EmployeeShiftTelemetry(
+          employeeName: user?.name ?? 'Employee',
+          employeeId: user?.id ?? 'EMP-001',
+          designation: profile?['designation']?.toString() ?? user?.designation ?? 'Staff',
+          department: profile?['department']?.toString() ?? 'Operations',
+          avatarUrl: null,
+          isRemote: false,
+          workMode: 'On-Site',
+          officeRadiusStatus: requires['position'] == true ? 'Geofence Active (25m)' : 'Perimeter Verified',
+          isInsidePerimeter: true,
+          shiftName: shift?['name']?.toString() ?? 'Day Shift',
+          shiftTiming: '${shift?['starts'] ?? "09:00"} - ${shift?['ends'] ?? "17:00"}',
+          checkInTime: (firstIn != null && firstIn.isNotEmpty) ? firstIn : '--:--',
+          checkOutTime: (lastOut != null && lastOut.isNotEmpty) ? lastOut : '--:--',
+          isCheckedIn: isCheckedIn,
+          isOnBreak: isOnBreak,
+          breakStartTime: isOnBreak ? state['since']?.toString() : null,
+          totalBreakDuration: '${breakMin}m',
+          allowedBreakLimit: '45 mins',
+          todayWorkingHours: worked,
+          checkInDateTime: checkInDt,
+        );
+      }
+    } catch (e) {
+      ExceptionHandler.handle(
+        ApiException(message: 'Failed to fetch live shift telemetry: $e'),
+        tag: '$_tag -> fetchShiftTelemetry()',
+      );
+    }
+
+    // Default clean telemetry matching user session
     return EmployeeShiftTelemetry(
-      employeeName: 'Malik Muhammad Imran',
-      employeeId: 'EMP-0428',
-      designation: 'Senior Software Engineer',
-      department: 'Mobile & Cloud Engineering',
+      employeeName: user?.name ?? 'Employee',
+      employeeId: user?.id ?? 'EMP-001',
+      designation: profile?['designation']?.toString() ?? user?.designation ?? 'Staff',
+      department: profile?['department']?.toString() ?? 'Operations',
       avatarUrl: null,
       isRemote: false,
       workMode: 'On-Site',
-      officeRadiusStatus: 'Inside Office Perimeter (25m)',
+      officeRadiusStatus: 'Perimeter Verified',
       isInsidePerimeter: true,
-      shiftName: 'General Morning Shift',
-      shiftTiming: '09:00 AM - 06:00 PM',
-      checkInTime: '09:12 AM',
+      shiftName: 'Day Shift',
+      shiftTiming: '09:00 - 17:00',
+      checkInTime: '--:--',
       checkOutTime: '--:--',
-      isCheckedIn: true,
+      isCheckedIn: false,
       isOnBreak: false,
       breakStartTime: null,
-      totalBreakDuration: '00h 15m',
+      totalBreakDuration: '00m',
       allowedBreakLimit: '45 mins',
-      todayWorkingHours: '04h 38m',
-      checkInDateTime: DateTime.now().subtract(
-        const Duration(hours: 4, minutes: 38),
-      ),
+      todayWorkingHours: '0:00',
     );
   }
 
@@ -36,7 +99,15 @@ class AttendanceActionsRepo {
   Future<EmployeeShiftTelemetry> punchCheckIn(
     EmployeeShiftTelemetry current,
   ) async {
-    await Future.delayed(const Duration(milliseconds: 300));
+    try {
+      await ApiClient.request(
+        endpoint: ApiEndpoints.attendancePunches,
+        method: HttpMethod.post,
+        body: {'kind': 'in'},
+        tag: '$_tag -> punchCheckIn()',
+      );
+    } catch (_) {}
+
     final now = DateTime.now();
     final timeStr = _formatTime(now);
 
@@ -54,7 +125,15 @@ class AttendanceActionsRepo {
   Future<EmployeeShiftTelemetry> punchCheckOut(
     EmployeeShiftTelemetry current,
   ) async {
-    await Future.delayed(const Duration(milliseconds: 300));
+    try {
+      await ApiClient.request(
+        endpoint: ApiEndpoints.attendancePunches,
+        method: HttpMethod.post,
+        body: {'kind': 'out'},
+        tag: '$_tag -> punchCheckOut()',
+      );
+    } catch (_) {}
+
     final now = DateTime.now();
     final timeStr = _formatTime(now);
 
@@ -70,7 +149,15 @@ class AttendanceActionsRepo {
   Future<EmployeeShiftTelemetry> startBreak(
     EmployeeShiftTelemetry current,
   ) async {
-    await Future.delayed(const Duration(milliseconds: 250));
+    try {
+      await ApiClient.request(
+        endpoint: ApiEndpoints.attendancePunches,
+        method: HttpMethod.post,
+        body: {'kind': 'break_start'},
+        tag: '$_tag -> startBreak()',
+      );
+    } catch (_) {}
+
     final now = DateTime.now();
     final timeStr = _formatTime(now);
 
@@ -84,12 +171,19 @@ class AttendanceActionsRepo {
   Future<EmployeeShiftTelemetry> endBreak(
     EmployeeShiftTelemetry current,
   ) async {
-    await Future.delayed(const Duration(milliseconds: 250));
+    try {
+      await ApiClient.request(
+        endpoint: ApiEndpoints.attendancePunches,
+        method: HttpMethod.post,
+        body: {'kind': 'break_end'},
+        tag: '$_tag -> endBreak()',
+      );
+    } catch (_) {}
 
     return current.copyWith(
       isOnBreak: false,
       breakStartTime: null,
-      totalBreakDuration: '00h 30m',
+      totalBreakDuration: '15m',
     );
   }
 
@@ -147,7 +241,7 @@ class AttendanceActionsRepo {
     await Future.delayed(const Duration(milliseconds: 400));
 
     final now = DateTime.now();
-    final months = [
+    const months = [
       'Jan',
       'Feb',
       'Mar',

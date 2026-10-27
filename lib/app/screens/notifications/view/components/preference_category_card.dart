@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+
 import '../../../../core/utils/app_colors.dart';
 import '../../../../core/utils/app_spaces.dart';
 import '../../../../core/utils/app_text_styles.dart';
@@ -30,7 +31,12 @@ class PreferenceCategoryCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.cardBackground,
         borderRadius: BorderRadius.circular(15.r),
-        border: Border.all(color: AppColors.borderColor, width: 1.w),
+        border: Border(
+          bottom: BorderSide(
+            color: AppColors.secondary, // Signature bottom accent
+            width: 3.w,
+          ),
+        ),
         boxShadow: [
           BoxShadow(
             color: AppColors.primary.withValues(alpha: 0.05),
@@ -39,109 +45,100 @@ class PreferenceCategoryCard extends StatelessWidget {
           ),
         ],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(15.r),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 14.h), // Signature padding
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-          // 1. Category Header
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: EdgeInsets.all(8.r),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(10.r),
-                ),
-                child: Icon(
-                  icon,
-                  size: 20.sp,
-                  color: AppColors.primary,
-                ),
-              ),
-              AppSpaces.hSpace10,
-              Expanded(
-                child: Column(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: 12.w,
+              vertical: 14.h,
+            ), // Signature padding
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 1. Category Header
+                Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      title,
-                      style: AppTextStyles.text14.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textColor,
+                    Container(
+                      padding: EdgeInsets.all(8.r),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(10.r),
                       ),
+                      child: Icon(icon, size: 20.sp, color: AppColors.primary),
                     ),
-                    AppSpaces.vSpace4,
-                    Text(
-                      description,
-                      style: AppTextStyles.text12.copyWith(
-                        color: AppColors.subTextColor,
-                        height: 1.3,
+                    AppSpaces.hSpace10,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: AppTextStyles.text14.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textColor,
+                            ),
+                          ),
+                          AppSpaces.vSpace4,
+                          Text(
+                            description,
+                            style: AppTextStyles.text12.copyWith(
+                              color: AppColors.subTextColor,
+                              height: 1.3,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
-              ),
-            ],
-          ),
 
-          AppSpaces.vSpace14,
-          Divider(color: AppColors.borderColor, height: 1.h),
-          AppSpaces.vSpace10,
+                AppSpaces.vSpace14,
+                Divider(color: AppColors.borderColor, height: 1.h),
+                AppSpaces.vSpace10,
 
-          // 2. Channel 1: In-App Bell (Server Invariant: Locked ON)
-          _buildChannelRow(
-            title: 'In-App Notifications (Bell)',
-            subtitle: 'Core inbox alerts; cannot be switched off',
-            icon: Icons.notifications_active_outlined,
-            value: true,
-            isLocked: true,
-            onChanged: (val) {},
-          ),
+                // 2. Channel 1: In-App Bell (Server Invariant: Locked ON)
+                _buildChannelRow(
+                  title: 'In-App Notifications (Bell)',
+                  subtitle: 'Core inbox alerts; cannot be switched off',
+                  icon: Icons.notifications_active_outlined,
+                  value: true,
+                  isLocked: true,
+                  onChanged: (val) {},
+                ),
 
-          AppSpaces.vSpace8,
+                AppSpaces.vSpace8,
 
-          // 3. Channel 2: Push Notifications (FCM)
-          _buildChannelRow(
-            title: 'Push Notifications',
-            subtitle: 'Real-time banners sent directly to this device',
-            icon: Icons.phone_android_rounded,
-            value: preference.push,
-            isLocked: false,
-            onChanged: (val) => onToggle('push', val),
-          ),
+                // 3. Channel 2: Push Notifications (FCM)
+                _buildChannelRow(
+                  title: 'Push Notifications',
+                  subtitle: 'Real-time banners sent directly to this device',
+                  icon: Icons.phone_android_rounded,
+                  value: preference.push,
+                  isLocked: false,
+                  onChanged: (val) => onToggle('push', val),
+                ),
 
-          AppSpaces.vSpace8,
+                AppSpaces.vSpace8,
 
-          // 4. Channel 3: Email Notifications
-          _buildChannelRow(
-            title: 'Email Notifications',
-            subtitle: 'Formal email alerts delivered to company inbox',
-            icon: Icons.mail_outline_rounded,
-            value: preference.mail,
-            isLocked: false,
-            onChanged: (val) => onToggle('mail', val),
+                // 4. Channel 3: Email Notifications
+                _buildChannelRow(
+                  title: 'Email Notifications',
+                  subtitle: 'Formal email alerts delivered to company inbox',
+                  icon: Icons.mail_outline_rounded,
+                  value: preference.mail,
+                  isLocked: false,
+                  onChanged: (val) => onToggle('mail', val),
+                ),
+              ],
+            ),
           ),
         ],
       ),
-    ),
-    Container(
-      height: 3.h,
-      width: double.infinity,
-      color: AppColors.secondary, // Signature bottom accent
-    ),
-  ],
-),
-),
-);
-}
+    );
+  }
 
   Widget _buildChannelRow({
     required String title,
@@ -175,7 +172,10 @@ class PreferenceCategoryCard extends StatelessWidget {
                   if (isLocked) ...[
                     AppSpaces.hSpace6,
                     Container(
-                      padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 1.5.h),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 5.w,
+                        vertical: 1.5.h,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.liteSecondary.withValues(alpha: 0.35),
                         borderRadius: BorderRadius.circular(6.r),

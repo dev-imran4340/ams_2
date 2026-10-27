@@ -29,7 +29,7 @@
 	<key>NSCameraUsageDescription</key>
 	<string>This app requires camera access to scan employee badge QR codes and perform facial biometric authentication.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>This app requires access to photo library to select images.</string>
+	<string></string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -53,6 +53,11 @@
 	</dict>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+		<string>remote-notification</string>
+	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>

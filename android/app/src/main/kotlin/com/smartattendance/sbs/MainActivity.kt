@@ -1,4 +1,4 @@
-package com.example.ams_2
+package com.smartattendance.sbs
 
 import io.flutter.embedding.android.FlutterActivity
 

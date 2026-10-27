@@ -62,11 +62,15 @@ class DeviceInfoHelper {
     }
 
     // Print to console clearly as requested by user
+    final cachedFcm = AppPreferences.fcmToken;
     debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     debugPrint('📱 [AMS DEVICE TELEMETRY CAPTURED]');
     debugPrint('   • Device Name (Sent on Login) : "$resolvedName"');
     debugPrint('   • Device UUID (X-Device-Id)   : "${AppPreferences.deviceId}"');
     debugPrint('   • Platform                    : ${defaultTargetPlatform.name}');
+    if (cachedFcm != null && cachedFcm.isNotEmpty) {
+      debugPrint('   • FCM Device Token            : "$cachedFcm"');
+    }
     debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
     return {

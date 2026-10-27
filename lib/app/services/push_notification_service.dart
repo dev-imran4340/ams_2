@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get/get.dart';
+import '../../firebase_options.dart';
 import '../api/app_preferences.dart';
 import '../screens/notifications/controller/notification_controller.dart';
 import '../screens/notifications/model/push_token_payload_model.dart';
@@ -17,7 +18,11 @@ import 'notification_payload_handler.dart';
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   try {
-    await Firebase.initializeApp();
+    if (Firebase.apps.isEmpty) {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+    }
   } catch (_) {
     // If native default app already exists or config not available
   }
@@ -53,8 +58,12 @@ class PushNotificationService {
     showBadge: true,
   );
 
+  bool _isInitialized = false;
+
   /// Initializes Firebase Cloud Messaging and Flutter Local Notifications
   Future<void> initialize() async {
+    if (_isInitialized) return;
+    _isInitialized = true;
     const originTag = '$_tag -> initialize()';
     try {
       // 1. Initialize Firebase Core with safe fallback
@@ -63,7 +72,9 @@ class PushNotificationService {
           _isFirebaseInitialized = true;
           Get.log('🔥 [$originTag] Firebase Core is already initialized.');
         } else {
-          await Firebase.initializeApp();
+          await Firebase.initializeApp(
+            options: DefaultFirebaseOptions.currentPlatform,
+          );
           _isFirebaseInitialized = true;
           Get.log('🔥 [$originTag] Firebase Core initialized successfully.');
         }
@@ -76,6 +87,7 @@ class PushNotificationService {
       final cachedToken = AppPreferences.fcmToken;
       if (cachedToken != null && cachedToken.isNotEmpty) {
         Get.log('💾 [$originTag] Stored Local FCM Token: $cachedToken');
+        _printTokenBanner(cachedToken, source: 'Cached Local Storage (Startup)');
       }
 
       // 2. Initialize Local Notifications Plugin
@@ -100,8 +112,8 @@ class PushNotificationService {
       // 6. Check for Terminated App Launch via Push Notification Tap
       await _checkInitialMessage();
 
-      // 7. Register Initial FCM Device Token
-      await registerDevicePushToken();
+      // 7. Register Initial FCM Device Token (Asynchronous background task)
+      registerDevicePushToken();
     } catch (e) {
       Get.log('❌ [$originTag] Error initializing push notifications: $e');
     }
@@ -113,9 +125,9 @@ class PushNotificationService {
     try {
       const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
       const iosSettings = DarwinInitializationSettings(
-        requestAlertPermission: false,
-        requestBadgePermission: false,
-        requestSoundPermission: false,
+        requestAlertPermission: true,
+        requestBadgePermission: true,
+        requestSoundPermission: true,
       );
 
       const initSettings = InitializationSettings(
@@ -164,14 +176,23 @@ class PushNotificationService {
         carPlay: false,
         criticalAlert: false,
         provisional: false,
-        sound: true,
       );
+      // On iOS, explicitly configure foreground notification presentation options
+      // so that Apple's native heads-up banner and sound play even when app is open
+      if (Platform.isIOS) {
+        await messaging.setForegroundNotificationPresentationOptions(
+          alert: true,
+          badge: true,
+          sound: true,
+        );
+      }
 
       // On Android 13+, request POST_NOTIFICATIONS runtime permission
       if (Platform.isAndroid) {
         final androidImplementation = _localNotifications.resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin>();
-        await androidImplementation?.requestNotificationsPermission();
+        final granted = await androidImplementation?.requestNotificationsPermission();
+        Get.log('🤖 [$originTag] Android POST_NOTIFICATIONS permission granted: $granted');
       }
 
       Get.log('📱 [$originTag] Notification authorization status: ${settings.authorizationStatus}');
@@ -192,13 +213,15 @@ class PushNotificationService {
 
       final notification = message.notification;
       final android = message.notification?.android;
+      final title = notification?.title ?? message.data['title']?.toString();
+      final body = notification?.body ?? message.data['body']?.toString() ?? message.data['message']?.toString();
 
       // Show native heads-up banner via flutter_local_notifications
-      if (notification != null) {
+      if (title != null || body != null) {
         _localNotifications.show(
-          id: notification.hashCode,
-          title: notification.title,
-          body: notification.body,
+          id: message.messageId?.hashCode ?? DateTime.now().millisecondsSinceEpoch ~/ 1000,
+          title: title ?? 'Workplace Notification',
+          body: body ?? '',
           notificationDetails: NotificationDetails(
             android: AndroidNotificationDetails(
               _channel.id,
@@ -206,10 +229,12 @@ class PushNotificationService {
               channelDescription: _channel.description,
               importance: Importance.max,
               priority: Priority.high,
+              playSound: true,
+              enableVibration: true,
               icon: android?.smallIcon ?? '@mipmap/ic_launcher',
               styleInformation: BigTextStyleInformation(
-                notification.body ?? '',
-                contentTitle: notification.title,
+                body ?? '',
+                contentTitle: title ?? 'Workplace Notification',
               ),
             ),
             iOS: const DarwinNotificationDetails(
@@ -262,57 +287,106 @@ class PushNotificationService {
     }
   }
 
+  bool _isRegisteringToken = false;
+
   /// Registers the device's FCM token with the AMS 2 backend (POST /push-tokens)
   Future<void> registerDevicePushToken({String? token}) async {
     const originTag = '$_tag -> registerDevicePushToken()';
     if (!_isFirebaseInitialized) return;
+    if (_isRegisteringToken && token == null) return;
+    _isRegisteringToken = true;
 
     try {
       String? fcmToken = token;
 
       if (fcmToken == null || fcmToken.isEmpty) {
-        // On iOS, APNs token MUST be available before calling getToken()
+        // On iOS, APNs token MUST be delivered by Apple before calling getToken()
         if (Platform.isIOS) {
-          String? apnsToken = await FirebaseMessaging.instance.getAPNSToken();
-          int retry = 0;
-          while (apnsToken == null && retry < 3) {
-            await Future.delayed(const Duration(milliseconds: 800));
-            apnsToken = await FirebaseMessaging.instance.getAPNSToken();
-            retry++;
-          }
-
-          if (apnsToken == null) {
-            final cached = AppPreferences.fcmToken;
-            Get.log(
-              'ℹ️ [$originTag] APNs token has not been assigned by iOS yet (common on simulator or fresh launch).\n'
-              '${cached != null ? "💾 Loaded Cached FCM Token: $cached" : "Token will be acquired automatically via onTokenRefresh when APNs delivers it."}',
-            );
-            return;
+          int apnsAttempts = 0;
+          const maxApnsAttempts = 8;
+          while (apnsAttempts < maxApnsAttempts) {
+            final apnsToken = await FirebaseMessaging.instance.getAPNSToken();
+            if (apnsToken != null && apnsToken.isNotEmpty) {
+              Get.log('🍏 [$originTag] APNs device token acquired from iOS.');
+              break;
+            }
+            apnsAttempts++;
+            if (apnsAttempts < maxApnsAttempts) {
+              await Future.delayed(const Duration(milliseconds: 1000));
+            }
           }
         }
 
-        try {
-          // ignore: deprecated_member_use
-          fcmToken = await FirebaseMessaging.instance.getToken();
-        } catch (e) {
-          if (e.toString().contains('apns-token-not-set')) {
-            final cached = AppPreferences.fcmToken;
-            Get.log(
-              'ℹ️ [$originTag] APNs token still initializing asynchronously by iOS.\n'
-              '${cached != null ? "💾 Loaded Cached FCM Token: $cached" : "Waiting for onTokenRefresh..."}',
-            );
-            return;
+        // Attempt to fetch FCM Token (with retries for asynchronous APNs handshake)
+        int tokenAttempts = 0;
+        const maxTokenAttempts = 6;
+        while (tokenAttempts < maxTokenAttempts && (fcmToken == null || fcmToken.isEmpty)) {
+          try {
+            // ignore: deprecated_member_use
+            fcmToken = await FirebaseMessaging.instance.getToken();
+            if (fcmToken != null && fcmToken.isNotEmpty) {
+              break;
+            }
+          } catch (e) {
+            tokenAttempts++;
+            if (e.toString().contains('apns-token-not-set')) {
+              Get.log('⏳ [$originTag] APNs token still synchronizing with Apple (attempt $tokenAttempts/$maxTokenAttempts)...');
+              if (tokenAttempts < maxTokenAttempts) {
+                await Future.delayed(const Duration(seconds: 1));
+                continue;
+              }
+            } else {
+              Get.log('⚠️ [$originTag] Error calling getToken(): $e');
+              break;
+            }
           }
-          rethrow;
         }
       }
 
       if (fcmToken != null && fcmToken.isNotEmpty) {
+        _backgroundRetryCount = 0;
         await _processAndSaveToken(fcmToken, originTag: originTag);
+      } else {
+        final cached = AppPreferences.fcmToken;
+        if (cached != null && cached.isNotEmpty) {
+          Get.log('💾 [$originTag] Using cached FCM token for session.');
+          _printTokenBanner(cached, source: 'Cached Local (Fallback)');
+        } else {
+          Get.log('⚠️ [$originTag] FCM token not yet available. Waiting for APNs delivery / onTokenRefresh.');
+          _scheduleBackgroundRetry();
+        }
       }
     } catch (e) {
       Get.log('❌ [$originTag] Exception during push token registration: $e');
+    } finally {
+      _isRegisteringToken = false;
     }
+  }
+
+  int _backgroundRetryCount = 0;
+
+  /// Periodically attempts to fetch the FCM token in background if APNs was delayed
+  void _scheduleBackgroundRetry() {
+    if (_backgroundRetryCount >= 6) return;
+    _backgroundRetryCount++;
+    final delaySeconds = 3 * _backgroundRetryCount;
+    Future.delayed(Duration(seconds: delaySeconds), () {
+      if (AppPreferences.fcmToken == null && !_isRegisteringToken) {
+        Get.log('🔄 [PushNotificationService] Background retry pass $_backgroundRetryCount/6 for FCM token...');
+        registerDevicePushToken();
+      }
+    });
+  }
+
+  /// Prominently outputs the FCM token in a clean, high-visibility console box for testing
+  void _printTokenBanner(String token, {String source = 'Firebase Live'}) {
+    debugPrint('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    debugPrint('🔥 [AMS FCM DEVICE TOKEN CAPTURED]');
+    debugPrint('   • Source   : $source');
+    debugPrint('   • Platform : ${Platform.isIOS ? "iOS" : (Platform.isAndroid ? "Android" : defaultTargetPlatform.name)}');
+    debugPrint('   • Token    :');
+    debugPrint(token);
+    debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
   }
 
   /// Saves FCM token locally, prints it prominently to console, and syncs to backend if logged in
@@ -321,17 +395,8 @@ class PushNotificationService {
     await AppPreferences.setFcmToken(token);
 
     // 2. Print prominently to console for easy developer inspection
-    Get.log(
-      '===============================================================\n'
-      '🔑 [FCM Device Token] ($originTag):\n'
-      '$token\n'
-      '===============================================================',
-    );
-    debugPrint(
-      '\n===============================================================\n'
-      '🔑 [FCM Device Token]:\n$token\n'
-      '===============================================================\n',
-    );
+    Get.log('🔑 [$originTag] FCM Token acquired successfully.');
+    _printTokenBanner(token, source: originTag);
 
     // 3. Sync with backend if user is logged in
     if (AppPreferences.isLoggedIn) {

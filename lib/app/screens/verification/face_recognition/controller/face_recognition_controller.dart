@@ -1,12 +1,19 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
 import '../../../../api/exception_handler.dart';
+import '../../../../core/utils/app_colors.dart';
+import '../../../../core/utils/app_spaces.dart';
+import '../../../../core/utils/app_text_styles.dart';
+import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/widgets/custom_snackbar.dart';
 import '../../../../routes/app_routes.dart';
+import '../../../dashboard/model/dashboard_model.dart';
 import '../model/face_recognition_model.dart';
 import '../repo/face_recognition_repo.dart';
 import '../view/components/verification_success_sheet.dart';
@@ -41,6 +48,10 @@ class FaceRecognitionController extends GetxController
   final Rxn<FaceBiometricMatchModel> matchResult =
       Rxn<FaceBiometricMatchModel>();
 
+  final RxBool isPunchMode = false.obs;
+  final RxString punchKind = 'in'.obs;
+  AttendanceRequiresModel? punchRequires;
+
   // Aliases for backwards-compatibility
   RxBool get matchSuccess => isMatchSuccess;
   RxBool get isDetecting => isScanning;
@@ -53,10 +64,18 @@ class FaceRecognitionController extends GetxController
   void onInit() {
     super.onInit();
 
-    // 1. Extract arguments passed from Step 1 (Employee Card QR Scanner)
-    if (Get.arguments is Map && Get.arguments['card'] != null) {
-      final dynamic card = Get.arguments['card'];
-      if (card != null) {
+    // 1. Extract arguments (Either from Attendance Punch or Employee Card QR)
+    if (Get.arguments is Map) {
+      final args = Get.arguments as Map;
+      if (args['isPunchMode'] == true) {
+        isPunchMode.value = true;
+        punchKind.value = args['punchKind']?.toString() ?? 'in';
+        if (args['requires'] is AttendanceRequiresModel) {
+          punchRequires = args['requires'] as AttendanceRequiresModel;
+        }
+      }
+      if (args['card'] != null) {
+        final dynamic card = args['card'];
         employeeId.value =
             card.employeeCode ?? card.employeeId ?? 'SFT-094';
         if (card.employeeName != null &&
@@ -228,10 +247,51 @@ class FaceRecognitionController extends GetxController
         // Stop radar pulse
         pulseAnimationController.stop();
 
+        // If in punch mode: submit punch to API
+        if (isPunchMode.value) {
+          File? photoFile;
+          if (cameraController != null &&
+              cameraController!.value.isInitialized) {
+            try {
+              final xFile = await cameraController!.takePicture();
+              photoFile = File(xFile.path);
+            } catch (_) {}
+          }
+
+          if (punchRequires?.faceSaved == false &&
+              punchRequires?.consentText != null) {
+            final consentAgreed =
+                await _showFaceConsentDialog(punchRequires!.consentText!);
+            if (!consentAgreed) {
+              statusText.value = 'Face biometric consent required for punch.';
+              isVerifying.value = false;
+              isScanning.value = true;
+              return;
+            }
+          }
+
+          statusText.value = 'Submitting attendance punch...';
+          final punchDone = await repo.submitAttendancePunch(
+            kind: punchKind.value,
+            faceScore: result.confidenceScore,
+            faceMatch: 'matched',
+            faceConsent: punchRequires?.faceSaved == false,
+            photoFile: photoFile,
+          );
+
+          if (!punchDone) {
+            statusText.value = 'Punch rejected by server. Tap to retry.';
+            isVerifying.value = false;
+            isScanning.value = true;
+            return;
+          }
+        }
+
         CustomSnackbar.showSuccess(
           title: 'Identity Confirmed',
-          message:
-              'Welcome, ${result.employeeName}! Multi-factor authentication successful.',
+          message: isPunchMode.value
+              ? 'Face verified! Attendance punch recorded.'
+              : 'Welcome, ${result.employeeName}! Multi-factor authentication successful.',
         );
 
         // Display sleek verification success bottom sheet
@@ -258,6 +318,80 @@ class FaceRecognitionController extends GetxController
     }
   }
 
+  /// Displays biometric consent dialog required for initial face enrollment (Phase 10)
+  Future<bool> _showFaceConsentDialog(String consentText) async {
+    final agreed = await Get.dialog<bool>(
+      Dialog(
+        backgroundColor: AppColors.cardBackground,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.r),
+        ),
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 18.h),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.privacy_tip_rounded,
+                size: 36.sp,
+                color: AppColors.secondary,
+              ),
+              AppSpaces.vSpace10,
+              Text(
+                'Biometric Consent Required',
+                style: AppTextStyles.text16.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textColor,
+                ),
+              ),
+              AppSpaces.vSpace8,
+              Text(
+                consentText,
+                textAlign: TextAlign.center,
+                style: AppTextStyles.text12.copyWith(
+                  color: AppColors.subTextColor,
+                ),
+              ),
+              AppSpaces.vSpace16,
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Get.back(result: false),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(
+                          color: AppColors.borderColor,
+                          width: 1.w,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10.r),
+                        ),
+                      ),
+                      child: Text(
+                        'Decline',
+                        style: TextStyle(color: AppColors.textColor),
+                      ),
+                    ),
+                  ),
+                  AppSpaces.hSpace10,
+                  Expanded(
+                    child: CustomButton(
+                      text: 'I Agree',
+                      isGradient: true,
+                      onPressed: () => Get.back(result: true),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+      barrierDismissible: false,
+    );
+    return agreed ?? false;
+  }
+
   /// Opens the verification success bottom sheet
   void openSuccessModal() {
     Get.bottomSheet(
@@ -269,10 +403,14 @@ class FaceRecognitionController extends GetxController
     );
   }
 
-  /// Navigates to the Dashboard (Routes.INDEX) after successful authentication
+  /// Navigates to the Dashboard (Routes.INDEX) or returns result to caller
   void proceedToDashboard() {
     HapticFeedback.mediumImpact();
-    Get.offAllNamed(Routes.INDEX);
+    if (isPunchMode.value) {
+      Get.back(result: true);
+    } else {
+      Get.offAllNamed(Routes.INDEX);
+    }
   }
 
   /// Retries the biometric verification pipeline

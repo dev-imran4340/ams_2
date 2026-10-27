@@ -176,7 +176,7 @@ void main() {
 
       expect(controller.notifications.length, 2);
       expect(controller.unreadCount.value, 1);
-      expect(controller.preferences.value?.approvalNeeded.push, isTrue);
+      expect(controller.preferences.value.approvalNeeded.push, isTrue);
 
       controller.onClose();
     });
@@ -208,7 +208,7 @@ void main() {
       );
 
       // Bell remains locked on
-      expect(controller.preferences.value?.approvalNeeded.bell, isTrue);
+      expect(controller.preferences.value.approvalNeeded.bell, isTrue);
 
       controller.onClose();
     });

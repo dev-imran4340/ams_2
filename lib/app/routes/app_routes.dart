@@ -30,6 +30,7 @@ abstract class Routes {
   static const LEAVE = '/leave';
   static const NOTIFICATIONS = '/notifications';
   static const NOTIFICATION_PREFERENCES = '/notification-preferences';
+  static const ATTENDANCE_SUMMARY = '/attendance-summary';
 }
 
 

@@ -222,9 +222,15 @@ Postcodes: Letters, digits, space, - (Max 12 chars).
 
 Comments/Notes: Plain text (Max 1000 chars).
 
+9. Zero Fallback / Zero Dummy Data Policy (Strict Invariant)
+
+Live API endpoints par hardcoded fallback mock data, fake counters, ya dummy objects inject karna strictly banned hai.
+
+Agar API null return kare ya network/server error throw kare, to screen par CustomStateView.error(...) ya CustomStateView.empty(...) render karein, ya observable ko null rakhein. UI kabhi bhi fake numbers (e.g. hardcoded 21 present days, fake worked hours) create karke user ko misinform na kare.
+
 PART 3: AGENT PRE-FLIGHT VERIFICATION CHECKLIST
 
-Jab bhi Agent koi naya code generate ya modify kare, wo in 6 checks ko verify karega:
+Jab bhi Agent koi naya code generate ya modify kare, wo in 7 checks ko verify karega:
 
 [ ] Binding Check: Kya binding inline BindingsBuilder mein hai bina kisi alag binding.dart file ke?
 
@@ -237,3 +243,5 @@ Jab bhi Agent koi naya code generate ya modify kare, wo in 6 checks ko verify ka
 [ ] Disposal Check: Kya controller ke tamam TextEditingController aur FocusNode onClose() mein dispose ho rahe hain?
 
 [ ] API Tagging Check: Kya Repository call mein mandatory tag: '... -> ...' pass hua hai?
+
+[ ] Zero Dummy / Fallback Check: Kya live API call fail hone par dummy fallback data inject karne ke bajaye clean null / CustomStateView handle kiya gaya hai?

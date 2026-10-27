@@ -295,10 +295,10 @@ class EmployeeProfileModel {
   final String designation;
   final String department;
   final String joiningDate;
-  final String reportingManager;
-  final String shiftName;
-  final String shiftTime;
-  final int graceMinutes;
+  final String? reportingManager;
+  final String? shiftName;
+  final String? shiftTime;
+  final int? graceMinutes;
   final String workLocation;
   final String stage;
   final String firstName;
@@ -324,33 +324,33 @@ class EmployeeProfileModel {
   final bool remindersEnabled;
   final bool geofenceAutoCheck;
   final String tenureYears;
-  final double attendanceScore;
+  final double? attendanceScore;
 
   const EmployeeProfileModel({
-    this.id = '01m5kmp9g8wxp9ssn3aed8awzm',
-    this.employeeNumber = 'EMP-0002',
-    required this.name,
-    this.email = 'maryam@example.com',
+    this.id = '',
+    this.employeeNumber = '',
+    this.name = '',
+    this.email = '',
     this.phone = '',
     this.cnic = '',
     this.dob = '',
     this.gender = '',
     this.bloodGroup = '',
-    this.employeeId = 'EMP-0002',
-    required this.designation,
-    required this.department,
-    this.joiningDate = '2023-07-15',
-    this.reportingManager = 'Executive Management',
-    this.shiftName = 'General Corporate Shift',
-    this.shiftTime = '09:00 AM - 06:00 PM',
-    this.graceMinutes = 15,
-    required this.workLocation,
-    this.stage = 'active',
-    this.firstName = 'Maryam',
-    this.lastName = 'Malik',
+    this.employeeId = '',
+    this.designation = '',
+    this.department = '',
+    this.joiningDate = '',
+    this.reportingManager,
+    this.shiftName,
+    this.shiftTime,
+    this.graceMinutes,
+    this.workLocation = '',
+    this.stage = '',
+    this.firstName = '',
+    this.lastName = '',
     this.preferredName,
     this.hasPhoto = false,
-    this.stageLabel = 'Active',
+    this.stageLabel = '',
     this.sections = const [],
     this.job,
     this.contact,
@@ -368,8 +368,8 @@ class EmployeeProfileModel {
     this.biometricEnabled = true,
     this.remindersEnabled = true,
     this.geofenceAutoCheck = true,
-    this.tenureYears = '3 years 3 months',
-    this.attendanceScore = 99.0,
+    this.tenureYears = '',
+    this.attendanceScore,
   });
 
   /// Initials generated from employee name (e.g. 'MM' for Maryam Malik)
@@ -444,16 +444,19 @@ class EmployeeProfileModel {
             Map<String, dynamic>.from(rawPersonal))
         : null;
 
+    final firstName = payload['first_name']?.toString() ?? '';
+    final lastName = payload['last_name']?.toString() ?? '';
+    final fullName = '$firstName $lastName'.trim();
     final rawName = payload['name']?.toString() ??
-        '${payload['first_name'] ?? 'Maryam'} ${payload['last_name'] ?? 'Malik'}';
+        (fullName.isNotEmpty ? fullName : '');
 
     final resolvedEmpNum = payload['employee_number']?.toString() ??
         payload['employee_id']?.toString() ??
-        'EMP-0002';
+        '';
 
     final resolvedEmail = parsedContact?.workEmail ??
         payload['email']?.toString() ??
-        'maryam@example.com';
+        '';
 
     final resolvedPhone = parsedPersonal?.personalPhone ??
         parsedContact?.workPhone ??
@@ -485,7 +488,7 @@ class EmployeeProfileModel {
         : (payload['emergency_contact_relation']?.toString() ?? '');
 
     return EmployeeProfileModel(
-      id: payload['id']?.toString() ?? '01m5kmp9g8wxp9ssn3aed8awzm',
+      id: payload['id']?.toString() ?? '',
       employeeNumber: resolvedEmpNum,
       name: rawName,
       email: resolvedEmail,
@@ -503,36 +506,33 @@ class EmployeeProfileModel {
       employeeId: resolvedEmpNum,
       designation: payload['designation']?.toString() ??
           parsedJob?.designation ??
-          'Sales Manager',
+          '',
       department: payload['department']?.toString() ??
           parsedJob?.department ??
-          'Sales',
+          '',
       joiningDate: parsedJob?.joinedOn ??
           payload['joining_date']?.toString() ??
-          '2023-07-15',
-      reportingManager: payload['reporting_manager']?.toString() ??
-          'Executive Management',
-      shiftName: payload['shift_name']?.toString() ??
-          'General Corporate Shift',
-      shiftTime: payload['shift_time']?.toString() ??
-          '09:00 AM - 06:00 PM',
-      graceMinutes: (payload['grace_minutes'] as num?)?.toInt() ?? 15,
+          '',
+      reportingManager: payload['reporting_manager']?.toString(),
+      shiftName: payload['shift_name']?.toString(),
+      shiftTime: payload['shift_time']?.toString(),
+      graceMinutes: (payload['grace_minutes'] as num?)?.toInt(),
       workLocation: payload['work_location']?.toString() ??
           parsedJob?.workLocation ??
-          'Head office',
-      stage: payload['stage']?.toString() ?? 'active',
-      firstName: payload['first_name']?.toString() ?? 'Maryam',
-      lastName: payload['last_name']?.toString() ?? 'Malik',
+          '',
+      stage: payload['stage']?.toString() ?? '',
+      firstName: payload['first_name']?.toString() ?? '',
+      lastName: payload['last_name']?.toString() ?? '',
       preferredName: payload['preferred_name']?.toString(),
       hasPhoto: payload['has_photo'] == true,
-      stageLabel: payload['stage_label']?.toString() ?? 'Active',
+      stageLabel: payload['stage_label']?.toString() ?? '',
       sections: parsedSections.isNotEmpty
           ? parsedSections
           : defaultSections,
       job: parsedJob,
       contact: parsedContact ??
           ProfileContactModel(
-            workEmail: resolvedEmail,
+            workEmail: resolvedEmail.isNotEmpty ? resolvedEmail : null,
             workPhone: resolvedPhone.isNotEmpty ? resolvedPhone : null,
           ),
       personal: parsedPersonal,
@@ -551,9 +551,8 @@ class EmployeeProfileModel {
       geofenceAutoCheck: payload['geofence_auto_check'] as bool? ?? true,
       tenureYears: parsedJob?.lengthOfService ??
           payload['tenure_years']?.toString() ??
-          '3 years 3 months',
-      attendanceScore:
-          (payload['attendance_score'] as num?)?.toDouble() ?? 99.0,
+          '',
+      attendanceScore: (payload['attendance_score'] as num?)?.toDouble(),
     );
   }
 
@@ -564,6 +563,7 @@ class EmployeeProfileModel {
         ProfileSectionModel(key: 'job', label: 'Job'),
         ProfileSectionModel(key: 'attendance', label: 'Attendance'),
         ProfileSectionModel(key: 'documents', label: 'Documents'),
+        ProfileSectionModel(key: 'pay', label: 'Pay'),
         ProfileSectionModel(key: 'bank', label: 'Bank details'),
         ProfileSectionModel(key: 'account', label: 'Sign-in and card'),
         ProfileSectionModel(key: 'history', label: 'History'),
@@ -585,10 +585,10 @@ class EmployeeProfileModel {
       designation: 'Sales Manager',
       department: 'Sales',
       joiningDate: '2023-07-15',
-      reportingManager: 'Executive Management',
-      shiftName: 'General Corporate Shift',
-      shiftTime: '09:00 AM - 06:00 PM',
-      graceMinutes: 15,
+      reportingManager: null,
+      shiftName: null,
+      shiftTime: null,
+      graceMinutes: null,
       workLocation: 'Head office',
       stage: 'active',
       firstName: 'Maryam',
@@ -602,6 +602,7 @@ class EmployeeProfileModel {
         ProfileSectionModel(key: 'job', label: 'Job'),
         ProfileSectionModel(key: 'attendance', label: 'Attendance'),
         ProfileSectionModel(key: 'documents', label: 'Documents'),
+        ProfileSectionModel(key: 'pay', label: 'Pay'),
         ProfileSectionModel(key: 'bank', label: 'Bank details'),
         ProfileSectionModel(key: 'account', label: 'Sign-in and card'),
         ProfileSectionModel(key: 'history', label: 'History'),
@@ -655,7 +656,7 @@ class EmployeeProfileModel {
       remindersEnabled: true,
       geofenceAutoCheck: true,
       tenureYears: '3 years 3 months',
-      attendanceScore: 99.0,
+      attendanceScore: null,
     );
   }
 

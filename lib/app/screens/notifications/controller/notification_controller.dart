@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import '../../../routes/app_routes.dart';
 import '../../../services/notification_payload_handler.dart';
 import '../../../core/widgets/custom_snackbar.dart';
 import '../model/notification_item_model.dart';
@@ -33,7 +34,9 @@ class NotificationController extends GetxController {
   // Observables for Notification Preferences
   final RxBool isLoadingPreferences = false.obs;
   final RxBool isUpdatingPreference = false.obs;
-  final Rxn<NotificationPreferencesModel> preferences = Rxn<NotificationPreferencesModel>();
+  final Rx<NotificationPreferencesModel> preferences =
+      NotificationPreferencesModel.baseline.obs;
+  final RxBool isNavigatingToPreferences = false.obs;
 
   // Scroll Controller for pagination
   final ScrollController scrollController = ScrollController();
@@ -222,12 +225,33 @@ class NotificationController extends GetxController {
 
   // --- Notification Preferences Logic ---
 
+  /// Fast, debounced navigation to Notification Preferences screen.
+  /// Prevents double-taps and ensures smooth instant route transition.
+  void navigateToPreferences() {
+    if (isNavigatingToPreferences.value ||
+        Get.currentRoute == Routes.NOTIFICATION_PREFERENCES) {
+      return;
+    }
+
+    isNavigatingToPreferences.value = true;
+    HapticFeedback.lightImpact();
+
+    // Silently fetch fresh server data in background if not already active
+    if (!isLoadingPreferences.value) {
+      loadPreferences();
+    }
+
+    Get.toNamed(Routes.NOTIFICATION_PREFERENCES)?.then((_) {
+      isNavigatingToPreferences.value = false;
+    });
+  }
+
   /// Fetches user preferences from GET /me/notification-preferences
   Future<void> loadPreferences() async {
     try {
       isLoadingPreferences.value = true;
       final data = await repo.fetchPreferences();
-      if (data != null) {
+      if (data != null && data.categories.isNotEmpty) {
         preferences.value = data;
       }
     } finally {
@@ -253,7 +277,6 @@ class NotificationController extends GetxController {
     if (isUpdatingPreference.value) return;
 
     final currentPrefs = preferences.value;
-    if (currentPrefs == null) return;
 
     try {
       isUpdatingPreference.value = true;

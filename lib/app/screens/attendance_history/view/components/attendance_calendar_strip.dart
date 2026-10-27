@@ -90,24 +90,25 @@ class _AttendanceCalendarStripState extends State<AttendanceCalendarStrip> {
 
   Widget _buildDateCapsule(AttendanceDayLog log, bool isSelected) {
     Color dotColor;
-    switch (log.status) {
-      case 'On-Time':
-        dotColor = AppColors.onTimeColor;
-        break;
-      case 'Late':
-        dotColor = AppColors.warning;
-        break;
-      case 'Absent':
-        dotColor = AppColors.absentColor;
-        break;
-      case 'Leave':
-        dotColor = AppColors.info;
-        break;
-      case 'Holiday':
-        dotColor = AppColors.subTextColor.withValues(alpha: 0.5);
-        break;
-      default:
-        dotColor = Colors.transparent;
+    if (log.flags.contains('late') || log.lateMinutes > 0) {
+      dotColor = AppColors.warning;
+    } else {
+      switch (log.tone) {
+        case 'emerald':
+          dotColor = AppColors.onTimeColor;
+          break;
+        case 'amber':
+          dotColor = AppColors.warning;
+          break;
+        case 'rose':
+          dotColor = AppColors.absentColor;
+          break;
+        case 'slate':
+        default:
+          dotColor = log.status == 'off'
+              ? AppColors.subTextColor.withValues(alpha: 0.5)
+              : AppColors.secondary.withValues(alpha: 0.7);
+      }
     }
 
     return GestureDetector(
