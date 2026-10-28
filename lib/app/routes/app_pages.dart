@@ -36,9 +36,9 @@ import '../screens/profile/view/profile_details_view.dart';
 import '../screens/profile/controller/profile_controller.dart';
 import '../screens/profile/repo/profile_repo.dart';
 
-import '../screens/regularization/view/regularization_view.dart';
-import '../screens/regularization/controller/regularization_controller.dart';
-import '../screens/regularization/repo/regularization_repo.dart';
+import '../screens/correction/view/correction_view.dart';
+import '../screens/correction/controller/correction_controller.dart';
+import '../screens/correction/repo/correction_repo.dart';
 
 import '../screens/verification/qr_scanner/view/qr_scanner_view.dart';
 import '../screens/verification/qr_scanner/controller/qr_scan_controller.dart';
@@ -88,10 +88,6 @@ import '../screens/organization/employee_kiosk_dashboard/view/employee_kiosk_das
 import '../screens/organization/employee_kiosk_dashboard/controller/kiosk_employee_controller.dart';
 import '../screens/organization/employee_kiosk_dashboard/repo/kiosk_employee_repo.dart';
 
-import '../screens/attendance_actions/view/attendance_actions_view.dart';
-import '../screens/attendance_actions/controller/attendance_actions_controller.dart';
-import '../screens/attendance_actions/repo/attendance_actions_repo.dart';
-
 import '../screens/edit_profile/view/edit_profile_view.dart';
 import '../screens/edit_profile/controller/edit_profile_controller.dart';
 import '../screens/edit_profile/repo/edit_profile_repo.dart';
@@ -104,6 +100,10 @@ import '../screens/notifications/view/notifications_view.dart';
 import '../screens/notifications/view/notification_preferences_view.dart';
 import '../screens/notifications/controller/notification_controller.dart';
 import '../screens/notifications/repo/notification_repo.dart';
+
+import '../screens/schedule/view/schedule_view.dart';
+import '../screens/schedule/controller/schedule_controller.dart';
+import '../screens/schedule/repo/schedule_repo.dart';
 
 class AppPages {
   // Initial Entry Route
@@ -221,12 +221,12 @@ class AppPages {
 
     // 6. Regularization & Overtime Screen
     GetPage(
-      name: Routes.REGULARIZATION,
-      page: () => const RegularizationView(),
+      name: Routes.CORRECTION,
+      page: () => const CorrectionView(),
       binding: BindingsBuilder(() {
-        Get.lazyPut(() => RegularizationRepo(), fenix: true);
+        Get.lazyPut(() => CorrectionRepo(), fenix: true);
         Get.lazyPut(
-          () => RegularizationController(repo: Get.find()),
+          () => CorrectionController(repo: Get.find()),
           fenix: true,
         );
       }),
@@ -405,14 +405,14 @@ class AppPages {
       }),
     ),
 
-    // 19. Individual Attendance Actions Hub & Break Management
+    // 19. Individual Attendance History Hub & Break Management (Aliases /attendance-actions)
     GetPage(
       name: Routes.ATTENDANCE_ACTIONS,
-      page: () => const AttendanceActionsView(),
+      page: () => const AttendanceHistoryView(),
       binding: BindingsBuilder(() {
-        Get.lazyPut(() => AttendanceActionsRepo(), fenix: true);
+        Get.lazyPut(() => AttendanceHistoryRepo(), fenix: true);
         Get.lazyPut(
-          () => AttendanceActionsController(repo: Get.find()),
+          () => AttendanceHistoryController(repo: Get.find()),
           fenix: true,
         );
       }),
@@ -501,6 +501,21 @@ class AppPages {
             fenix: true,
           );
         }
+      }),
+    ),
+
+    // 26. Work Schedule & Rota Screen (Phase 8 Live Engine)
+    GetPage(
+      name: Routes.SCHEDULE,
+      page: () => const ScheduleView(),
+      transition: Transition.cupertino,
+      transitionDuration: const Duration(milliseconds: 250),
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => ScheduleRepo(), fenix: true);
+        Get.lazyPut(
+          () => ScheduleController(repo: Get.find()),
+          fenix: true,
+        );
       }),
     ),
   ];

@@ -123,14 +123,8 @@ class ForgotPasswordView extends GetView<AuthController> {
                     // 3. Floating Modern Card Container with 3.w Teal bottom accent border
                     Container(
                       decoration: BoxDecoration(
-                        color: AppColors.cardBackground,
+                        color: AppColors.secondary,
                         borderRadius: BorderRadius.circular(15.r),
-                        border: Border(
-                          bottom: BorderSide(
-                            color: AppColors.secondary,
-                            width: 3.w,
-                          ),
-                        ),
                         boxShadow: [
                           BoxShadow(
                             color: AppColors.primary.withValues(alpha: 0.1),
@@ -139,7 +133,18 @@ class ForgotPasswordView extends GetView<AuthController> {
                           ),
                         ],
                       ),
-                      child: Stack(
+                      padding: EdgeInsets.only(bottom: 3.w),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.cardBackground,
+                          borderRadius: BorderRadius.only(
+                            topLeft: Radius.circular(15.r),
+                            topRight: Radius.circular(15.r),
+                            bottomLeft: Radius.circular(12.r),
+                            bottomRight: Radius.circular(12.r),
+                          ),
+                        ),
+                        child: Stack(
                         children: [
                           Padding(
                             padding: EdgeInsets.symmetric(
@@ -330,7 +335,8 @@ class ForgotPasswordView extends GetView<AuthController> {
                         ],
                       ),
                     ),
-                  ],
+                  ),
+                ],
                 ),
               ),
             ),

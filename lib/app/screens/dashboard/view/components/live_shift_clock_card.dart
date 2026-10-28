@@ -4,11 +4,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
+import '../../../../api/app_preferences.dart';
 import '../../../../core/utils/app_colors.dart';
 import '../../../../core/utils/app_spaces.dart';
 import '../../../../core/utils/app_text_styles.dart';
 import '../../../../core/widgets/custom_card.dart';
 import '../../../../core/widgets/custom_snackbar.dart';
+import '../../../../routes/app_routes.dart';
 import '../../controller/dashboard_controller.dart';
 import 'attendance_slider_button.dart';
 
@@ -62,42 +64,62 @@ class LiveShiftClockCard extends GetView<DashboardController> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Shift Badge
+                // Shift Badge (Tap to view Full Work Schedule & Rota)
                 Flexible(
-                  child: Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 8.w,
-                      vertical: 4.h,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.liteSecondary.withValues(alpha: 0.3),
-                      borderRadius: BorderRadius.circular(8.r),
-                      border: Border.all(
-                        color: AppColors.secondary.withValues(alpha: 0.25),
-                        width: 1.w,
+                  child: InkWell(
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      if (AppPreferences.hasModule('attendance') &&
+                          AppPreferences.hasPermission('attendance.view')) {
+                        Get.toNamed(Routes.SCHEDULE);
+                      } else {
+                        CustomSnackbar.showWarning(
+                          message: 'You do not have permission to view work schedules.',
+                        );
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(8.r),
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 8.w,
+                        vertical: 4.h,
                       ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.schedule_rounded,
-                          size: 13.sp,
-                          color: AppColors.secondary,
+                      decoration: BoxDecoration(
+                        color: AppColors.liteSecondary.withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(8.r),
+                        border: Border.all(
+                          color: AppColors.secondary.withValues(alpha: 0.25),
+                          width: 1.w,
                         ),
-                        AppSpaces.hSpace6,
-                        Flexible(
-                          child: Text(
-                            '$shiftName ($shiftCode)',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: AppTextStyles.text10.copyWith(
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textColor,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.schedule_rounded,
+                            size: 13.sp,
+                            color: AppColors.secondary,
+                          ),
+                          AppSpaces.hSpace6,
+                          Flexible(
+                            child: Text(
+                              '$shiftName ($shiftCode)',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTextStyles.text10.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textColor,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                          AppSpaces.hSpace4,
+                          Icon(
+                            Icons.arrow_forward_ios_rounded,
+                            size: 9.sp,
+                            color: AppColors.secondary,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),

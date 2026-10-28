@@ -42,4 +42,9 @@ class ApiEndpoints {
   static const String attendanceCorrections = '/me/attendance/corrections';
   static const String attendancePunches = '/me/attendance/punches';
   static const String meFace = '/me/face';
+
+  // 7. Schedule & Rota (Phase 8 Live Engine)
+  static const String meSchedule = '/me/schedule';
+  static String employeeSchedule(String id) => '/employees/$id/schedule';
+  static const String holidays = '/holidays';
 }

@@ -187,17 +187,31 @@ class AppPreferences {
 
   /// Checks if employee possesses a specific permission and optional scope
   /// (e.g. hasPermission('employees.view', 'department'))
+  /// Supports strict hierarchical scope inheritance: company > location > department > own.
   static bool hasPermission(String key, [String? scope]) {
     final perms = permissions;
     if (perms == null || !perms.containsKey(key)) return false;
     final value = perms[key];
     if (value == null) {
-      // Permission without scopes (binary allowed)
+      // Permission without scopes (binary allowed, e.g. support.raise: null)
       return true;
     }
     if (value is List) {
       if (scope == null) return value.isNotEmpty;
-      return value.contains(scope);
+      final scopes = value.map((e) => e.toString().toLowerCase().trim()).toSet();
+      final req = scope.toLowerCase().trim();
+
+      // Exact match
+      if (scopes.contains(req)) return true;
+
+      // Hierarchical scope inheritance:
+      // company scope grants location, department, and own access
+      if (scopes.contains('company')) return true;
+      // location scope grants department and own access
+      if (req == 'own' && (scopes.contains('department') || scopes.contains('location'))) return true;
+      if (req == 'department' && scopes.contains('location')) return true;
+
+      return false;
     }
     return false;
   }

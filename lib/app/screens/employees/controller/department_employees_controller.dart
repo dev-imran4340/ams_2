@@ -19,11 +19,23 @@ class DepartmentEmployeesController extends GetxController {
   final RxList<DepartmentEmployeeModel> filteredStaff = <DepartmentEmployeeModel>[].obs;
   final TextEditingController searchController = TextEditingController();
 
-  // Strict Permission Flags (Computed directly from /me saved session)
-  bool get canViewDepartment => AppPreferences.hasPermission('employees.view', 'department') || AppPreferences.hasPermission('employees.view');
-  bool get canViewSensitive => AppPreferences.hasPermission('employees.sensitive.view');
-  bool get canPrintCards => AppPreferences.hasPermission('employees.cards.print');
-  bool get canExport => AppPreferences.hasPermission('employees.export');
+  // Strict Permission Flags (Computed directly from /me saved session with strict scopes)
+  bool get canViewDepartment => AppPreferences.hasPermission('employees.view', 'department');
+  bool get canPrintCards => AppPreferences.hasPermission('employees.cards.print', 'department');
+  bool get canExport => AppPreferences.hasPermission('employees.export', 'department');
+
+  /// Strict evaluation of sensitive information visibility per employee
+  bool canViewSensitiveFor(DepartmentEmployeeModel emp) {
+    final loggedInUserId = AppPreferences.userId;
+    final loggedInEmpCode = AppPreferences.employeeNumber;
+    // Viewing self: allowed if holding 'own' scope
+    if ((loggedInUserId != null && emp.id == loggedInUserId) ||
+        (loggedInEmpCode != null && emp.employeeCode == loggedInEmpCode)) {
+      return AppPreferences.hasPermission('employees.sensitive.view', 'own');
+    }
+    // Viewing another employee: strictly requires 'department' (or company) scope
+    return AppPreferences.hasPermission('employees.sensitive.view', 'department');
+  }
 
   @override
   void onInit() {
@@ -97,7 +109,7 @@ class DepartmentEmployeesController extends GetxController {
       backgroundColor: Colors.transparent,
       builder: (_) => EmployeeDetailSheet(
         employee: employee,
-        canViewSensitive: canViewSensitive,
+        canViewSensitive: canViewSensitiveFor(employee),
         canPrintCard: canPrintCards,
       ),
     );

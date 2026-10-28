@@ -9,6 +9,7 @@ import '../../dashboard/view/dashboard_view.dart';
 import '../../leaves/view/leave_requests_view.dart';
 
 import '../../employees/view/employees_view.dart';
+import '../../attendance_history/view/attendance_history_view.dart';
 import '../../profile/view/profile_view.dart';
 import '../model/me_model.dart';
 import '../model/nav_tab_model.dart';
@@ -153,6 +154,19 @@ class IndexController extends GetxController {
               requiredPermission: 'employees.view',
               hasBadge: () => (menuBadges['employees'] ?? 0) > 0,
               badgeCount: () => menuBadges['employees'] ?? 0,
+            ),
+          );
+        } else if (item.key == 'attendance') {
+          tabs.add(
+            DynamicNavTab(
+              id: 'attendance',
+              label: item.label,
+              icon: Icons.calendar_today_rounded,
+              builder: () => const AttendanceHistoryView(),
+              requiredModule: item.module,
+              requiredPermission: 'attendance.view',
+              hasBadge: () => (menuBadges['attendance'] ?? 0) > 0,
+              badgeCount: () => menuBadges['attendance'] ?? 0,
             ),
           );
         }

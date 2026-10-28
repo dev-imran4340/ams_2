@@ -82,21 +82,23 @@ class CustomCard extends StatelessWidget {
       ),
     );
 
-    if (margin != null) {
-      cardBody = Padding(padding: margin!, child: cardBody);
-    }
+    Widget result = cardBody;
 
     if (onTap != null) {
-      return Material(
+      result = Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(radius),
-          child: cardBody,
+          child: result,
         ),
       );
     }
 
-    return cardBody;
+    if (margin != null) {
+      result = Padding(padding: margin!, child: result);
+    }
+
+    return result;
   }
 }

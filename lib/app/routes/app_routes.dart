@@ -9,7 +9,7 @@ abstract class Routes {
   static const DASHBOARD = '/dashboard';
   static const ATTENDANCE_HISTORY = '/attendance-history';
   static const PROFILE = '/profile';
-  static const REGULARIZATION = '/regularization';
+  static const CORRECTION = '/correction';
   static const QR_SCANNER = '/qr_scanner';
   static const FACE_RECOGNITION = '/face_recognition';
   static const TASKS = '/tasks';
@@ -31,6 +31,7 @@ abstract class Routes {
   static const NOTIFICATIONS = '/notifications';
   static const NOTIFICATION_PREFERENCES = '/notification-preferences';
   static const ATTENDANCE_SUMMARY = '/attendance-summary';
+  static const SCHEDULE = '/schedule';
 }
 
 

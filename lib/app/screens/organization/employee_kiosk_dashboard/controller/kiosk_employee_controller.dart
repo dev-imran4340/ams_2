@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
@@ -14,7 +15,8 @@ class KioskEmployeeController extends GetxController {
   // Observables
   final RxBool isLoading = false.obs;
   final RxBool isPunching = false.obs;
-  final Rxn<KioskEmployeeProfileModel> profile = Rxn<KioskEmployeeProfileModel>();
+  final Rxn<KioskEmployeeProfileModel> profile =
+      Rxn<KioskEmployeeProfileModel>();
 
   // 1-Minute Security Auto-Logout Timer Observables
   static const int totalIdleDurationSeconds = 60;
@@ -101,7 +103,7 @@ class KioskEmployeeController extends GetxController {
   /// Navigates to individual self-service actions
   void openLeaveRequest() {
     resetIdleTimer();
-    Get.toNamed(Routes.REGULARIZATION);
+    Get.toNamed(Routes.CORRECTION);
   }
 
   void openEvaluations() {

@@ -9,12 +9,12 @@ This document tracks the implementation status of all endpoints defined in `doc/
 | Category | Count | Status |
 |---|---|---|
 | **Total Documented Endpoints** | **62** | Full API Surface (Phases 7–13) |
-| **Implemented / Done Endpoints** | **25** | Live in Codebase (`ApiClient` + Repos + Screens) |
-| **Remaining Endpoints** | **37** | Pending Implementation (Phases 8–13) |
+| **Implemented / Done Endpoints** | **30** | Live in Codebase (`ApiClient` + Repos + Screens) |
+| **Remaining Endpoints** | **32** | Pending Implementation (Phases 10–13) |
 
 ---
 
-## Part 1: Implemented / Done Endpoints (25 Endpoints)
+## Part 1: Implemented / Done Endpoints (30 Endpoints)
 
 All endpoints listed below are connected with the central network engine (`ApiClient.request()`), mapped in `ApiEndpoints`, and wired to their respective GetX Repositories and Controllers.
 
@@ -45,16 +45,22 @@ All endpoints listed below are connected with the central network engine (`ApiCl
 | 23 | `GET` | `/me/attendance/today` | Phase 9 | `DashboardRepo.fetchTodayAttendance()` (Live telemetry & punch decisions) |
 | 24 | `GET` | `/me/attendance/summary` | Phase 9 | `DashboardRepo.fetchMonthlySummary()`, `AttendanceSummaryRepo.fetchSummary()` |
 | 25 | `POST` | `/me/attendance/punches` | Phase 10 | `DashboardRepo.submitPunch()`, `FaceRecognitionRepo.submitAttendancePunch()` (Selfie & Biometric Punch) |
+| 26 | `GET` | `/me/attendance` | Phase 9 | `AttendanceHistoryRepo.fetchAttendanceHistory()` (Daily timesheet logs with `from` & `to` query range, 62-day limit, and filter pills) |
+| 27 | `POST` | `/me/attendance/corrections` | Phase 9 | `CorrectionRepo.submitAttendanceCorrection()` (Attendance regularization, missed punch addition/removal & conflict management) |
+| 28 | `GET` | `/me/schedule` | Phase 8 | `ScheduleRepo.fetchMySchedule()` (Working shift rota, pattern hours, overnight shifts & rest days) |
+| 29 | `GET` | `/employees/{id}/schedule` | Phase 8 | `ScheduleRepo.fetchEmployeeSchedule()` (Manager & HR employee schedule audit within scope) |
+| 30 | `GET` | `/holidays` | Phase 8 | `ScheduleRepo.fetchHolidays()` (Annual company & public gazetted holidays calendar) |
 
 ---
 
-## Part 2: Remaining Endpoints & Detailed Specifications (38 Endpoints)
+## Part 2: Remaining Endpoints & Detailed Specifications (32 Endpoints)
 
 ---
 
-### Module 1: Schedule & Rota (Phase 8 — 3 Endpoints)
+### Module 1: Schedule & Rota (Phase 8 — 3 Endpoints) `[STATUS: IMPLEMENTED / LIVE]`
 
-#### 1. `GET /me/schedule`
+#### 1. `GET /me/schedule` `[STATUS: IMPLEMENTED / LIVE]`
+* **Implementation:** `ScheduleRepo.fetchMySchedule()` / `ScheduleController.loadSchedule()` / `ScheduleView`
 * **Purpose:** Fetches the logged-in user's work schedule/rota calculated from work patterns, rota overrides, and holidays.
 * **Authentication:** `Authorization: Bearer <token>`
 * **Query Parameters:**
@@ -99,7 +105,8 @@ All endpoints listed below are connected with the central network engine (`ApiCl
   ```
 * **Errors:** `404` (No employee record linked), `409` (Range > 62 days), `422` (Invalid date format).
 
-#### 2. `GET /employees/{id}/schedule`
+#### 2. `GET /employees/{id}/schedule` `[STATUS: IMPLEMENTED / LIVE]`
+* **Implementation:** `ScheduleRepo.fetchEmployeeSchedule()` / `ScheduleController`
 * **Purpose:** Manager or HR views the schedule for a specific employee within their scope.
 * **Path Parameters:**
   * `id` *(required, string)*: 26-character opaque ULID of the employee.
@@ -107,7 +114,8 @@ All endpoints listed below are connected with the central network engine (`ApiCl
 * **Request Body:** None.
 * **Errors:** `403` (Outside user's department/company reach), `404` (Employee not found).
 
-#### 3. `GET /holidays`
+#### 3. `GET /holidays` `[STATUS: IMPLEMENTED / LIVE]`
+* **Implementation:** `ScheduleRepo.fetchHolidays()` / `HolidaysBottomSheet`
 * **Purpose:** Lists public and company-specific holidays applicable to the authenticated employee.
 * **Query Parameters:**
   | Parameter | Type | Required | Rules & Description |
@@ -135,7 +143,8 @@ All endpoints listed below are connected with the central network engine (`ApiCl
 
 ### Module 2: Attendance Telemetry & History (Phase 9 — 5 Endpoints)
 
-#### 4. `GET /me/attendance/today`
+#### 4. `GET /me/attendance/today` `[STATUS: IMPLEMENTED / LIVE]`
+* **Implementation:** `DashboardRepo.fetchTodayAttendance()`
 * **Purpose:** Returns the current day's punch state, allowed actions (`state.allowed`), refusal reasons, and (in Phase 10) hardware/biometric requirements.
 * **Request Body:** None.
 * **Response (200 OK):**
@@ -167,8 +176,9 @@ All endpoints listed below are connected with the central network engine (`ApiCl
   }
   ```
 
-#### 5. `GET /me/attendance`
-* **Purpose:** Fetches attendance day records (newest first).
+#### 5. `GET /me/attendance` `[STATUS: IMPLEMENTED / LIVE]`
+* **Implementation:** `AttendanceHistoryRepo.fetchAttendanceHistory()` / `AttendanceHistoryController.loadTimesheet()` / `AttendanceHistoryView`
+* **Purpose:** Fetches attendance day records (newest first) with interactive date-range selection and live telemetry.
 * **Query Parameters:**
   | Parameter | Type | Required | Rules & Description |
   |---|---|---|---|
@@ -177,7 +187,8 @@ All endpoints listed below are connected with the central network engine (`ApiCl
   * *Default:* Past 14 days up to today.
 * **Request Body:** None.
 
-#### 6. `GET /me/attendance/summary`
+#### 6. `GET /me/attendance/summary` `[STATUS: IMPLEMENTED / LIVE]`
+* **Implementation:** `DashboardRepo.fetchMonthlySummary()`, `AttendanceSummaryRepo.fetchSummary()`
 * **Purpose:** Month's totals (worked minutes, counted minutes, late occurrences, overtime status, deductions).
 * **Query Parameters:**
   | Parameter | Type | Required | Rules & Description |
@@ -185,13 +196,14 @@ All endpoints listed below are connected with the central network engine (`ApiCl
   | `month` | string | Optional | `YYYY-MM` (Default: current month). |
 * **Request Body:** None.
 
-#### 7. `GET /employees/{id}/attendance`
+#### 7. `GET /employees/{id}/attendance` `[STATUS: PENDING]`
 * **Purpose:** Team manager or HR retrieves attendance logs for an employee within scope.
 * **Path Parameter:** `id` *(required, string)*: 26-character employee ULID.
 * **Query Parameters:** `from`, `to` (Same as `/me/attendance`).
 * **Request Body:** None.
 
-#### 8. `POST /me/attendance/corrections`
+#### 8. `POST /me/attendance/corrections` `[STATUS: IMPLEMENTED / LIVE]`
+* **Implementation:** `CorrectionRepo.submitAttendanceCorrection()` / `CorrectionController.submitCorrection()` / `CorrectionView`
 * **Purpose:** Submits an attendance correction request (routed to universal approvals inbox).
 * **Headers:** `Content-Type: application/json`
 * **Request Body (JSON):**
@@ -211,7 +223,8 @@ All endpoints listed below are connected with the central network engine (`ApiCl
 
 ### Module 3: Punching & Biometrics (Phase 10 — 3 Endpoints)
 
-#### 9. `POST /me/attendance/punches`
+#### 9. `POST /me/attendance/punches` `[STATUS: IMPLEMENTED / LIVE]`
+* **Implementation:** `DashboardRepo.submitPunch()`, `FaceRecognitionRepo.submitAttendancePunch()`
 * **Purpose:** Mobile app attendance punch with geo-fencing and face verification.
 * **Rate Limit:** 20 requests per minute.
 * **Headers:** `Content-Type: application/json` or `multipart/form-data` (when `photo` is attached).

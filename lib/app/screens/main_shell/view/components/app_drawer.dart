@@ -128,6 +128,17 @@ class AppDrawer extends StatelessWidget {
                               _navigateToRoute(Routes.ATTENDANCE_HISTORY),
                         ),
 
+                      // Card 2b: Work Schedule & Rota (Module: attendance & Permission: attendance.view)
+                      if (hasAttendance &&
+                          sessionController.hasPermission('attendance.view'))
+                        DrawerModuleCard(
+                          title: 'Work Schedule & Rota',
+                          subtitle: 'Assigned shift pattern & holidays roster',
+                          icon: Icons.schedule_rounded,
+                          accentTint: AppColors.secondary,
+                          onTap: () => _navigateToRoute(Routes.SCHEDULE),
+                        ),
+
                       // Card 3: Biometric Verification (Module: devices)
                       if (hasDevices)
                         DrawerModuleCard(

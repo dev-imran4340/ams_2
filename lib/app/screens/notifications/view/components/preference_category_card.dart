@@ -5,6 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/utils/app_colors.dart';
 import '../../../../core/utils/app_spaces.dart';
 import '../../../../core/utils/app_text_styles.dart';
+import '../../../../core/widgets/custom_card.dart';
 import '../../model/notification_preferences_model.dart';
 
 /// Floating Card representing an individual Notification Category and its 3 channels (Bell, Push, Email)
@@ -26,25 +27,9 @@ class PreferenceCategoryCard extends StatelessWidget {
     final description = NotificationPreferencesModel.getKindDescription(kind);
     final icon = NotificationPreferencesModel.getKindIcon(kind);
 
-    return Container(
+    return CustomCard(
       margin: EdgeInsets.only(bottom: 16.h),
-      decoration: BoxDecoration(
-        color: AppColors.cardBackground,
-        borderRadius: BorderRadius.circular(15.r),
-        border: Border(
-          bottom: BorderSide(
-            color: AppColors.secondary, // Signature bottom accent
-            width: 3.w,
-          ),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.05),
-            blurRadius: 8.r,
-            offset: Offset(0, 3.h),
-          ),
-        ],
-      ),
+      padding: EdgeInsets.zero,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,

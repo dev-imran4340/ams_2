@@ -1,14 +1,14 @@
-// Data models for Attendance History Module (/me/attendance & /me/attendance/summary)
-// Strictly following Phase 9 & 10 live API responses with ZERO dummy fallback data.
+// Data models for Attendance History (/me/attendance)
+// Strictly deserializes live API response with ZERO dummy / fallback data.
 
-class AttendanceShiftModel {
+class AttendanceHistoryShiftModel {
   final String name;
   final String code;
   final String starts;
   final String ends;
   final bool overnight;
 
-  const AttendanceShiftModel({
+  const AttendanceHistoryShiftModel({
     required this.name,
     required this.code,
     required this.starts,
@@ -16,8 +16,8 @@ class AttendanceShiftModel {
     required this.overnight,
   });
 
-  factory AttendanceShiftModel.fromJson(Map<String, dynamic> json) {
-    return AttendanceShiftModel(
+  factory AttendanceHistoryShiftModel.fromJson(Map<String, dynamic> json) {
+    return AttendanceHistoryShiftModel(
       name: json['name']?.toString() ?? 'General Shift',
       code: json['code']?.toString() ?? 'GEN',
       starts: json['starts']?.toString() ?? '09:00',
@@ -35,7 +35,7 @@ class AttendanceShiftModel {
       };
 }
 
-class AttendanceSegmentModel {
+class AttendanceHistorySegmentModel {
   final String kind;
   final String? starts;
   final String? ends;
@@ -43,7 +43,7 @@ class AttendanceSegmentModel {
   final DateTime? endsAt;
   final bool paid;
 
-  const AttendanceSegmentModel({
+  const AttendanceHistorySegmentModel({
     required this.kind,
     this.starts,
     this.ends,
@@ -52,8 +52,15 @@ class AttendanceSegmentModel {
     required this.paid,
   });
 
-  factory AttendanceSegmentModel.fromJson(Map<String, dynamic> json) {
-    return AttendanceSegmentModel(
+  int get durationMinutes {
+    if (startsAt != null && endsAt != null) {
+      return endsAt!.difference(startsAt!).inMinutes.clamp(0, 24 * 60);
+    }
+    return AttendanceHistoryBreakModel.calculateMinutes(starts, ends);
+  }
+
+  factory AttendanceHistorySegmentModel.fromJson(Map<String, dynamic> json) {
+    return AttendanceHistorySegmentModel(
       kind: json['kind']?.toString() ?? 'work',
       starts: json['starts']?.toString(),
       ends: json['ends']?.toString(),
@@ -77,7 +84,94 @@ class AttendanceSegmentModel {
       };
 }
 
-class AttendanceDayLog {
+class AttendanceHistoryBreakModel {
+  final String starts;
+  final String? ends;
+  final int minutes;
+  final String? type;
+  final bool paid;
+
+  const AttendanceHistoryBreakModel({
+    required this.starts,
+    this.ends,
+    required this.minutes,
+    this.type,
+    required this.paid,
+  });
+
+  bool get isInProgress => ends == null || ends!.isEmpty || ends == '--:--';
+  String get breakInDisplay => starts.isNotEmpty ? starts : '--:--';
+  String get breakOutDisplay => isInProgress ? 'In Progress' : ends!;
+
+  String get durationDisplay {
+    if (isInProgress) return 'In Progress';
+    if (minutes >= 60) {
+      final h = minutes ~/ 60;
+      final m = minutes % 60;
+      return m > 0 ? '${h}h ${m}m' : '${h}h';
+    }
+    return '${minutes}m';
+  }
+
+  static int calculateMinutes(String? starts, String? ends) {
+    if (starts == null || ends == null) return 0;
+    if (starts.isEmpty || ends.isEmpty || starts == '--:--' || ends == '--:--') {
+      return 0;
+    }
+
+    try {
+      final startParts = starts.split(':');
+      final endParts = ends.split(':');
+      if (startParts.length >= 2 && endParts.length >= 2) {
+        final startH = int.parse(startParts[0].trim());
+        final startM = int.parse(startParts[1].trim());
+        final endH = int.parse(endParts[0].trim());
+        final endM = int.parse(endParts[1].trim());
+
+        int startTotal = startH * 60 + startM;
+        int endTotal = endH * 60 + endM;
+
+        if (endTotal < startTotal) {
+          endTotal += 24 * 60;
+        }
+        return (endTotal - startTotal).clamp(0, 24 * 60);
+      }
+    } catch (_) {}
+    return 0;
+  }
+
+  factory AttendanceHistoryBreakModel.fromJson(Map<String, dynamic> json) {
+    final startsStr = json['starts']?.toString() ?? '--:--';
+    final endsStr = json['ends'] != null &&
+            json['ends'].toString().isNotEmpty &&
+            json['ends'].toString() != '--:--'
+        ? json['ends'].toString()
+        : null;
+
+    int mins = (json['minutes'] as num?)?.toInt() ?? 0;
+    if (mins <= 0 && endsStr != null) {
+      mins = calculateMinutes(startsStr, endsStr);
+    }
+
+    return AttendanceHistoryBreakModel(
+      starts: startsStr,
+      ends: endsStr,
+      minutes: mins,
+      type: json['type']?.toString(),
+      paid: json['paid'] as bool? ?? false,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'starts': starts,
+        'ends': ends,
+        'minutes': minutes,
+        'type': type,
+        'paid': paid,
+      };
+}
+
+class AttendanceHistoryDayModel {
   final String id;
   final DateTime date;
   final String dateLabel;
@@ -87,7 +181,7 @@ class AttendanceDayLog {
   final String tone;
   final String dayType;
   final String timezone;
-  final AttendanceShiftModel? shift;
+  final AttendanceHistoryShiftModel? shift;
   final dynamic holiday;
   final int plannedMinutes;
   final String? firstIn;
@@ -107,10 +201,10 @@ class AttendanceDayLog {
   final String? overtimeStatus;
   final List<String> flags;
   final bool locked;
-  final List<AttendanceSegmentModel> segments;
-  final List<dynamic> breaks;
+  final List<AttendanceHistorySegmentModel> segments;
+  final List<AttendanceHistoryBreakModel> breaks;
 
-  const AttendanceDayLog({
+  const AttendanceHistoryDayModel({
     required this.id,
     required this.date,
     required this.dateLabel,
@@ -145,25 +239,70 @@ class AttendanceDayLog {
   });
 
   // UI Convenience Getters
-  String get formattedDate => dateLabel;
-  String get dayName {
-    if (dateLabel.contains(' ')) {
-      return dateLabel.split(' ').first;
+  bool get isInProgress => status == 'in_progress';
+  bool get isPresent => status == 'present' || status == 'in_progress';
+  bool get isAbsent => status == 'absent';
+  bool get isDayOff => status == 'off';
+  bool get hasLate => lateMinutes > 0 || flags.contains('late');
+  bool get hasEarlyOut => earlyOutMinutes > 0 || flags.contains('early_out');
+
+  List<AttendanceHistoryBreakModel> get allBreaks {
+    if (breaks.isNotEmpty) return breaks;
+    final breakSegments =
+        segments.where((s) => s.kind.toLowerCase() == 'break');
+    if (breakSegments.isNotEmpty) {
+      return breakSegments
+          .map((s) => AttendanceHistoryBreakModel(
+                starts: s.starts ?? '--:--',
+                ends: s.ends,
+                minutes: s.durationMinutes,
+                type: 'break',
+                paid: s.paid,
+              ))
+          .toList();
     }
-    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    return days[date.weekday - 1];
+    return const [];
   }
 
-  String get checkInTime => (firstIn != null && firstIn!.isNotEmpty) ? firstIn! : '--:--';
-  String get checkOutTime => (lastOut != null && lastOut!.isNotEmpty) ? lastOut! : '--:--';
-  String get workingHours => (worked.isNotEmpty && worked != '0:00')
-      ? worked
-      : '${(workedMinutes ~/ 60).toString().padLeft(2, '0')}h ${(workedMinutes % 60).toString().padLeft(2, '0')}m';
-  String get breakDuration => '${breakMinutes}m';
-  String get workLocation => 'HQ Office';
-  bool get isSynced => true;
+  int get totalBreakMinutes {
+    if (breakMinutes > 0) return breakMinutes;
+    return allBreaks.fold<int>(0, (acc, b) => acc + b.minutes);
+  }
 
-  factory AttendanceDayLog.fromJson(Map<String, dynamic> json) {
+  String get totalBreakFormatted {
+    final mins = totalBreakMinutes;
+    if (mins <= 0) return '0m';
+    final h = mins ~/ 60;
+    final m = mins % 60;
+    if (h > 0) {
+      return m > 0 ? '${h}h ${m}m' : '${h}h';
+    }
+    return '${m}m';
+  }
+
+  bool get hasBreaks => allBreaks.isNotEmpty || totalBreakMinutes > 0;
+
+  String get checkInDisplay => (firstIn != null && firstIn!.isNotEmpty) ? firstIn! : '--:--';
+  String get checkOutDisplay {
+    if (isInProgress) return 'At Work';
+    return (lastOut != null && lastOut!.isNotEmpty) ? lastOut! : '--:--';
+  }
+
+  String get workedFormatted {
+    if (worked.isNotEmpty && worked != '0:00') return worked;
+    final h = workedMinutes ~/ 60;
+    final m = workedMinutes % 60;
+    return '${h}h ${m}m';
+  }
+
+  String get countedFormatted {
+    if (counted.isNotEmpty && counted != '0:00') return counted;
+    final h = countedMinutes ~/ 60;
+    final m = countedMinutes % 60;
+    return '${h}h ${m}m';
+  }
+
+  factory AttendanceHistoryDayModel.fromJson(Map<String, dynamic> json) {
     final parsedDate = json['date'] != null
         ? DateTime.tryParse(json['date'].toString()) ?? DateTime.now()
         : DateTime.now();
@@ -175,25 +314,31 @@ class AttendanceDayLog {
     final rawSegments = json['segments'] as List<dynamic>? ?? [];
     final parsedSegments = rawSegments
         .whereType<Map>()
-        .map((e) => AttendanceSegmentModel.fromJson(Map<String, dynamic>.from(e)))
+        .map((e) => AttendanceHistorySegmentModel.fromJson(Map<String, dynamic>.from(e)))
+        .toList();
+
+    final rawBreaks = json['breaks'] as List<dynamic>? ?? [];
+    final parsedBreaks = rawBreaks
+        .whereType<Map>()
+        .map((e) => AttendanceHistoryBreakModel.fromJson(Map<String, dynamic>.from(e)))
         .toList();
 
     final rawFlags = json['flags'] as List<dynamic>? ?? [];
     final parsedFlags = rawFlags.map((e) => e.toString()).toList();
 
-    return AttendanceDayLog(
+    return AttendanceHistoryDayModel(
       id: json['id']?.toString() ?? '',
       date: parsedDate,
       dateLabel: json['date_label']?.toString() ?? '',
-      status: json['status']?.toString() ?? 'upcoming',
-      statusLabel: json['status_label']?.toString() ?? 'Not in yet',
-      statusCode: json['status_code']?.toString() ?? '·',
+      status: json['status']?.toString() ?? 'absent',
+      statusLabel: json['status_label']?.toString() ?? 'Absent',
+      statusCode: json['status_code']?.toString() ?? 'A',
       tone: json['tone']?.toString() ?? 'slate',
       dayType: json['day_type']?.toString() ?? 'working',
       timezone: json['timezone']?.toString() ?? 'Asia/Karachi',
-      shift: shiftJson != null ? AttendanceShiftModel.fromJson(shiftJson) : null,
+      shift: shiftJson != null ? AttendanceHistoryShiftModel.fromJson(shiftJson) : null,
       holiday: json['holiday'],
-      plannedMinutes: json['planned_minutes'] as int? ?? 0,
+      plannedMinutes: (json['planned_minutes'] as num?)?.toInt() ?? 0,
       firstIn: json['first_in']?.toString(),
       firstInAt: json['first_in_at'] != null
           ? DateTime.tryParse(json['first_in_at'].toString())?.toLocal()
@@ -202,223 +347,78 @@ class AttendanceDayLog {
       lastOutAt: json['last_out_at'] != null
           ? DateTime.tryParse(json['last_out_at'].toString())?.toLocal()
           : null,
-      workedMinutes: json['worked_minutes'] as int? ?? 0,
+      workedMinutes: (json['worked_minutes'] as num?)?.toInt() ?? 0,
       worked: json['worked']?.toString() ?? '0:00',
-      countedMinutes: json['counted_minutes'] as int? ?? 0,
+      countedMinutes: (json['counted_minutes'] as num?)?.toInt() ?? 0,
       counted: json['counted']?.toString() ?? '0:00',
-      breakMinutes: json['break_minutes'] as int? ?? 0,
-      lateMinutes: json['late_minutes'] as int? ?? 0,
-      earlyOutMinutes: json['early_out_minutes'] as int? ?? 0,
-      shortMinutes: json['short_minutes'] as int? ?? 0,
-      overtimeMinutes: json['overtime_minutes'] as int? ?? 0,
+      breakMinutes: (json['break_minutes'] as num?)?.toInt() ?? 0,
+      lateMinutes: (json['late_minutes'] as num?)?.toInt() ?? 0,
+      earlyOutMinutes: (json['early_out_minutes'] as num?)?.toInt() ?? 0,
+      shortMinutes: (json['short_minutes'] as num?)?.toInt() ?? 0,
+      overtimeMinutes: (json['overtime_minutes'] as num?)?.toInt() ?? 0,
       overtime: json['overtime']?.toString() ?? '0:00',
       overtimeStatus: json['overtime_status']?.toString(),
       flags: parsedFlags,
       locked: json['locked'] as bool? ?? false,
       segments: parsedSegments,
-      breaks: json['breaks'] as List<dynamic>? ?? const [],
+      breaks: parsedBreaks,
     );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'date': date.toIso8601String(),
-      'date_label': dateLabel,
-      'status': status,
-      'status_label': statusLabel,
-      'status_code': statusCode,
-      'tone': tone,
-      'day_type': dayType,
-      'timezone': timezone,
-      'shift': shift?.toJson(),
-      'holiday': holiday,
-      'planned_minutes': plannedMinutes,
-      'first_in': firstIn,
-      'first_in_at': firstInAt?.toIso8601String(),
-      'last_out': lastOut,
-      'last_out_at': lastOutAt?.toIso8601String(),
-      'worked_minutes': workedMinutes,
-      'worked': worked,
-      'counted_minutes': countedMinutes,
-      'counted': counted,
-      'break_minutes': breakMinutes,
-      'late_minutes': lateMinutes,
-      'early_out_minutes': earlyOutMinutes,
-      'short_minutes': shortMinutes,
-      'overtime_minutes': overtimeMinutes,
-      'overtime': overtime,
-      'overtime_status': overtimeStatus,
-      'flags': flags,
-      'locked': locked,
-      'segments': segments.map((e) => e.toJson()).toList(),
-      'breaks': breaks,
-    };
   }
 }
 
 class AttendanceHistoryMeta {
-  final String employee;
-  final String from;
-  final String to;
+  final String? employeeId;
+  final String? from;
+  final String? to;
 
   const AttendanceHistoryMeta({
-    required this.employee,
-    required this.from,
-    required this.to,
+    this.employeeId,
+    this.from,
+    this.to,
   });
 
   factory AttendanceHistoryMeta.fromJson(Map<String, dynamic> json) {
     return AttendanceHistoryMeta(
-      employee: json['employee']?.toString() ?? '',
-      from: json['from']?.toString() ?? '',
-      to: json['to']?.toString() ?? '',
+      employeeId: json['employee']?.toString(),
+      from: json['from']?.toString(),
+      to: json['to']?.toString(),
     );
-  }
-
-  Map<String, dynamic> toJson() => {
-        'employee': employee,
-        'from': from,
-        'to': to,
-      };
-}
-
-class MonthlyTelemetrySummary {
-  final int totalDays;
-  final int presentCount;
-  final int lateCount;
-  final int absentCount;
-  final int leaveCount;
-  final int offCount;
-  final double attendanceRate;
-
-  const MonthlyTelemetrySummary({
-    required this.totalDays,
-    required this.presentCount,
-    required this.lateCount,
-    required this.absentCount,
-    this.leaveCount = 0,
-    this.offCount = 0,
-    required this.attendanceRate,
-  });
-
-  /// Factory for parsing GET /me/attendance/summary response
-  factory MonthlyTelemetrySummary.fromSummaryApi(Map<String, dynamic> json) {
-    final days = json['days'] is Map ? Map<String, dynamic>.from(json['days'] as Map) : <String, dynamic>{};
-    final lateMap = json['late'] is Map ? Map<String, dynamic>.from(json['late'] as Map) : <String, dynamic>{};
-    final scheduled = json['scheduled_days'] as int? ?? 0;
-    final present = days['present'] as int? ?? 0;
-    final lateCount = lateMap['count'] as int? ?? 0;
-    final absent = days['absent'] as int? ?? 0;
-    final leave = days['leave'] as int? ?? 0;
-    final off = days['off'] as int? ?? 0;
-
-    final rate = scheduled > 0 ? ((present / scheduled) * 100).clamp(0.0, 100.0) : 0.0;
-
-    return MonthlyTelemetrySummary(
-      totalDays: scheduled,
-      presentCount: present,
-      lateCount: lateCount,
-      absentCount: absent,
-      leaveCount: leave,
-      offCount: off,
-      attendanceRate: double.parse(rate.toStringAsFixed(1)),
-    );
-  }
-
-  /// Derives summary purely from the live list of AttendanceDayLog without fake fallbacks
-  factory MonthlyTelemetrySummary.fromLogs(List<AttendanceDayLog> logs) {
-    int scheduled = 0;
-    int present = 0;
-    int lateCount = 0;
-    int absent = 0;
-    int leave = 0;
-    int off = 0;
-
-    for (final log in logs) {
-      if (log.dayType == 'working') {
-        scheduled++;
-      }
-      if (log.status == 'present') {
-        present++;
-      } else if (log.status == 'absent') {
-        absent++;
-      } else if (log.status == 'off') {
-        off++;
-      } else if (log.status == 'leave') {
-        leave++;
-      }
-
-      if (log.lateMinutes > 0 || log.flags.contains('late')) {
-        lateCount++;
-      }
-    }
-
-    final rate = scheduled > 0 ? ((present / scheduled) * 100).clamp(0.0, 100.0) : 0.0;
-
-    return MonthlyTelemetrySummary(
-      totalDays: scheduled,
-      presentCount: present,
-      lateCount: lateCount,
-      absentCount: absent,
-      leaveCount: leave,
-      offCount: off,
-      attendanceRate: double.parse(rate.toStringAsFixed(1)),
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'total_days': totalDays,
-      'present_count': presentCount,
-      'late_count': lateCount,
-      'absent_count': absentCount,
-      'leave_count': leaveCount,
-      'off_count': offCount,
-      'attendance_rate': attendanceRate,
-    };
   }
 }
 
 class AttendanceHistoryResponse {
-  final List<AttendanceDayLog> logs;
+  final List<AttendanceHistoryDayModel> data;
   final AttendanceHistoryMeta? meta;
-  final MonthlyTelemetrySummary summary;
 
   const AttendanceHistoryResponse({
-    required this.logs,
+    required this.data,
     this.meta,
-    required this.summary,
   });
 
-  factory AttendanceHistoryResponse.fromApi(
-    List<dynamic> logsJson, {
-    Map<String, dynamic>? metaJson,
-    Map<String, dynamic>? summaryJson,
-  }) {
-    final parsedLogs = logsJson
+  factory AttendanceHistoryResponse.fromJson(Map<String, dynamic> json) {
+    final rawList = json['data'] as List<dynamic>? ?? [];
+    final list = rawList
         .whereType<Map>()
-        .map((e) => AttendanceDayLog.fromJson(Map<String, dynamic>.from(e)))
+        .map((e) => AttendanceHistoryDayModel.fromJson(Map<String, dynamic>.from(e)))
         .toList();
 
-    final parsedMeta = metaJson != null ? AttendanceHistoryMeta.fromJson(metaJson) : null;
-
-    final summary = summaryJson != null
-        ? MonthlyTelemetrySummary.fromSummaryApi(summaryJson)
-        : MonthlyTelemetrySummary.fromLogs(parsedLogs);
+    final metaJson = json['meta'] is Map<String, dynamic>
+        ? json['meta'] as Map<String, dynamic>
+        : (json['meta'] is Map ? Map<String, dynamic>.from(json['meta'] as Map) : null);
 
     return AttendanceHistoryResponse(
-      logs: parsedLogs,
-      meta: parsedMeta,
-      summary: summary,
+      data: list,
+      meta: metaJson != null ? AttendanceHistoryMeta.fromJson(metaJson) : null,
     );
   }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'logs': logs.map((e) => e.toJson()).toList(),
-      'meta': meta?.toJson(),
-      'summary': summary.toJson(),
-    };
-  }
 }
+
+// ============================================================================
+// BACKWARD-COMPATIBLE TYPEDEFS (Aliases for Timesheet & Old Action naming)
+// ============================================================================
+typedef AttendanceTimesheetResponse = AttendanceHistoryResponse;
+typedef AttendanceTimesheetDayModel = AttendanceHistoryDayModel;
+typedef AttendanceTimesheetMeta = AttendanceHistoryMeta;
+typedef TimesheetBreakModel = AttendanceHistoryBreakModel;
+typedef TimesheetShiftModel = AttendanceHistoryShiftModel;
+typedef TimesheetSegmentModel = AttendanceHistorySegmentModel;
