@@ -370,18 +370,32 @@ class AttendanceHistoryMeta {
   final String? employeeId;
   final String? from;
   final String? to;
+  final dynamic employee;
 
   const AttendanceHistoryMeta({
     this.employeeId,
     this.from,
     this.to,
+    this.employee,
   });
 
+  String? get employeeName =>
+      employee is Map ? (employee as Map)['name']?.toString() : null;
+
   factory AttendanceHistoryMeta.fromJson(Map<String, dynamic> json) {
+    String? empId;
+    if (json['employee'] is String) {
+      empId = json['employee'] as String;
+    } else if (json['employee'] is Map) {
+      empId = (json['employee'] as Map)['id']?.toString();
+    } else if (json['employee_id'] != null) {
+      empId = json['employee_id']?.toString();
+    }
     return AttendanceHistoryMeta(
-      employeeId: json['employee']?.toString(),
+      employeeId: empId,
       from: json['from']?.toString(),
       to: json['to']?.toString(),
+      employee: json['employee'],
     );
   }
 }

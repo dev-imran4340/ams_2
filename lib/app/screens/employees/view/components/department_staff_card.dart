@@ -11,11 +11,13 @@ import 'package:ams_2/app/screens/employees/model/department_employee_model.dart
 class DepartmentStaffCard extends StatelessWidget {
   final DepartmentEmployeeModel employee;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
 
   const DepartmentStaffCard({
     super.key,
     required this.employee,
     required this.onTap,
+    this.onLongPress,
   });
 
   @override
@@ -27,6 +29,12 @@ class DepartmentStaffCard extends StatelessWidget {
           HapticFeedback.lightImpact();
           onTap();
         },
+        onLongPress: onLongPress != null
+            ? () {
+                HapticFeedback.mediumImpact();
+                onLongPress!();
+              }
+            : null,
         borderRadius: BorderRadius.circular(15.r),
         child: Container(
           padding: EdgeInsets.all(12.w),

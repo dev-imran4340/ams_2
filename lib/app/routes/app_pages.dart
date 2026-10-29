@@ -27,9 +27,13 @@ import '../screens/attendance_summary/view/attendance_summary_view.dart';
 import '../screens/attendance_summary/controller/attendance_summary_controller.dart';
 import '../screens/attendance_summary/repo/attendance_summary_repo.dart';
 
-import '../screens/leaves/view/leave_requests_view.dart';
+import '../screens/leaves/view/leave_management_view.dart';
 import '../screens/leaves/controller/leave_controller.dart';
 import '../screens/leaves/repo/leave_repo.dart';
+
+import '../screens/approvals/view/approvals_inbox_view.dart';
+import '../screens/approvals/controller/approval_controller.dart';
+import '../screens/approvals/repo/approval_repo.dart';
 
 import '../screens/profile/view/profile_view.dart';
 import '../screens/profile/view/profile_details_view.dart';
@@ -105,6 +109,18 @@ import '../screens/schedule/view/schedule_view.dart';
 import '../screens/schedule/controller/schedule_controller.dart';
 import '../screens/schedule/repo/schedule_repo.dart';
 
+import '../screens/payroll/view/payroll_view.dart';
+import '../screens/payroll/controller/payroll_controller.dart';
+import '../screens/payroll/repo/payroll_repo.dart';
+
+import '../screens/loans/view/money_requests_view.dart';
+import '../screens/loans/controller/money_request_controller.dart';
+import '../screens/loans/repo/money_request_repo.dart';
+
+import '../screens/support_tickets/view/support_tickets_view.dart';
+import '../screens/support_tickets/controller/support_ticket_controller.dart';
+import '../screens/support_tickets/repo/support_ticket_repo.dart';
+
 class AppPages {
   // Initial Entry Route
   static const INITIAL = Routes.SPLASH;
@@ -156,6 +172,26 @@ class AppPages {
         Get.lazyPut(() => LeaveRepo(), fenix: true);
         Get.lazyPut(
           () => LeaveController(repo: Get.find()),
+          fenix: true,
+        );
+        Get.lazyPut(() => ApprovalRepo(), fenix: true);
+        Get.lazyPut(
+          () => ApprovalController(repo: Get.find()),
+          fenix: true,
+        );
+        Get.lazyPut(() => PayrollRepo(), fenix: true);
+        Get.lazyPut(
+          () => PayrollController(repo: Get.find()),
+          fenix: true,
+        );
+        Get.lazyPut(() => MoneyRequestRepo(), fenix: true);
+        Get.lazyPut(
+          () => MoneyRequestController(repo: Get.find()),
+          fenix: true,
+        );
+        Get.lazyPut(() => SupportTicketRepo(), fenix: true);
+        Get.lazyPut(
+          () => SupportTicketController(repo: Get.find()),
           fenix: true,
         );
         Get.lazyPut(() => ProfileRepo(), fenix: true);
@@ -457,14 +493,27 @@ class AppPages {
       }),
     ),
 
-    // 23. Requests & Approvals Inbox Screen
+    // 23. Leave Management Screen (Phase 11)
     GetPage(
       name: Routes.LEAVE,
-      page: () => const LeaveRequestsView(),
+      page: () => const LeaveManagementView(),
       binding: BindingsBuilder(() {
         Get.lazyPut(() => LeaveRepo(), fenix: true);
         Get.lazyPut(
           () => LeaveController(repo: Get.find()),
+          fenix: true,
+        );
+      }),
+    ),
+
+    // 23.1 Universal Requests & Approvals Inbox Screen
+    GetPage(
+      name: Routes.APPROVALS,
+      page: () => const ApprovalsInboxView(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => ApprovalRepo(), fenix: true);
+        Get.lazyPut(
+          () => ApprovalController(repo: Get.find()),
           fenix: true,
         );
       }),
@@ -514,6 +563,51 @@ class AppPages {
         Get.lazyPut(() => ScheduleRepo(), fenix: true);
         Get.lazyPut(
           () => ScheduleController(repo: Get.find()),
+          fenix: true,
+        );
+      }),
+    ),
+
+    // 27. Payroll & Payslips Screen (Phase 12 Live Engine)
+    GetPage(
+      name: Routes.PAYROLL,
+      page: () => const PayrollView(),
+      transition: Transition.cupertino,
+      transitionDuration: const Duration(milliseconds: 250),
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => PayrollRepo(), fenix: true);
+        Get.lazyPut(
+          () => PayrollController(repo: Get.find()),
+          fenix: true,
+        );
+      }),
+    ),
+
+    // 28. Loans, Advances & Expenses Screen (Phase 13 Live Engine)
+    GetPage(
+      name: Routes.LOANS,
+      page: () => const MoneyRequestsView(),
+      transition: Transition.cupertino,
+      transitionDuration: const Duration(milliseconds: 250),
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => MoneyRequestRepo(), fenix: true);
+        Get.lazyPut(
+          () => MoneyRequestController(repo: Get.find()),
+          fenix: true,
+        );
+      }),
+    ),
+
+    // 29. Support Tickets & Helpdesk Screen (Phase 10 Live Engine)
+    GetPage(
+      name: Routes.SUPPORT_TICKETS,
+      page: () => const SupportTicketsView(),
+      transition: Transition.cupertino,
+      transitionDuration: const Duration(milliseconds: 250),
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => SupportTicketRepo(), fenix: true);
+        Get.lazyPut(
+          () => SupportTicketController(repo: Get.find()),
           fenix: true,
         );
       }),

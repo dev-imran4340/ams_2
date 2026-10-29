@@ -10,7 +10,7 @@ import '../../../core/utils/app_text_styles.dart';
 import '../../../core/widgets/custom_button.dart';
 import '../../../core/widgets/custom_snackbar.dart';
 import '../../../routes/app_routes.dart';
-import '../../leaves/controller/leave_controller.dart';
+import '../../approvals/controller/approval_controller.dart';
 import '../../profile/controller/profile_controller.dart';
 import '../../profile/model/profile_model.dart';
 import '../model/edit_profile_model.dart';
@@ -763,9 +763,9 @@ class EditProfileController extends GetxController {
   /// Navigates directly to the user's personal requests inbox (/approvals?box=mine)
   void openMyRequestsInbox() {
     HapticFeedback.lightImpact();
-    Get.toNamed(Routes.LEAVE, arguments: {'box': 'mine'});
-    if (Get.isRegistered<LeaveController>()) {
-      Get.find<LeaveController>().changeBox('mine');
+    Get.toNamed(Routes.APPROVALS, arguments: {'box': 'mine'});
+    if (Get.isRegistered<ApprovalController>()) {
+      Get.find<ApprovalController>().changeBox('mine');
     }
   }
 

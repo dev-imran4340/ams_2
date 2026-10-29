@@ -41,10 +41,41 @@ class ApiEndpoints {
   static const String attendanceSummary = '/me/attendance/summary';
   static const String attendanceCorrections = '/me/attendance/corrections';
   static const String attendancePunches = '/me/attendance/punches';
+  static String employeeAttendance(String id) => '/employees/$id/attendance';
   static const String meFace = '/me/face';
 
   // 7. Schedule & Rota (Phase 8 Live Engine)
   static const String meSchedule = '/me/schedule';
   static String employeeSchedule(String id) => '/employees/$id/schedule';
   static const String holidays = '/holidays';
+
+  // 8. Leave Management System (Phase 11 Live Engine)
+  static const String leaveTypes = '/leave/types';
+  static const String meLeaveBalances = '/me/leave/balances';
+  static const String meLeaveRequests = '/me/leave/requests';
+  static const String meLeaveRequestsPreview = '/me/leave/requests/preview';
+  static String meLeaveCancel(String id) => '/me/leave/requests/$id/cancel';
+  static const String leaveWhosOff = '/leave/whos-off';
+  static String employeeLeave(String id) => '/employees/$id/leave';
+
+  // 9. Payroll & Payslips (Phase 12 Live Engine)
+  static const String mePayslips = '/me/payslips';
+  static String mePayslipDetails(String id) => '/me/payslips/$id';
+  static String mePayslipPdf(String id) => '/me/payslips/$id/pdf';
+  static const String meSalary = '/me/salary';
+
+  // 10. Loans, Advances & Expenses (Phase 13 Live Engine)
+  static const String meMoneyRequestTypes = '/me/money-request-types';
+  static const String meMoneyRequests = '/me/money-requests';
+  static String meMoneyRequestDetails(String id) => '/me/money-requests/$id';
+  static String meMoneyRequestCancel(String id) => '/me/money-requests/$id/cancel';
+
+  // 11. Support Tickets & Helpdesk (Phase 10 Live Engine)
+  static const String supportTickets = '/support/tickets';
+  static String supportTicketDetails(String id) => '/support/tickets/$id';
+  static String supportTicketReplies(String id) => '/support/tickets/$id/replies';
+  static String supportTicketClose(String id) => '/support/tickets/$id/close';
+  static String supportTicketReopen(String id) => '/support/tickets/$id/reopen';
+  static String supportTicketFile(String id, String fileId) => '/support/tickets/$id/files/$fileId';
 }
+

@@ -9,44 +9,50 @@ import '../../../core/widgets/custom_screen_header.dart';
 import '../../../core/widgets/custom_state_view.dart';
 import '../../../core/widgets/employee_ambient_header.dart';
 import '../../../core/widgets/network_boundary_wrapper.dart';
-import '../controller/leave_controller.dart';
+import '../controller/approval_controller.dart';
 import 'components/approval_request_tile.dart';
 
-class LeaveRequestsView extends GetView<LeaveController> {
-  const LeaveRequestsView({super.key});
+/// Screen: Universal Requests & Approvals Inbox (GET /api/v1/approvals)
+/// Central decision and task management hub for all company requests:
+/// Details change, attendance corrections, leaves, overtime, and loans.
+class ApprovalsInboxView extends GetView<ApprovalController> {
+  const ApprovalsInboxView({super.key});
 
   @override
   Widget build(BuildContext context) {
     return NetworkBoundaryWrapper(
-      onRetry: () => controller.loadLeaveData(),
+      onRetry: () => controller.fetchApprovals(),
       child: Scaffold(
         backgroundColor: AppColors.backgroundColor,
         body: Stack(
           children: [
-            // 1. Signature Curved Ambient Gradient Background Container (Consistent across all screens)
+            // 1. Signature Curved Ambient Gradient Background Container
             EmployeeAmbientHeader(height: 230.h),
 
             // 2. Overlapping Foreground Content
             SafeArea(
               child: Column(
                 children: [
-                  // 1. Top Bar: Screen Title, Subtitle & Apply Leave Action
+                  // Top Bar: Screen Title & Subtitle
                   Padding(
                     padding: EdgeInsets.fromLTRB(12.w, 8.h, 12.w, 0),
-                    child: _buildTopBar(context),
+                    child: const CustomScreenHeader(
+                      title: 'Requests & Approvals',
+                      subtitle: 'Universal decisions & task inbox',
+                    ),
                   ),
 
                   AppSpaces.vSpace12,
 
-                  // 2. Approvals 4 Boxes Filter Tabs (waiting, mine, pending, decided)
+                  // Approvals 4 Boxes Filter Tabs (waiting, mine, pending, decided)
                   Padding(
                     padding: EdgeInsets.symmetric(horizontal: 12.w),
                     child: _buildBoxFilterStrip(),
                   ),
 
-                  AppSpaces.vSpace16,
+                  AppSpaces.vSpace14,
 
-                  // 3. Requests List or Centered Empty State
+                  // Requests List or Empty State
                   Expanded(
                     child: Obx(() {
                       if (controller.isLoading.value &&
@@ -61,21 +67,21 @@ class LeaveRequestsView extends GetView<LeaveController> {
 
                       if (controller.approvalsList.isEmpty) {
                         return RefreshIndicator(
-                          onRefresh: controller.loadLeaveData,
+                          onRefresh: controller.fetchApprovals,
                           color: AppColors.primary,
                           child: SingleChildScrollView(
                             physics: const AlwaysScrollableScrollPhysics(
                               parent: BouncingScrollPhysics(),
                             ),
                             child: Container(
-                              height: 0.6.sh,
+                              height: 0.55.sh,
                               alignment: Alignment.center,
                               padding: EdgeInsets.symmetric(horizontal: 16.w),
                               child: CustomStateView.empty(
-                                title: 'Not Found',
+                                title: 'No Requests Found',
                                 message:
-                                    'No approval requests found for this box.',
-                                buttonText: 'Refresh',
+                                    'No requests or tasks found in the "${controller.selectedBox.value}" box.',
+                                buttonText: 'Refresh Inbox',
                                 onAction: controller.fetchApprovals,
                               ),
                             ),
@@ -84,7 +90,7 @@ class LeaveRequestsView extends GetView<LeaveController> {
                       }
 
                       return RefreshIndicator(
-                        onRefresh: controller.loadLeaveData,
+                        onRefresh: controller.fetchApprovals,
                         color: AppColors.primary,
                         child: ListView.builder(
                           physics: const AlwaysScrollableScrollPhysics(
@@ -113,16 +119,7 @@ class LeaveRequestsView extends GetView<LeaveController> {
     );
   }
 
-  /// Top executive navigation bar with Title, Subtitle and Apply Leave Action Button
-  Widget _buildTopBar(BuildContext context) {
-    return CustomScreenHeader(
-      title: 'Requests & Approvals',
-      subtitle: 'Approvals & requests inbox',
-    );
-  }
-
   /// 4 Standard Approvals Boxes in a prominent 2x2 executive card grid
-  /// Beautifully occupying the ambient header container space
   Widget _buildBoxFilterStrip() {
     return Obx(() {
       final current = controller.selectedBox.value;
@@ -177,8 +174,6 @@ class LeaveRequestsView extends GetView<LeaveController> {
     });
   }
 
-  /// Individual prominent tab card with icon pill, title, signature teal bottom accent,
-  /// and active count chip
   Widget _buildBoxTabCard({
     required String key,
     required String label,
@@ -208,68 +203,58 @@ class LeaveRequestsView extends GetView<LeaveController> {
               ),
             ],
           ),
-          child: Stack(
-            children: [
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 10.h),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: EdgeInsets.all(7.r),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? AppColors.secondary.withValues(alpha: 0.2)
-                            : AppColors.primary.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(10.r),
-                      ),
-                      child: Icon(
-                        icon,
-                        size: 16.sp,
-                        color: isSelected
-                            ? AppColors.secondary
-                            : AppColors.primary,
-                      ),
-                    ),
-                    AppSpaces.hSpace8,
-                    Expanded(
-                      child: Text(
-                        label,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTextStyles.text12.copyWith(
-                          fontWeight: isSelected
-                              ? FontWeight.bold
-                              : FontWeight.w600,
-                          color: isSelected
-                              ? AppColors.white
-                              : AppColors.textColor,
-                        ),
-                      ),
-                    ),
-                    if (isSelected && controller.approvalsList.isNotEmpty) ...[
-                      AppSpaces.hSpace4,
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 6.w,
-                          vertical: 2.h,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.secondary,
-                          borderRadius: BorderRadius.circular(10.r),
-                        ),
-                        child: Text(
-                          '${controller.approvalsList.length}',
-                          style: AppTextStyles.text10.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.white,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 10.h),
+            child: Row(
+              children: [
+                Container(
+                  padding: EdgeInsets.all(7.r),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? AppColors.secondary.withValues(alpha: 0.2)
+                        : AppColors.primary.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(10.r),
+                  ),
+                  child: Icon(
+                    icon,
+                    size: 16.sp,
+                    color: isSelected ? AppColors.secondary : AppColors.primary,
+                  ),
                 ),
-              ),
-            ],
+                AppSpaces.hSpace8,
+                Expanded(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.text12.copyWith(
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                      color: isSelected ? AppColors.white : AppColors.textColor,
+                    ),
+                  ),
+                ),
+                if (isSelected && controller.approvalsList.isNotEmpty) ...[
+                  AppSpaces.hSpace4,
+                  Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 6.w,
+                      vertical: 2.h,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.secondary,
+                      borderRadius: BorderRadius.circular(10.r),
+                    ),
+                    child: Text(
+                      '${controller.approvalsList.length}',
+                      style: AppTextStyles.text10.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
         ),
       ),

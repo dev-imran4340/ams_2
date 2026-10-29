@@ -59,20 +59,18 @@ class AppDrawer extends StatelessWidget {
                 physics: const BouncingScrollPhysics(),
                 padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 16.h),
                 child: Obx(() {
-                  // Module visibility booleans dynamically driven by sessionController
-                  final bool hasAttendance = sessionController.hasModule(
-                    'attendance',
-                  );
-                  final bool hasDevices = sessionController.hasModule(
-                    'devices',
-                  );
+                  // Module & Permission visibility strictly driven by sessionController
+                  final bool hasAttendance =
+                      sessionController.hasModule('attendance') &&
+                      sessionController.hasPermission('attendance.view');
+                  final bool hasDevices = sessionController.hasModule('devices');
                   final bool hasLeave = sessionController.hasModule('leave');
-                  final bool hasPayroll = sessionController.hasModule(
-                    'payroll',
-                  );
-                  final bool hasLoans = sessionController.hasModule(
-                    'loans_expenses',
-                  );
+                  final bool hasPayroll =
+                      sessionController.hasModule('payroll') &&
+                      sessionController.hasPermission('pay.view');
+                  final bool hasLoans =
+                      sessionController.hasModule('loans_expenses') &&
+                      sessionController.hasPermission('money.view');
                   final bool hasPerformance = sessionController.hasModule(
                     'performance',
                   );
@@ -82,6 +80,12 @@ class AppDrawer extends StatelessWidget {
                   final bool hasOnboarding =
                       sessionController.hasModule('onboarding') &&
                       sessionController.hasPermission('employees.view');
+                  final bool hasSupport =
+                      sessionController.hasPermission('support.view');
+                  final bool hasKioskTerminal =
+                      sessionController.hasModule('devices') &&
+                      (sessionController.hasPermission('devices.manage') ||
+                          sessionController.hasPermission('kiosk.manage'));
 
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -157,12 +161,7 @@ class AppDrawer extends StatelessWidget {
                           subtitle: 'Annual quota balance & absence requests',
                           icon: Icons.beach_access_outlined,
                           accentTint: AppColors.secondary,
-                          onTap: () {
-                            Get.back();
-                            if (Get.isRegistered<IndexController>()) {
-                              Get.find<IndexController>().changeTab(1);
-                            }
-                          },
+                          onTap: () => _navigateToRoute(Routes.LEAVE),
                         ),
 
                       // Card 5: Payroll & Payslips (Module: payroll)
@@ -171,13 +170,8 @@ class AppDrawer extends StatelessWidget {
                           title: 'Payroll & Payslips',
                           subtitle: 'Monthly salary breakdown & tax slips',
                           icon: Icons.receipt_long_outlined,
-                          accentTint: AppColors.success,
-                          onTap: () {
-                            Get.back();
-                            CustomSnackbar.showInfo(
-                              message: 'Your personal salary slips are available in your Profile.',
-                            );
-                          },
+                          accentTint: AppColors.secondary,
+                          onTap: () => _navigateToRoute(Routes.PAYROLL),
                         ),
 
                       // Card 6: Loans & Advances (Module: loans_expenses)
@@ -186,13 +180,8 @@ class AppDrawer extends StatelessWidget {
                           title: 'Loans & Advances',
                           subtitle: 'Advance money requests & installments',
                           icon: Icons.account_balance_wallet_outlined,
-                          accentTint: const Color(0xFFF97316), // Orange accent
-                          onTap: () {
-                            Get.back();
-                            CustomSnackbar.showInfo(
-                              message: 'Loans & advances portal is accessible to active employees.',
-                            );
-                          },
+                          accentTint: AppColors.warning,
+                          onTap: () => _navigateToRoute(Routes.LOANS),
                         ),
 
                       // Card 7: Performance & KPIs (Module: performance)
@@ -231,8 +220,8 @@ class AppDrawer extends StatelessWidget {
                           onTap: () => _navigateToRoute(Routes.ADD_EMPLOYEE),
                         ),
 
-                      // Card 10: Terminal Kiosk Portal (Module: devices / Global)
-                      if (hasDevices)
+                      // Card 10: Terminal Kiosk Portal (Module: devices && Permission: devices.manage / kiosk.manage)
+                      if (hasKioskTerminal)
                         DrawerModuleCard(
                           title: 'Verification Terminal',
                           subtitle: 'Employee verification',
@@ -240,6 +229,26 @@ class AppDrawer extends StatelessWidget {
                           accentTint: AppColors.primary,
                           onTap: () {},
                         ),
+
+                      // Card 11: Helpdesk & Support (Permission: support.view)
+                      if (hasSupport)
+                        DrawerModuleCard(
+                          title: 'Helpdesk & Support',
+                          subtitle: 'Ticket inquiries, issues & assistance',
+                          icon: Icons.support_agent_rounded,
+                          accentTint: AppColors.secondary,
+                          onTap: () =>
+                              _navigateToRoute(Routes.SUPPORT_TICKETS),
+                        ),
+
+                      // Card 12: AI Face Biometrics
+                      DrawerModuleCard(
+                        title: 'AI Face Biometrics',
+                        subtitle: 'Biometric verification, liveness & match',
+                        icon: Icons.face_retouching_natural,
+                        accentTint: AppColors.secondary,
+                        onTap: () => _navigateToRoute(Routes.FACE_RECOGNITION),
+                      ),
 
                       AppSpaces.vSpace8,
                     ],

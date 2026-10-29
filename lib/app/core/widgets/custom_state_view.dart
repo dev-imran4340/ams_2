@@ -84,13 +84,15 @@ class CustomStateView extends StatelessWidget {
     final effectiveButtonAction = onRetry ?? onAction;
 
     return Center(
-      child: Padding(
-        padding: padding ?? AppSpaces.defaultPadding,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
+      child: SingleChildScrollView(
+        physics: const ClampingScrollPhysics(),
+        child: Padding(
+          padding: padding ?? AppSpaces.defaultPadding,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
             // Icon Container
             Container(
               padding: EdgeInsets.all(14.r),
@@ -151,6 +153,7 @@ class CustomStateView extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

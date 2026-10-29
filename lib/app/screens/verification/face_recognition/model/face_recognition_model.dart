@@ -58,5 +58,98 @@ class FaceBiometricMatchModel {
   }
 }
 
+/// Live evaluation checks of the user's face stream inside the oval viewfinder
+class FaceCheckResult {
+  final bool hasExactlyOneFace;
+  final int faceCount;
+  final bool eyesOpen;
+  final double? leftEyeProbability;
+  final double? rightEyeProbability;
+  final bool headStraight;
+  final double? headEulerAngleY; // Yaw
+  final double? headEulerAngleZ; // Roll
+  final bool isCentered;
+  final double centerOffsetX;
+  final double centerOffsetY;
+  final bool isScaleValid;
+  final double scaleRatio;
+  final String statusMessage;
+
+  const FaceCheckResult({
+    required this.hasExactlyOneFace,
+    required this.faceCount,
+    required this.eyesOpen,
+    this.leftEyeProbability,
+    this.rightEyeProbability,
+    required this.headStraight,
+    this.headEulerAngleY,
+    this.headEulerAngleZ,
+    required this.isCentered,
+    this.centerOffsetX = 0.0,
+    this.centerOffsetY = 0.0,
+    required this.isScaleValid,
+    this.scaleRatio = 0.0,
+    required this.statusMessage,
+  });
+
+  bool get allPassed =>
+      hasExactlyOneFace && eyesOpen && headStraight && isCentered && isScaleValid;
+
+  factory FaceCheckResult.initial() {
+    return const FaceCheckResult(
+      hasExactlyOneFace: false,
+      faceCount: 0,
+      eyesOpen: false,
+      headStraight: false,
+      isCentered: false,
+      isScaleValid: false,
+      statusMessage: 'Position your face inside the oval frame',
+    );
+  }
+
+  factory FaceCheckResult.noFace() {
+    return const FaceCheckResult(
+      hasExactlyOneFace: false,
+      faceCount: 0,
+      eyesOpen: false,
+      headStraight: false,
+      isCentered: false,
+      isScaleValid: false,
+      statusMessage: 'No face detected. Align your face inside the frame.',
+    );
+  }
+
+  factory FaceCheckResult.multipleFaces(int count) {
+    return FaceCheckResult(
+      hasExactlyOneFace: false,
+      faceCount: count,
+      eyesOpen: false,
+      headStraight: false,
+      isCentered: false,
+      isScaleValid: false,
+      statusMessage: '$count faces detected. Only 1 person allowed in frame.',
+    );
+  }
+}
+
+/// AI Facial Comparison Report between local reference face and live selfie
+class FaceComparisonReport {
+  final bool matched;
+  final double score; // 0.0 to 1.0
+  final String statusLog;
+  final String message;
+  final DateTime timestamp;
+
+  const FaceComparisonReport({
+    required this.matched,
+    required this.score,
+    required this.statusLog,
+    required this.message,
+    required this.timestamp,
+  });
+
+  String get scorePercentage => '${(score * 100).toStringAsFixed(1)}%';
+}
+
 /// Backwards compatibility alias for existing code
 typedef FaceMatchResultModel = FaceBiometricMatchModel;

@@ -6,7 +6,7 @@ import '../../../api/app_preferences.dart';
 import '../../../core/widgets/custom_snackbar.dart';
 import '../../dashboard/view/dashboard_view.dart';
 
-import '../../leaves/view/leave_requests_view.dart';
+import '../../approvals/view/approvals_inbox_view.dart';
 
 import '../../employees/view/employees_view.dart';
 import '../../attendance_history/view/attendance_history_view.dart';
@@ -119,6 +119,13 @@ class IndexController extends GetxController {
 
     if (menu.isNotEmpty) {
       for (final item in menu) {
+        // Module check: if module is specified and not core, verify subscription
+        if (item.module.isNotEmpty && item.module != 'core') {
+          if (!AppPreferences.hasModule(item.module)) {
+            continue;
+          }
+        }
+
         if (item.key == 'home') {
           tabs.add(
             DynamicNavTab(
@@ -137,38 +144,45 @@ class IndexController extends GetxController {
               id: 'requests',
               label: item.label,
               icon: Icons.inbox_rounded,
-              builder: () => const LeaveRequestsView(),
+              builder: () => const ApprovalsInboxView(),
               requiredModule: item.module,
               hasBadge: () => (menuBadges['requests'] ?? 0) > 0,
               badgeCount: () => menuBadges['requests'] ?? 0,
             ),
           );
         } else if (item.key == 'employees') {
-          tabs.add(
-            DynamicNavTab(
-              id: 'employees',
-              label: item.label,
-              icon: Icons.badge_outlined,
-              builder: () => const DepartmentEmployeesView(),
-              requiredModule: item.module,
-              requiredPermission: 'employees.view',
-              hasBadge: () => (menuBadges['employees'] ?? 0) > 0,
-              badgeCount: () => menuBadges['employees'] ?? 0,
-            ),
-          );
+          // Strictly verify employees.view permission before rendering tab
+          if (AppPreferences.hasPermission('employees.view')) {
+            tabs.add(
+              DynamicNavTab(
+                id: 'employees',
+                label: item.label,
+                icon: Icons.badge_outlined,
+                builder: () => const DepartmentEmployeesView(),
+                requiredModule: item.module,
+                requiredPermission: 'employees.view',
+                hasBadge: () => (menuBadges['employees'] ?? 0) > 0,
+                badgeCount: () => menuBadges['employees'] ?? 0,
+              ),
+            );
+          }
         } else if (item.key == 'attendance') {
-          tabs.add(
-            DynamicNavTab(
-              id: 'attendance',
-              label: item.label,
-              icon: Icons.calendar_today_rounded,
-              builder: () => const AttendanceHistoryView(),
-              requiredModule: item.module,
-              requiredPermission: 'attendance.view',
-              hasBadge: () => (menuBadges['attendance'] ?? 0) > 0,
-              badgeCount: () => menuBadges['attendance'] ?? 0,
-            ),
-          );
+          // Strictly verify attendance module and attendance.view permission
+          if (AppPreferences.hasModule('attendance') &&
+              AppPreferences.hasPermission('attendance.view')) {
+            tabs.add(
+              DynamicNavTab(
+                id: 'attendance',
+                label: item.label,
+                icon: Icons.calendar_today_rounded,
+                builder: () => const AttendanceHistoryView(),
+                requiredModule: item.module,
+                requiredPermission: 'attendance.view',
+                hasBadge: () => (menuBadges['attendance'] ?? 0) > 0,
+                badgeCount: () => menuBadges['attendance'] ?? 0,
+              ),
+            );
+          }
         }
       }
 
@@ -185,8 +199,8 @@ class IndexController extends GetxController {
         ),
       );
     } else {
-      // Direct baseline corresponding to server's 3 menu items + Profile
-      tabs.addAll([
+      // Direct baseline corresponding to server's menu items + Profile
+      tabs.add(
         DynamicNavTab(
           id: 'home',
           label: 'Home',
@@ -196,25 +210,36 @@ class IndexController extends GetxController {
           hasBadge: () => (menuBadges['home'] ?? 0) > 0,
           badgeCount: () => menuBadges['home'] ?? 0,
         ),
+      );
+      tabs.add(
         DynamicNavTab(
           id: 'requests',
           label: 'Requests',
           icon: Icons.inbox_rounded,
-          builder: () => const LeaveRequestsView(),
+          builder: () => const ApprovalsInboxView(),
           requiredModule: 'core',
           hasBadge: () => (menuBadges['requests'] ?? 0) > 0,
           badgeCount: () => menuBadges['requests'] ?? 0,
         ),
-        DynamicNavTab(
-          id: 'employees',
-          label: 'Employees',
-          icon: Icons.badge_outlined,
-          builder: () => const DepartmentEmployeesView(),
-          requiredModule: 'core',
-          requiredPermission: 'employees.view',
-          hasBadge: () => (menuBadges['employees'] ?? 0) > 0,
-          badgeCount: () => menuBadges['employees'] ?? 0,
-        ),
+      );
+
+      // Only add employees tab if user has employees.view permission
+      if (AppPreferences.hasPermission('employees.view')) {
+        tabs.add(
+          DynamicNavTab(
+            id: 'employees',
+            label: 'Employees',
+            icon: Icons.badge_outlined,
+            builder: () => const DepartmentEmployeesView(),
+            requiredModule: 'core',
+            requiredPermission: 'employees.view',
+            hasBadge: () => (menuBadges['employees'] ?? 0) > 0,
+            badgeCount: () => menuBadges['employees'] ?? 0,
+          ),
+        );
+      }
+
+      tabs.add(
         DynamicNavTab(
           id: 'profile',
           label: 'Profile',
@@ -224,7 +249,7 @@ class IndexController extends GetxController {
           hasBadge: () => (menuBadges['profile'] ?? 0) > 0,
           badgeCount: () => menuBadges['profile'] ?? 0,
         ),
-      ]);
+      );
     }
 
     navTabs.assignAll(tabs);

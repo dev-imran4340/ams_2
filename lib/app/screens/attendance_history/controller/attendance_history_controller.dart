@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
+import '../../../api/app_preferences.dart';
 import '../../../core/widgets/custom_snackbar.dart';
 import '../../../routes/app_routes.dart';
 import '../../index/controller/index_controller.dart';
@@ -31,6 +32,21 @@ class AttendanceHistoryController extends GetxController {
 
   final RxString fromDate = ''.obs;
   final RxString toDate = ''.obs;
+
+  // Manager / HR Audit Target Employee (GET /employees/{id}/attendance)
+  final RxString targetEmployeeId = ''.obs;
+  final RxString targetEmployeeName = ''.obs;
+  final RxBool isAccessRestricted = false.obs;
+
+  bool get isAuditMode => targetEmployeeId.value.isNotEmpty;
+
+  bool get canViewAudit {
+    if (!AppPreferences.hasModule('attendance')) return false;
+    if (targetEmployeeId.value.isEmpty) {
+      return AppPreferences.hasPermission('attendance.view');
+    }
+    return AppPreferences.hasPermission('attendance.view', 'department');
+  }
 
   static const List<String> monthNames = [
     'January',
@@ -72,21 +88,46 @@ class AttendanceHistoryController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    final args = Get.arguments;
+    if (args is Map) {
+      if (args['employeeId'] != null) {
+        targetEmployeeId.value = args['employeeId'].toString();
+      }
+      if (args['employeeName'] != null) {
+        targetEmployeeName.value = args['employeeName'].toString();
+      }
+    }
     // Default load current active month with from=2026-10-01 & to=2026-10-31
     applyThisMonth();
   }
 
-  /// Loads live attendance history records from GET /me/attendance (with optional from/to range)
+  /// Loads live attendance history records from GET /me/attendance or GET /employees/{id}/attendance
   Future<void> loadTimesheet({String? from, String? to}) async {
+    if (!canViewAudit) {
+      isAccessRestricted.value = true;
+      timesheetResponse.value = null;
+      return;
+    }
+    isAccessRestricted.value = false;
+
     try {
       isLoading.value = true;
       if (from != null) fromDate.value = from;
       if (to != null) toDate.value = to;
 
-      final result = await repo.fetchAttendanceHistory(
-        from: from ?? (fromDate.value.isNotEmpty ? fromDate.value : null),
-        to: to ?? (toDate.value.isNotEmpty ? toDate.value : null),
-      );
+      final AttendanceHistoryResponse? result;
+      if (targetEmployeeId.value.isNotEmpty) {
+        result = await repo.fetchEmployeeAttendance(
+          targetEmployeeId.value,
+          from: from ?? (fromDate.value.isNotEmpty ? fromDate.value : null),
+          to: to ?? (toDate.value.isNotEmpty ? toDate.value : null),
+        );
+      } else {
+        result = await repo.fetchAttendanceHistory(
+          from: from ?? (fromDate.value.isNotEmpty ? fromDate.value : null),
+          to: to ?? (toDate.value.isNotEmpty ? toDate.value : null),
+        );
+      }
       timesheetResponse.value = result;
     } finally {
       isLoading.value = false;

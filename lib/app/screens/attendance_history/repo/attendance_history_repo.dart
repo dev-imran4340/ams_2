@@ -60,4 +60,38 @@ class AttendanceHistoryRepo {
     String? to,
   }) =>
       fetchAttendanceHistory(from: from, to: to);
+
+  /// Fetches attendance records for a specific employee within manager/HR scope (GET /employees/{id}/attendance)
+  Future<AttendanceHistoryResponse?> fetchEmployeeAttendance(
+    String employeeId, {
+    String? from,
+    String? to,
+  }) async {
+    try {
+      final queryParams = <String, dynamic>{};
+      if (from != null && from.isNotEmpty) queryParams['from'] = from;
+      if (to != null && to.isNotEmpty) queryParams['to'] = to;
+
+      final response = await ApiClient.request(
+        endpoint: ApiEndpoints.employeeAttendance(employeeId),
+        method: HttpMethod.get,
+        queryParameters: queryParams.isNotEmpty ? queryParams : null,
+        tag: '$_tag -> fetchEmployeeAttendance($employeeId)',
+        showToastOnError: false,
+      );
+
+      if (response != null && response is Map && response['data'] != null) {
+        return AttendanceHistoryResponse.fromJson(
+          Map<String, dynamic>.from(response),
+        );
+      }
+    } catch (e, stackTrace) {
+      ExceptionHandler.handle(
+        ApiException(message: 'Failed to fetch employee attendance: $e'),
+        tag:
+            '$_tag -> fetchEmployeeAttendance($employeeId) [${stackTrace.toString().split('\n').first}]',
+      );
+    }
+    return null;
+  }
 }

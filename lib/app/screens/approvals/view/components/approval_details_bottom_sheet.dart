@@ -10,10 +10,10 @@ import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/widgets/custom_snackbar.dart';
 import '../../../../core/widgets/custom_state_view.dart';
 import '../../../../core/widgets/custom_text_field.dart';
-import '../../controller/leave_controller.dart';
+import '../../controller/approval_controller.dart';
 import '../../model/approval_model.dart';
 
-class ApprovalDetailsBottomSheet extends GetView<LeaveController> {
+class ApprovalDetailsBottomSheet extends GetView<ApprovalController> {
   const ApprovalDetailsBottomSheet({super.key});
 
   static String _formatTimestamp(String? isoString) {

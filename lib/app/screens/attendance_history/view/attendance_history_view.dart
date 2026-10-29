@@ -8,6 +8,7 @@ import '../../../core/utils/app_colors.dart';
 import '../../../core/utils/app_spaces.dart';
 import '../../../core/utils/app_text_styles.dart';
 import '../../../core/widgets/custom_screen_header.dart';
+import '../../../core/widgets/custom_state_view.dart';
 import '../../../core/widgets/employee_ambient_header.dart';
 import '../../../core/widgets/network_boundary_wrapper.dart';
 import '../../../routes/app_routes.dart';
@@ -48,22 +49,43 @@ class AttendanceHistoryView extends GetView<AttendanceHistoryController> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Top Executive Navigation Header with Dynamic Sync Status
-                      CustomScreenHeader(
-                        title: 'Attendance History',
-                        subtitle: 'Verified daily punches & activity logs',
-                        actions: [
-                          if (AppPreferences.hasModule('attendance') &&
-                              AppPreferences.hasPermission('attendance.view'))
-                            CustomScreenHeader.actionButton(
-                              icon: Icons.schedule_rounded,
-                              onTap: () {
-                                HapticFeedback.lightImpact();
-                                Get.toNamed(Routes.SCHEDULE);
-                              },
-                              tooltip: 'Work Schedule & Rota',
-                            ),
-                        ],
-                      ),
+                      Obx(() {
+                        final isAudit = controller.isAuditMode;
+                        final empName = controller.targetEmployeeName.value;
+                        final title = isAudit
+                            ? (empName.isNotEmpty ? empName : 'Staff Attendance')
+                            : 'Attendance History';
+                        final subtitle = isAudit
+                            ? 'SCOPE: DEPARTMENT AUDIT'
+                            : 'Verified daily punches & activity logs';
+
+                        return CustomScreenHeader(
+                          title: title,
+                          subtitle: subtitle,
+                          actions: [
+                            if (AppPreferences.hasModule('attendance') &&
+                                AppPreferences.hasPermission('attendance.view'))
+                              CustomScreenHeader.actionButton(
+                                icon: Icons.schedule_rounded,
+                                onTap: () {
+                                  HapticFeedback.lightImpact();
+                                  if (isAudit) {
+                                    Get.toNamed(
+                                      Routes.SCHEDULE,
+                                      arguments: {
+                                        'employeeId': controller.targetEmployeeId.value,
+                                        'employeeName': controller.targetEmployeeName.value,
+                                      },
+                                    );
+                                  } else {
+                                    Get.toNamed(Routes.SCHEDULE);
+                                  }
+                                },
+                                tooltip: 'Work Schedule & Rota',
+                              ),
+                          ],
+                        );
+                      }),
 
                       AppSpaces.vSpace14,
 
@@ -123,6 +145,17 @@ class AttendanceHistoryView extends GetView<AttendanceHistoryController> {
 
                       // 5. In-Body State: Loading Spinner, Empty State, or Records List
                       Obx(() {
+                        if (controller.isAccessRestricted.value) {
+                          return Padding(
+                            padding: EdgeInsets.symmetric(vertical: 24.h),
+                            child: CustomStateView.error(
+                              title: 'Access Restricted',
+                              message:
+                                  'You do not have permission to view these attendance records.',
+                            ),
+                          );
+                        }
+
                         // ─── STATE A: Loading in progress ───
                         if (controller.isLoading.value) {
                           return _buildLoadingState();

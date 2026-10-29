@@ -28,10 +28,14 @@ abstract class Routes {
   static const EDIT_PROFILE = '/edit-profile';
   static const PROFILE_DETAILS = '/profile-details';
   static const LEAVE = '/leave';
+  static const APPROVALS = '/approvals';
   static const NOTIFICATIONS = '/notifications';
   static const NOTIFICATION_PREFERENCES = '/notification-preferences';
   static const ATTENDANCE_SUMMARY = '/attendance-summary';
   static const SCHEDULE = '/schedule';
+  static const PAYROLL = '/payroll';
+  static const LOANS = '/loans';
+  static const SUPPORT_TICKETS = '/support-tickets';
 }
 
 

@@ -9,12 +9,12 @@ This document tracks the implementation status of all endpoints defined in `doc/
 | Category | Count | Status |
 |---|---|---|
 | **Total Documented Endpoints** | **62** | Full API Surface (Phases 7–13) |
-| **Implemented / Done Endpoints** | **30** | Live in Codebase (`ApiClient` + Repos + Screens) |
-| **Remaining Endpoints** | **32** | Pending Implementation (Phases 10–13) |
+| **Implemented / Done Endpoints** | **55** | Live in Codebase (`ApiClient` + Repos + Screens) |
+| **Remaining Endpoints** | **7** | Pending Implementation (Phase 10) |
 
 ---
 
-## Part 1: Implemented / Done Endpoints (30 Endpoints)
+## Part 1: Implemented / Done Endpoints (55 Endpoints)
 
 All endpoints listed below are connected with the central network engine (`ApiClient.request()`), mapped in `ApiEndpoints`, and wired to their respective GetX Repositories and Controllers.
 
@@ -50,10 +50,35 @@ All endpoints listed below are connected with the central network engine (`ApiCl
 | 28 | `GET` | `/me/schedule` | Phase 8 | `ScheduleRepo.fetchMySchedule()` (Working shift rota, pattern hours, overnight shifts & rest days) |
 | 29 | `GET` | `/employees/{id}/schedule` | Phase 8 | `ScheduleRepo.fetchEmployeeSchedule()` (Manager & HR employee schedule audit within scope) |
 | 30 | `GET` | `/holidays` | Phase 8 | `ScheduleRepo.fetchHolidays()` (Annual company & public gazetted holidays calendar) |
+| 31 | `GET` | `/leave/types` | Phase 11 | `LeaveRepo.fetchLeaveTypes()` (Company leave categories, rules & balances eligibility) |
+| 32 | `GET` | `/me/leave/balances` | Phase 11 | `LeaveRepo.fetchLeaveBalances()` (Live quota entitlement & breakdown) |
+| 33 | `GET` | `/me/leave/requests` | Phase 11 | `LeaveRepo.fetchLeaveRequests()` (Employee submitted leave applications) |
+| 34 | `POST` | `/me/leave/requests/preview` | Phase 11 | `LeaveRepo.previewLeaveRequest()` (Live sandwich rule & deduction dry run) |
+| 35 | `POST` | `/me/leave/requests` | Phase 11 | `LeaveRepo.submitLeaveApplication()` (Official leave application via JSON / Multipart) |
+| 36 | `POST` | `/me/leave/requests/{id}/cancel` | Phase 11 | `LeaveRepo.cancelLeaveRequest()` (Withdraw / cancel leave application) |
+| 37 | `GET` | `/leave/whos-off` | Phase 11 | `LeaveRepo.fetchWhosOff()` (Department colleagues who's off calendar) |
+| 38 | `GET` | `/me/payslips` | Phase 12 | `PayrollRepo.fetchPayslips()` (Finalized monthly payslips list, newest first, max 36) |
+| 39 | `GET` | `/me/payslips/{id}` | Phase 12 | `PayrollRepo.fetchPayslipDetails()` (Itemized earnings, deductions, taxes, and net pay) |
+| 40 | `GET` | `/me/payslips/{id}/pdf` | Phase 12 | `PayrollRepo.downloadPayslipPdf()` (Official printable PDF download) |
+| 41 | `GET` | `/me/salary` | Phase 12 | `PayrollRepo.fetchActiveSalary()` (Active salary structure & recurring formula lines) |
+| 42 | `GET` | `/me/money-request-types` | Phase 13 | `MoneyRequestRepo.fetchMoneyRequestTypes()` (Eligible request types & expense categories) |
+| 43 | `POST` | `/me/money-requests` | Phase 13 | `MoneyRequestRepo.submitMoneyRequest()` (Loan/advance application or multipart expense claim with receipts) |
+| 44 | `GET` | `/me/money-requests` | Phase 13 | `MoneyRequestRepo.fetchMoneyRequests()` (List submitted employee money requests) |
+| 45 | `GET` | `/me/money-requests/{id}` | Phase 13 | `MoneyRequestRepo.fetchMoneyRequestDetails()` (Itemized audit, payout metadata, schedule, and recovery history) |
+| 46 | `POST` | `/me/money-requests/{id}/cancel` | Phase 13 | `MoneyRequestRepo.cancelMoneyRequest()` (Cancel/withdraw pending money request) |
+| 47 | `GET` | `/support/tickets` | Phase 10 | `SupportTicketRepo.fetchTickets()` (Lists user support tickets, active or finished) |
+| 48 | `POST` | `/support/tickets` | Phase 10 | `SupportTicketRepo.createTicket()` (Opens support ticket with optional attachments) |
+| 49 | `GET` | `/support/tickets/{id}` | Phase 10 | `SupportTicketRepo.fetchTicketDetails()` (Full message thread and attachments) |
+| 50 | `POST` | `/support/tickets/{id}/replies` | Phase 10 | `SupportTicketRepo.replyTicket()` (Appends message reply with optional attachments) |
+| 51 | `POST` | `/support/tickets/{id}/close` | Phase 10 | `SupportTicketRepo.closeTicket()` (Marks active ticket as closed) |
+| 52 | `POST` | `/support/tickets/{id}/reopen` | Phase 10 | `SupportTicketRepo.reopenTicket()` (Reopens resolved ticket) |
+| 53 | `GET` | `/support/tickets/{id}/files/{file}` | Phase 10 | `SupportTicketRepo.downloadAttachment()` (Downloads attachment file) |
+| 54 | `GET` | `/employees/{id}/attendance` | Phase 9 | `AttendanceHistoryRepo.fetchEmployeeAttendance()`, `DepartmentEmployeesRepo.fetchEmployeeAttendance()` (Manager & HR subordinate attendance audit with range & punch logs) |
+| 55 | `GET` | `/employees/{id}/leave` | Phase 11 | `LeaveRepo.fetchEmployeeLeave()`, `DepartmentEmployeesRepo.fetchEmployeeLeave()` (Manager & HR subordinate leave balances quota & request history audit) |
 
 ---
 
-## Part 2: Remaining Endpoints & Detailed Specifications (32 Endpoints)
+## Part 2: Remaining Endpoints & Detailed Specifications (7 Endpoints)
 
 ---
 
@@ -196,8 +221,9 @@ All endpoints listed below are connected with the central network engine (`ApiCl
   | `month` | string | Optional | `YYYY-MM` (Default: current month). |
 * **Request Body:** None.
 
-#### 7. `GET /employees/{id}/attendance` `[STATUS: PENDING]`
-* **Purpose:** Team manager or HR retrieves attendance logs for an employee within scope.
+#### 7. `GET /employees/{id}/attendance` `[STATUS: IMPLEMENTED / LIVE]`
+* **Implementation:** `AttendanceHistoryRepo.fetchEmployeeAttendance()`, `DepartmentEmployeesRepo.fetchEmployeeAttendance()`, `AttendanceHistoryController.loadTimesheet()`
+* **Purpose:** Team manager or HR retrieves attendance logs and punch timeline for an employee within scope (gated by `attendance.view` [department / company scope]).
 * **Path Parameter:** `id` *(required, string)*: 26-character employee ULID.
 * **Query Parameters:** `from`, `to` (Same as `/me/attendance`).
 * **Request Body:** None.
@@ -356,9 +382,10 @@ All endpoints listed below are connected with the central network engine (`ApiCl
 
 ---
 
-### Module 5: Support Tickets (Phase 10 — 7 Endpoints)
+### Module 5: Support Tickets (Phase 10 — 7 Endpoints) `[STATUS: IMPLEMENTED / LIVE]`
 
-#### 17. `GET /support/tickets`
+#### 17. `GET /support/tickets` `[STATUS: IMPLEMENTED / LIVE]`
+* **Implementation:** `SupportTicketRepo.fetchTickets()` / `SupportTicketController.loadTickets()` / `SupportTicketsView`
 * **Purpose:** Lists support tickets visible to the user.
 * **Query Parameters:**
   | Parameter | Type | Required | Description |
@@ -368,7 +395,8 @@ All endpoints listed below are connected with the central network engine (`ApiCl
   | `page` | integer | Optional | Page number. |
 * **Request Body:** None.
 
-#### 18. `POST /support/tickets`
+#### 18. `POST /support/tickets` `[STATUS: IMPLEMENTED / LIVE]`
+* **Implementation:** `SupportTicketRepo.createTicket()` / `SupportTicketController.submitNewTicket()` / `CreateTicketBottomSheet`
 * **Purpose:** Opens a new support ticket with the AMS engineering and operations team.
 * **Headers:** `Content-Type: application/json` or `multipart/form-data`.
 * **Request Body:**
@@ -382,12 +410,14 @@ All endpoints listed below are connected with the central network engine (`ApiCl
   | `attachments[]` | file array | Optional | Up to 5 files (JPG, PNG, GIF, WEBP, PDF, TXT, CSV, XLSX, DOCX; max 5 MB each). |
 * **Response (201 Created):** Returns full ticket thread structure.
 
-#### 19. `GET /support/tickets/{id}`
+#### 19. `GET /support/tickets/{id}` `[STATUS: IMPLEMENTED / LIVE]`
+* **Implementation:** `SupportTicketRepo.fetchTicketDetails()` / `SupportTicketController.openTicketThread()` / `TicketThreadBottomSheet`
 * **Purpose:** Retrieves full message thread and attachments for a ticket.
 * **Path Parameter:** `id` *(required, string)*: 26-character ticket ULID.
 * **Request Body:** None.
 
-#### 20. `POST /support/tickets/{id}/replies`
+#### 20. `POST /support/tickets/{id}/replies` `[STATUS: IMPLEMENTED / LIVE]`
+* **Implementation:** `SupportTicketRepo.replyTicket()` / `SupportTicketController.sendReply()` / `TicketThreadBottomSheet`
 * **Purpose:** Appends a reply message to an open support ticket.
 * **Path Parameter:** `id` *(required, string)*: Ticket ULID.
 * **Headers:** `Content-Type: application/json` or `multipart/form-data`.
@@ -398,27 +428,30 @@ All endpoints listed below are connected with the central network engine (`ApiCl
   | `attachments[]` | file array | Optional | Up to 5 files (max 5 MB each). |
 * **Response (201 Created):** Returns updated ticket thread.
 
-#### 21. `POST /support/tickets/{id}/close`
+#### 21. `POST /support/tickets/{id}/close` `[STATUS: IMPLEMENTED / LIVE]`
+* **Implementation:** `SupportTicketRepo.closeTicket()` / `SupportTicketController.closeTicket()` / `TicketThreadBottomSheet`
 * **Purpose:** Marks an active ticket as closed.
 * **Path Parameter:** `id` *(required, string)*: Ticket ULID.
 * **Request Body:** None.
 
-#### 22. `POST /support/tickets/{id}/reopen`
+#### 22. `POST /support/tickets/{id}/reopen` `[STATUS: IMPLEMENTED / LIVE]`
+* **Implementation:** `SupportTicketRepo.reopenTicket()` / `SupportTicketController.reopenTicket()` / `TicketThreadBottomSheet`
 * **Purpose:** Reopens a previously resolved ticket.
 * **Path Parameter:** `id` *(required, string)*: Ticket ULID.
 * **Rules:** Only tickets in `resolved` status can be reopened (`403` otherwise).
 * **Request Body:** None.
 
-#### 23. `GET /support/tickets/{id}/files/{file}`
+#### 23. `GET /support/tickets/{id}/files/{file}` `[STATUS: IMPLEMENTED / LIVE]`
+* **Implementation:** `SupportTicketRepo.downloadAttachment()` / `SupportTicketController.openAttachment()` / `TicketThreadBottomSheet`
 * **Purpose:** Downloads a file attachment from a support ticket message.
 * **Path Parameters:** `id` (Ticket ULID), `file` (Attachment ID).
 * **Request Body:** None.
 
 ---
 
-### Module 6: Leave System (Phase 11 — 8 Endpoints)
+### Module 6: Leave System (Phase 11 — 8 Endpoints) `[STATUS: IMPLEMENTED / LIVE]`
 
-#### 24. `GET /leave/types`
+#### 24. `GET /leave/types` `[STATUS: IMPLEMENTED / LIVE]`
 * **Purpose:** Fetches all available leave categories, rules, and balances eligibility.
 * **Request Body:** None.
 * **Response (200 OK):**
@@ -515,17 +548,18 @@ All endpoints listed below are connected with the central network engine (`ApiCl
   | `to` | string | Optional | `YYYY-MM-DD` (Max 92 days range). |
 * **Request Body:** None.
 
-#### 31. `GET /employees/{id}/leave`
-* **Purpose:** Manager / HR view of subordinate employee's leave balances and request history.
+#### 31. `GET /employees/{id}/leave` `[STATUS: IMPLEMENTED / LIVE]`
+* **Implementation:** `LeaveRepo.fetchEmployeeLeave()`, `DepartmentEmployeesRepo.fetchEmployeeLeave()`, `DepartmentEmployeesController.fetchEmployeeLeaveAudit()`, `EmployeeLeaveAuditSheet`
+* **Purpose:** Manager / HR audit of subordinate employee's leave quota balances and submitted request history (gated by `leave.view` [department / company scope]).
 * **Path Parameter:** `id` *(required, string)*: Employee ULID.
 * **Request Body:** None.
 * **Errors:** `403` (Outside scope), `404` (Not found).
 
 ---
 
-### Module 7: Payroll & Payslips (Phase 12 — 4 Endpoints)
+### Module 7: Payroll & Payslips (Phase 12 — 4 Endpoints) `[STATUS: IMPLEMENTED / LIVE]`
 
-#### 32. `GET /me/payslips`
+#### 32. `GET /me/payslips` `[STATUS: IMPLEMENTED / LIVE]`
 * **Purpose:** Lists finalized historical payslips for the authenticated employee (newest first, max 36).
 * **Request Body:** None.
 * **Response (200 OK):**
@@ -583,9 +617,10 @@ All endpoints listed below are connected with the central network engine (`ApiCl
 
 ---
 
-### Module 8: Loans, Advances & Expenses (Money Requests) (Phase 13 — 5 Endpoints)
+### Module 8: Loans, Advances & Expenses (Money Requests) (Phase 13 — 5 Endpoints) `[STATUS: IMPLEMENTED / LIVE]`
 
-#### 36. `GET /me/money-request-types`
+#### 36. `GET /me/money-request-types` `[STATUS: IMPLEMENTED / LIVE]`
+* **Implementation:** `MoneyRequestRepo.fetchMoneyRequestTypes()` / `MoneyRequestController.loadData()` / `ApplyMoneyRequestBottomSheet`
 * **Purpose:** Returns the eligible money request types (`loan`, `advance`, `payment`, `expense`) and expense categories.
 * **Request Body:** None.
 * **Response (200 OK):**
@@ -613,8 +648,9 @@ All endpoints listed below are connected with the central network engine (`ApiCl
   }
   ```
 
-#### 37. `POST /me/money-requests`
-* **Purpose:** Submits an advance, staff loan, or expense reimbursement request.
+#### 37. `POST /me/money-requests` `[STATUS: IMPLEMENTED / LIVE]`
+* **Implementation:** `MoneyRequestRepo.submitMoneyRequest()` / `MoneyRequestController.submitRequest()` / `ApplyMoneyRequestBottomSheet`
+* **Purpose:** Submits an advance, staff loan, or expense reimbursement request. Supports standard JSON and multipart form data for expense claims with receipts.
 * **Headers:** `Content-Type: application/json` or `multipart/form-data` (when receipts are attached).
 * **Request Body:**
   | Field | Type | Required | Rules & Constraints |
@@ -632,8 +668,9 @@ All endpoints listed below are connected with the central network engine (`ApiCl
 * **Response (201 Created):** Full money request entity with status `pending`.
 * **Errors:** `409 Conflict` (Policy limits exceeded, missing receipt, invalid type for employee), `422` (Validation failed).
 
-#### 38. `GET /me/money-requests`
-* **Purpose:** Lists employee's submitted money requests.
+#### 38. `GET /me/money-requests` `[STATUS: IMPLEMENTED / LIVE]`
+* **Implementation:** `MoneyRequestRepo.fetchMoneyRequests()` / `MoneyRequestController.loadData()` / `MoneyRequestsView`
+* **Purpose:** Lists employee's submitted money requests with filter pills (`All`, `Loans`, `Advances`, `Expenses`).
 * **Query Parameters:**
   | Parameter | Type | Required | Description |
   |---|---|---|---|
@@ -641,13 +678,15 @@ All endpoints listed below are connected with the central network engine (`ApiCl
   | `page` | integer | Optional | Page index (1+). |
 * **Request Body:** None.
 
-#### 39. `GET /me/money-requests/{id}`
+#### 39. `GET /me/money-requests/{id}` `[STATUS: IMPLEMENTED / LIVE]`
+* **Implementation:** `MoneyRequestRepo.fetchMoneyRequestDetails()` / `MoneyRequestController.openDetails()` / `MoneyRequestDetailsBottomSheet`
 * **Purpose:** Audit details of a money request, repayment schedule, itemized expense lines, and payroll recovery records.
 * **Path Parameter:** `id` *(required, string)*: Money Request ULID.
 * **Request Body:** None.
 
-#### 40. `POST /me/money-requests/{id}/cancel`
-* **Purpose:** Cancels a pending money request.
+#### 40. `POST /me/money-requests/{id}/cancel` `[STATUS: IMPLEMENTED / LIVE]`
+* **Implementation:** `MoneyRequestRepo.cancelMoneyRequest()` / `MoneyRequestController.cancelRequest()` / `MoneyRequestDetailsBottomSheet`
+* **Purpose:** Cancels a pending money request with optional cancellation reason.
 * **Path Parameter:** `id` *(required, string)*: Money Request ULID.
 * **Request Body (JSON):**
   | Field | Type | Required | Description |

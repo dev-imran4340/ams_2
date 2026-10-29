@@ -4,6 +4,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
 import '../../../../../core/utils/app_colors.dart';
+import '../../../../../core/utils/app_spaces.dart';
+import '../../../../../core/utils/app_text_styles.dart';
 import '../../controller/face_recognition_controller.dart';
 
 class BiometricOvalViewfinder extends GetView<FaceRecognitionController> {
@@ -21,7 +23,7 @@ class BiometricOvalViewfinder extends GetView<FaceRecognitionController> {
 
         // Centered in visible window below header
         final centerX = screenW / 2;
-        final centerY = screenH * 0.43;
+        final centerY = screenH * 0.42;
 
         final ovalRect = Rect.fromCenter(
           center: Offset(centerX, centerY),
@@ -82,24 +84,33 @@ class BiometricOvalViewfinder extends GetView<FaceRecognitionController> {
               rect: ovalRect,
               child: Obx(() {
                 final isSuccess = controller.isMatchSuccess.value;
-                final borderColor =
-                    isSuccess ? AppColors.success : AppColors.secondary;
+                final isPassed = controller.isAllChecksPassed.value;
+                final hasFace = controller.checkResult.value.faceCount > 0;
+
+                final Color borderColor;
+                if (isSuccess) {
+                  borderColor = AppColors.success;
+                } else if (isPassed) {
+                  borderColor = AppColors.secondary;
+                } else if (hasFace) {
+                  borderColor = AppColors.error;
+                } else {
+                  borderColor = AppColors.liteSecondary.withValues(alpha: 0.5);
+                }
 
                 return AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
+                  duration: const Duration(milliseconds: 250),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.all(
                       Radius.elliptical(ovalWidth / 2, ovalHeight / 2),
                     ),
                     border: Border.all(
                       color: borderColor,
-                      width: isSuccess ? 3.5.w : 2.5.w,
+                      width: isSuccess ? 3.5.w : (isPassed ? 3.0.w : 2.0.w),
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: isSuccess
-                            ? AppColors.success.withValues(alpha: 0.5)
-                            : AppColors.secondary.withValues(alpha: 0.3),
+                        color: borderColor.withValues(alpha: isSuccess ? 0.5 : 0.25),
                         blurRadius: isSuccess ? 24.r : 16.r,
                         spreadRadius: isSuccess ? 3.r : 1.r,
                       ),
@@ -197,6 +208,82 @@ class BiometricOvalViewfinder extends GetView<FaceRecognitionController> {
                   ),
                 );
               }),
+            ),
+
+            // 4. Live Floating Quality Guidance Pill
+            Positioned(
+              left: 20.w,
+              right: 20.w,
+              top: centerY + (ovalHeight / 2) + 14.h,
+              child: Center(
+                child: Obx(() {
+                  final isSuccess = controller.isMatchSuccess.value;
+                  final isPassed = controller.isAllChecksPassed.value;
+                  final hasFace = controller.checkResult.value.faceCount > 0;
+
+                  final Color pillColor;
+                  final IconData pillIcon;
+
+                  if (isSuccess) {
+                    pillColor = AppColors.success;
+                    pillIcon = Icons.check_circle_rounded;
+                  } else if (isPassed) {
+                    pillColor = AppColors.secondary;
+                    pillIcon = Icons.verified_rounded;
+                  } else if (hasFace) {
+                    pillColor = AppColors.error;
+                    pillIcon = Icons.warning_amber_rounded;
+                  } else {
+                    pillColor = AppColors.liteSecondary;
+                    pillIcon = Icons.info_outline_rounded;
+                  }
+
+                  return AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 14.w,
+                      vertical: 6.h,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.88),
+                      borderRadius: BorderRadius.circular(20.r),
+                      border: Border.all(
+                        color: pillColor.withValues(alpha: 0.5),
+                        width: 1.w,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withValues(alpha: 0.4),
+                          blurRadius: 10.r,
+                          offset: Offset(0, 3.h),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          pillIcon,
+                          size: 14.sp,
+                          color: pillColor,
+                        ),
+                        AppSpaces.hSpace8,
+                        Flexible(
+                          child: Text(
+                            controller.statusText.value,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTextStyles.text12.copyWith(
+                              color: pillColor,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+              ),
             ),
           ],
         );

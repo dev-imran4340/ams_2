@@ -7,15 +7,18 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
 
+import '../../controller/department_employees_controller.dart';
 import '../../model/department_employee_model.dart';
 
 class EmployeeDetailSheet extends StatelessWidget {
+  final DepartmentEmployeesController controller;
   final DepartmentEmployeeModel employee;
   final bool canViewSensitive;
   final bool canPrintCard;
 
   const EmployeeDetailSheet({
     super.key,
+    required this.controller,
     required this.employee,
     required this.canViewSensitive,
     required this.canPrintCard,
@@ -256,9 +259,117 @@ class EmployeeDetailSheet extends StatelessWidget {
                 ),
               ],
 
-              // 4. Print / Export ID Card Button (Gated strictly by 'employees.cards.print')
+              // 4. Managerial Audit Actions (Attendance, Leave, Schedule)
+              Builder(
+                builder: (context) {
+                  final bool canAuditAttendance =
+                      controller.canAuditAttendanceFor(employee);
+                  final bool canAuditLeave =
+                      controller.canAuditLeaveFor(employee);
+                  final bool canViewSchedule =
+                      controller.canViewScheduleFor(employee);
+                  final bool hasManagerActions = canAuditAttendance ||
+                      canAuditLeave ||
+                      canViewSchedule;
+
+                  if (!hasManagerActions) return const SizedBox.shrink();
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      AppSpaces.vSpace18,
+                      _buildSectionTitle('STAFF AUDIT & RECORDS'),
+                      AppSpaces.vSpace10,
+                      Row(
+                        children: [
+                          if (canAuditAttendance)
+                            Expanded(
+                              child: _buildActionTile(
+                                icon: Icons.history_toggle_off_rounded,
+                                title: 'Attendance\nLogs',
+                                color: AppColors.secondary,
+                                onTap: () {
+                                  Get.back();
+                                  controller.openEmployeeAttendance(employee);
+                                },
+                              ),
+                            ),
+                          if (canAuditAttendance &&
+                              (canAuditLeave || canViewSchedule))
+                            AppSpaces.hSpace8,
+                          if (canAuditLeave)
+                            Expanded(
+                              child: _buildActionTile(
+                                icon: Icons.beach_access_rounded,
+                                title: 'Leave\nAudit',
+                                color: AppColors.warning,
+                                onTap: () {
+                                  Get.back();
+                                  controller.openEmployeeLeaveAudit(
+                                    context,
+                                    employee,
+                                  );
+                                },
+                              ),
+                            ),
+                          if (canAuditLeave && canViewSchedule)
+                            AppSpaces.hSpace8,
+                          if (canViewSchedule)
+                            Expanded(
+                              child: _buildActionTile(
+                                icon: Icons.schedule_rounded,
+                                title: 'Work\nRota',
+                                color: AppColors.primary,
+                                onTap: () {
+                                  Get.back();
+                                  controller.openEmployeeSchedule(employee);
+                                },
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
+                  );
+                },
+              ),
+
+              // 5. Full Profile Navigation Action
+              AppSpaces.vSpace14,
+              SizedBox(
+                width: double.infinity,
+                height: 44.h,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Get.back();
+                    controller.openEmployeeProfile(employee);
+                  },
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(
+                      color: AppColors.secondary.withValues(alpha: 0.6),
+                      width: 1.2.w,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12.r),
+                    ),
+                  ),
+                  icon: Icon(
+                    Icons.badge_outlined,
+                    size: 18.sp,
+                    color: AppColors.secondary,
+                  ),
+                  label: Text(
+                    'View Detailed Profile & Records',
+                    style: AppTextStyles.text12.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.secondary,
+                    ),
+                  ),
+                ),
+              ),
+
+              // 6. Print / Export ID Card Button (Gated strictly by 'employees.cards.print')
               if (canPrintCard) ...[
-                AppSpaces.vSpace18,
+                AppSpaces.vSpace10,
                 SizedBox(
                   width: double.infinity,
                   height: 46.h,
@@ -288,6 +399,62 @@ class EmployeeDetailSheet extends StatelessWidget {
               ],
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionTile({
+    required IconData icon,
+    required String title,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.cardBackground,
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: AppColors.borderColor, width: 1.w),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.04),
+            blurRadius: 6.r,
+            offset: Offset(0, 2.h),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12.r),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: onTap,
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 10.h, horizontal: 6.w),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(icon, size: 20.sp, color: color),
+                      AppSpaces.vSpace4,
+                      Text(
+                        title,
+                        textAlign: TextAlign.center,
+                        style: AppTextStyles.text10.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textColor,
+                          height: 1.2,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            Container(height: 3.h, color: color), // Signature bottom accent
+          ],
         ),
       ),
     );

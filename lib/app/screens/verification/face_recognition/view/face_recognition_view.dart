@@ -213,12 +213,16 @@ class FaceRecognitionView extends GetView<FaceRecognitionController> {
                                 ),
                               ),
                               AppSpaces.hSpace6,
-                              Text(
-                                'Step 2 of 2 • Liveness Check',
-                                style: AppTextStyles.text10.copyWith(
-                                  color: AppColors.liteSecondary,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 0.3,
+                              Obx(
+                                () => Text(
+                                  controller.isPunchMode.value
+                                      ? 'Attendance Punch • Face Verification'
+                                      : 'AI Biometrics • Liveness Gate',
+                                  style: AppTextStyles.text10.copyWith(
+                                    color: AppColors.liteSecondary,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 0.3,
+                                  ),
                                 ),
                               ),
                             ],

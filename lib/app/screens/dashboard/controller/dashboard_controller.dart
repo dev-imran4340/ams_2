@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import '../../../api/app_preferences.dart';
 import '../../../core/widgets/custom_snackbar.dart';
 import '../../../routes/app_routes.dart';
 import '../model/dashboard_model.dart';
@@ -137,6 +138,13 @@ class DashboardController extends GetxController {
 
   /// Loads live dashboard telemetry from server with Zero Dummy Fallback Policy
   Future<void> loadDashboard() async {
+    final bool hasAttendance = AppPreferences.hasModule('attendance') &&
+        AppPreferences.hasPermission('attendance.view');
+    if (!hasAttendance) {
+      dashboardData.value = null;
+      return;
+    }
+
     try {
       isLoading.value = true;
       final result = await repo.fetchDashboardData();

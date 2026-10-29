@@ -97,6 +97,19 @@ class DepartmentEmployeesView extends GetView<DepartmentEmployeesController> {
                   // 3. Department Staff List
                   Expanded(
                     child: Obx(() {
+                      if (controller.isAccessRestricted.value) {
+                        return Center(
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 24.w),
+                            child: CustomStateView.error(
+                              title: 'Access Restricted',
+                              message:
+                                  'You do not have permission to view the department directory.',
+                            ),
+                          ),
+                        );
+                      }
+
                       if (controller.isLoading.value) {
                         return Center(
                           child: CircularProgressIndicator(
@@ -135,6 +148,8 @@ class DepartmentEmployeesView extends GetView<DepartmentEmployeesController> {
                             return DepartmentStaffCard(
                               employee: employee,
                               onTap: () =>
+                                  controller.showEmployeeDetails(context, employee),
+                              onLongPress: () =>
                                   controller.openEmployeeProfile(employee),
                             );
                           },

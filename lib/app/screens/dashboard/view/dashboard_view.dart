@@ -44,8 +44,13 @@ class DashboardView extends GetView<DashboardController> {
             );
           }
 
+          final hasAttendance = (sessionController.hasModule('attendance') ||
+                  AppPreferences.hasModule('attendance')) &&
+              (sessionController.hasPermission('attendance.view') ||
+                  AppPreferences.hasPermission('attendance.view'));
+
           final data = controller.dashboardData.value;
-          if (data == null) {
+          if (hasAttendance && data == null) {
             return CustomStateView.empty(
               title: 'No Attendance Data',
               message: 'No attendance records available for today.',
@@ -85,97 +90,98 @@ class DashboardView extends GetView<DashboardController> {
                         AppSpaces.vSpace12,
 
                         // 1. Floating Live Shift & Running Clock Hero Card (Overlaps curved header)
-                        const LiveShiftClockCard(),
-
-                        AppSpaces.vSpace12,
+                        if (hasAttendance) ...[
+                          const LiveShiftClockCard(),
+                          AppSpaces.vSpace12,
+                        ],
 
                         // 2. Executive Quick Services Hub
                         const DashboardQuickActions(),
 
-                        AppSpaces.vSpace12,
-
                         // 3. Section: Today's Metrics Overview
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 4.w,
-                                    height: 16.h,
-                                    decoration: BoxDecoration(
-                                      color: AppColors.secondary,
-                                      borderRadius: BorderRadius.circular(2.r),
-                                    ),
-                                  ),
-                                  AppSpaces.hSpace8,
-                                  Expanded(
-                                    child: Text(
-                                      "Today's Overview",
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: AppTextStyles.text16.copyWith(
-                                        fontWeight: FontWeight.bold,
-                                        color: AppColors.textColor,
+                        if (hasAttendance) ...[
+                          AppSpaces.vSpace12,
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 4.w,
+                                      height: 16.h,
+                                      decoration: BoxDecoration(
+                                        color: AppColors.secondary,
+                                        borderRadius: BorderRadius.circular(2.r),
                                       ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            AppSpaces.hSpace8,
-                            Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 10.w,
-                                vertical: 4.h,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.secondary.withValues(
-                                  alpha: 0.1,
+                                    AppSpaces.hSpace8,
+                                    Expanded(
+                                      child: Text(
+                                        "Today's Overview",
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: AppTextStyles.text16.copyWith(
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColors.textColor,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                borderRadius: BorderRadius.circular(12.r),
-                                border: Border.all(
+                              ),
+                              AppSpaces.hSpace8,
+                              Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 10.w,
+                                  vertical: 4.h,
+                                ),
+                                decoration: BoxDecoration(
                                   color: AppColors.secondary.withValues(
-                                    alpha: 0.25,
+                                    alpha: 0.1,
                                   ),
-                                  width: 1.w,
+                                  borderRadius: BorderRadius.circular(12.r),
+                                  border: Border.all(
+                                    color: AppColors.secondary.withValues(
+                                      alpha: 0.25,
+                                    ),
+                                    width: 1.w,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      width: 6.r,
+                                      height: 6.r,
+                                      decoration: const BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: AppColors.secondary,
+                                      ),
+                                    ),
+                                    AppSpaces.hSpace6,
+                                    Text(
+                                      'Live Metrics',
+                                      style: AppTextStyles.text10.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.secondary,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Container(
-                                    width: 6.r,
-                                    height: 6.r,
-                                    decoration: const BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: AppColors.secondary,
-                                    ),
-                                  ),
-                                  AppSpaces.hSpace6,
-                                  Text(
-                                    'Live Metrics',
-                                    style: AppTextStyles.text10.copyWith(
-                                      fontWeight: FontWeight.w600,
-                                      color: AppColors.secondary,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
+                            ],
+                          ),
+                          AppSpaces.vSpace12,
 
-                        AppSpaces.vSpace12,
+                          // 4-Card Mini Grid
+                          const TodayStatsGrid(),
 
-                        // 4-Card Mini Grid
-                        const TodayStatsGrid(),
+                          AppSpaces.vSpace20,
 
-                        AppSpaces.vSpace20,
-
-                        // 4. Section: Today's Punch Activity Log
-                        const RecentActivityTimeline(),
+                          // 4. Section: Today's Punch Activity Log
+                          const RecentActivityTimeline(),
+                        ],
 
                         AppSpaces.vSpace24,
 

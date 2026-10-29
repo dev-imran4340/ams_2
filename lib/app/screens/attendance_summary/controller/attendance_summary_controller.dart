@@ -1,5 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import '../../../api/app_preferences.dart';
 import '../model/attendance_summary_model.dart';
 import '../repo/attendance_summary_repo.dart';
 
@@ -23,6 +24,13 @@ class AttendanceSummaryController extends GetxController {
 
   /// Loads attendance summary telemetry for the selected month
   Future<void> loadSummary(DateTime month) async {
+    final bool hasAttendance = AppPreferences.hasModule('attendance') &&
+        AppPreferences.hasPermission('attendance.view');
+    if (!hasAttendance) {
+      summary.value = null;
+      return;
+    }
+
     try {
       isLoading.value = true;
       selectedMonth.value = month;

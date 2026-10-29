@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import '../../../../../core/utils/app_colors.dart';
 import '../../../../../core/utils/app_spaces.dart';
 import '../../../../../core/utils/app_text_styles.dart';
+import '../../../../../core/widgets/custom_button.dart';
 import '../../controller/face_recognition_controller.dart';
 
 class FaceMatchingTelemetryCard extends GetView<FaceRecognitionController> {
@@ -13,18 +14,18 @@ class FaceMatchingTelemetryCard extends GetView<FaceRecognitionController> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+      margin: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
+      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
       decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.88),
-        borderRadius: BorderRadius.circular(22.r),
+        color: AppColors.primary.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(20.r),
         border: Border.all(
           color: AppColors.white.withValues(alpha: 0.18),
           width: 1.w,
         ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.45),
+            color: AppColors.primary.withValues(alpha: 0.5),
             blurRadius: 20.r,
             offset: Offset(0, 6.h),
           ),
@@ -42,8 +43,8 @@ class FaceMatchingTelemetryCard extends GetView<FaceRecognitionController> {
                 final isVerifying = controller.isVerifying.value;
 
                 return Container(
-                  width: 36.r,
-                  height: 36.r,
+                  width: 34.r,
+                  height: 34.r,
                   decoration: BoxDecoration(
                     color: isSuccess
                         ? AppColors.success.withValues(alpha: 0.22)
@@ -60,15 +61,15 @@ class FaceMatchingTelemetryCard extends GetView<FaceRecognitionController> {
                     child: isSuccess
                         ? Icon(
                             Icons.check_rounded,
-                            size: 20.sp,
+                            size: 18.sp,
                             color: AppColors.success,
                           )
                         : (isVerifying
                             ? SizedBox(
-                                width: 16.r,
-                                height: 16.r,
+                                width: 14.r,
+                                height: 14.r,
                                 child: CircularProgressIndicator(
-                                  strokeWidth: 2.5.w,
+                                  strokeWidth: 2.2.w,
                                   valueColor: const AlwaysStoppedAnimation<Color>(
                                     AppColors.secondary,
                                   ),
@@ -76,14 +77,14 @@ class FaceMatchingTelemetryCard extends GetView<FaceRecognitionController> {
                               )
                             : Icon(
                                 Icons.face_rounded,
-                                size: 20.sp,
+                                size: 18.sp,
                                 color: AppColors.secondary,
                               )),
                   ),
                 );
               }),
 
-              AppSpaces.hSpace12,
+              AppSpaces.hSpace10,
 
               // Status Title & Dynamic Step Subtitle
               Expanded(
@@ -96,7 +97,9 @@ class FaceMatchingTelemetryCard extends GetView<FaceRecognitionController> {
                             ? 'Identity Confirmed'
                             : (controller.isVerifying.value
                                 ? 'Analyzing Facial Biometrics'
-                                : 'Awaiting Face Alignment'),
+                                : (controller.isAllChecksPassed.value
+                                    ? 'Checks Passed • Ready to Match'
+                                    : 'Awaiting Face Alignment')),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: AppTextStyles.text14.copyWith(
@@ -114,7 +117,9 @@ class FaceMatchingTelemetryCard extends GetView<FaceRecognitionController> {
                         style: AppTextStyles.text10.copyWith(
                           color: controller.isMatchSuccess.value
                               ? AppColors.success
-                              : AppColors.liteSecondary,
+                              : (controller.isAllChecksPassed.value
+                                  ? AppColors.secondary
+                                  : AppColors.liteSecondary),
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -136,7 +141,9 @@ class FaceMatchingTelemetryCard extends GetView<FaceRecognitionController> {
                     borderRadius: BorderRadius.circular(12.r),
                   ),
                   child: Text(
-                    '$percent%',
+                    controller.isMatchSuccess.value
+                        ? '${controller.confidenceReadout.value.toStringAsFixed(1)}%'
+                        : '$percent%',
                     style: AppTextStyles.text10.copyWith(
                       color: controller.isMatchSuccess.value
                           ? AppColors.success
@@ -149,7 +156,7 @@ class FaceMatchingTelemetryCard extends GetView<FaceRecognitionController> {
             ],
           ),
 
-          AppSpaces.vSpace12,
+          AppSpaces.vSpace8,
 
           // 2. Animated Progress Bar
           Obx(() {
@@ -160,30 +167,20 @@ class FaceMatchingTelemetryCard extends GetView<FaceRecognitionController> {
               borderRadius: BorderRadius.circular(3.r),
               child: Stack(
                 children: [
-                  // Track
                   Container(
-                    height: 5.h,
+                    height: 4.h,
                     color: AppColors.white.withValues(alpha: 0.12),
                   ),
-                  // Animated Fill
                   FractionallySizedBox(
                     widthFactor: progress.clamp(0.0, 1.0),
                     child: Container(
-                      height: 5.h,
+                      height: 4.h,
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: isSuccess
                               ? [AppColors.success, AppColors.successMint]
                               : [AppColors.secondary, AppColors.liteSecondary],
                         ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: isSuccess
-                                ? AppColors.success.withValues(alpha: 0.6)
-                                : AppColors.secondary.withValues(alpha: 0.6),
-                            blurRadius: 6.r,
-                          ),
-                        ],
                       ),
                     ),
                   ),
@@ -192,96 +189,175 @@ class FaceMatchingTelemetryCard extends GetView<FaceRecognitionController> {
             );
           }),
 
-          AppSpaces.vSpace14,
+          AppSpaces.vSpace10,
 
-          // 3. Telemetry Metrics Matrix Row
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.5),
-              borderRadius: BorderRadius.circular(14.r),
-              border: Border.all(
-                color: AppColors.white.withValues(alpha: 0.08),
-                width: 0.8.w,
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
+          // 3. Five Real-Time Biometric Quality Checks Strip
+          Obx(() {
+            final res = controller.checkResult.value;
+
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Metric 1: Confidence Score
-                Obx(() {
-                  final score = controller.isMatchSuccess.value
-                      ? controller.confidenceReadout.value
-                      : (controller.matchProgress.value * 99.4)
-                          .toStringAsFixed(1);
-                  return _buildTelemetryItem(
-                    label: 'Confidence',
-                    value: '$score%',
-                    valueColor: controller.isMatchSuccess.value
-                        ? AppColors.success
-                        : AppColors.liteSecondary,
-                  );
-                }),
+                _buildQualityChip(
+                  label: '1 Face',
+                  passed: res.hasExactlyOneFace,
+                ),
+                _buildQualityChip(
+                  label: 'Eyes Open',
+                  passed: res.eyesOpen,
+                ),
+                _buildQualityChip(
+                  label: 'Straight',
+                  passed: res.headStraight,
+                ),
+                _buildQualityChip(
+                  label: 'Centered',
+                  passed: res.isCentered,
+                ),
+                _buildQualityChip(
+                  label: 'Distance',
+                  passed: res.isScaleValid,
+                ),
+              ],
+            );
+          }),
 
-                _buildVerticalDivider(),
+          AppSpaces.vSpace10,
 
-                // Metric 2: Liveness Protocol
-                _buildTelemetryItem(
-                  label: 'Liveness',
-                  value: 'Active 3D',
-                  valueColor: AppColors.liteSecondary,
+          // 4. Action Buttons (Save Baseline / Match with AI / Submit Punch)
+          Obx(() {
+            final isSuccess = controller.isMatchSuccess.value;
+            final isVerifying = controller.isVerifying.value;
+            final isSaving = controller.isSavingReference.value;
+            final isChecksPassed = controller.isAllChecksPassed.value;
+            final hasRef = controller.hasReferenceFace.value;
+
+            if (isSuccess) {
+              return CustomButton(
+                text: 'Done • Proceed',
+                isGradient: true,
+                onPressed: controller.proceedToDashboard,
+              );
+            }
+
+            return Row(
+              children: [
+                // Enrollment Button: Save Reference Face
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: (isChecksPassed && !isSaving && !isVerifying)
+                        ? controller.saveReferenceFace
+                        : null,
+                    icon: isSaving
+                        ? SizedBox(
+                            width: 14.r,
+                            height: 14.r,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.w,
+                              valueColor: const AlwaysStoppedAnimation<Color>(
+                                AppColors.liteSecondary,
+                              ),
+                            ),
+                          )
+                        : Icon(
+                            hasRef
+                                ? Icons.bookmark_added_rounded
+                                : Icons.face_retouching_natural,
+                            size: 15.sp,
+                            color: isChecksPassed
+                                ? AppColors.liteSecondary
+                                : AppColors.subTextColor,
+                          ),
+                    label: Text(
+                      hasRef ? 'Update Face' : 'Save Baseline',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.text12.copyWith(
+                        color: isChecksPassed
+                            ? AppColors.white
+                            : AppColors.subTextColor,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      padding: EdgeInsets.symmetric(vertical: 9.h),
+                      side: BorderSide(
+                        color: isChecksPassed
+                            ? AppColors.secondary.withValues(alpha: 0.6)
+                            : AppColors.white.withValues(alpha: 0.15),
+                        width: 1.w,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10.r),
+                      ),
+                    ),
+                  ),
                 ),
 
-                _buildVerticalDivider(),
+                AppSpaces.hSpace8,
 
-                // Metric 3: Employee Code
-                Obx(
-                  () => _buildTelemetryItem(
-                    label: 'Badge ID',
-                    value: controller.employeeId.value,
-                    valueColor: AppColors.white,
+                // Matching Action Button
+                Expanded(
+                  flex: 1,
+                  child: CustomButton(
+                    text: controller.isPunchMode.value
+                        ? 'Confirm Punch'
+                        : 'Match AI',
+                    isGradient: true,
+                    isLoading: isVerifying,
+                    onPressed: (isChecksPassed && !isVerifying)
+                        ? controller.verifyFaceMatch
+                        : null,
                   ),
                 ),
               ],
-            ),
-          ),
+            );
+          }),
         ],
       ),
     );
   }
 
-  Widget _buildTelemetryItem({
+  /// Builds a micro quality checklist chip
+  Widget _buildQualityChip({
     required String label,
-    required String value,
-    required Color valueColor,
+    required bool passed,
   }) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          label,
-          style: AppTextStyles.text10.copyWith(
-            color: AppColors.white.withValues(alpha: 0.6),
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        AppSpaces.vSpace2,
-        Text(
-          value,
-          style: AppTextStyles.text12.copyWith(
-            color: valueColor,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ],
-    );
-  }
+    final Color color = passed ? AppColors.secondary : AppColors.subTextColor;
 
-  Widget _buildVerticalDivider() {
     return Container(
-      width: 1.w,
-      height: 24.h,
-      color: AppColors.white.withValues(alpha: 0.12),
+      padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 3.h),
+      decoration: BoxDecoration(
+        color: passed
+            ? AppColors.secondary.withValues(alpha: 0.15)
+            : AppColors.white.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(8.r),
+        border: Border.all(
+          color: passed
+              ? AppColors.secondary.withValues(alpha: 0.45)
+              : AppColors.white.withValues(alpha: 0.1),
+          width: 0.8.w,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            passed ? Icons.check_circle_rounded : Icons.radio_button_unchecked,
+            size: 10.sp,
+            color: color,
+          ),
+          AppSpaces.hSpace4,
+          Text(
+            label,
+            style: AppTextStyles.text10.copyWith(
+              color: passed ? AppColors.white : AppColors.subTextColor,
+              fontSize: 9.sp,
+              fontWeight: passed ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
