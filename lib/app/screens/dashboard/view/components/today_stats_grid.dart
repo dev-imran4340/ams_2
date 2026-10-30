@@ -16,7 +16,9 @@ class TodayStatsGrid extends GetView<DashboardController> {
       final today = controller.dashboardData.value?.todayAttendance;
       final checkIn = today?.checkInTime ?? '--:--';
       final checkOut = today?.checkOutTime ?? '--:--';
-      final totalHours = today?.workingHours ?? '0:00';
+      final latestOut = today?.latestCheckOutTime;
+      final latestIn = today?.latestCheckInTime;
+      final totalHours = today?.workingHours ?? '0h 00m';
       final overtime = today?.overtime ?? '0:00';
       final isCheckedIn = today?.isCheckedIn ?? false;
       final isCheckedOut = (checkOut != '--:--');
@@ -27,6 +29,43 @@ class TodayStatsGrid extends GetView<DashboardController> {
 
       final isOvertimeActive = (overtime != '0:00' && overtime != '+00h 00m' && overtime != '00:00');
 
+      // Check-In card values
+      final bool hasMultipleIns = (latestIn != null && latestIn != checkIn && checkIn != '--:--');
+      final String checkInSubtitle = checkIn == '--:--'
+          ? 'Not Checked In'
+          : (hasMultipleIns
+              ? 'First: $checkIn • Active: $latestIn'
+              : 'Started: $checkIn');
+      final String checkInTag = checkIn == '--:--'
+          ? 'Pending'
+          : (isCheckedIn ? 'Active' : 'Logged');
+
+      // Check-Out card values
+      final bool hasPriorOut = (!isCheckedOut && latestOut != null && latestOut != '--:--');
+      final String checkOutDisplayVal = isCheckedOut
+          ? checkOut
+          : (hasPriorOut ? latestOut : '--:--');
+      final String checkOutSubtitle = isCheckedOut
+          ? 'Ended: $checkOut'
+          : (hasPriorOut
+              ? (isCheckedIn ? 'Last Out: $latestOut (Active)' : 'Last Out: $latestOut')
+              : (isCheckedIn ? 'In Progress' : 'Pending'));
+      final String checkOutTag = isCheckedOut
+          ? 'Completed'
+          : (hasPriorOut
+              ? (isCheckedIn ? 'Re-entered' : 'Logged')
+              : (isCheckedIn ? 'Running' : 'Pending'));
+      final Color checkOutTagColor = isCheckedOut
+          ? AppColors.info
+          : (hasPriorOut
+              ? (isCheckedIn ? AppColors.secondary : AppColors.info)
+              : (isCheckedIn ? AppColors.secondary : AppColors.subTextColor));
+      final Color checkOutAccentColor = isCheckedOut
+          ? AppColors.info
+          : (hasPriorOut
+              ? (isCheckedIn ? AppColors.secondary : AppColors.info)
+              : AppColors.secondary);
+
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -36,12 +75,8 @@ class TodayStatsGrid extends GetView<DashboardController> {
                 child: _buildStatCard(
                   title: 'Check-In',
                   value: checkIn,
-                  subtitle: checkIn == '--:--'
-                      ? 'Not Checked In'
-                      : 'Started: $checkIn',
-                  tag: checkIn == '--:--'
-                      ? 'Pending'
-                      : (isCheckedIn ? 'Active' : 'Logged'),
+                  subtitle: checkInSubtitle,
+                  tag: checkInTag,
                   tagColor: checkIn == '--:--'
                       ? AppColors.subTextColor
                       : AppColors.onTimeColor,
@@ -55,18 +90,12 @@ class TodayStatsGrid extends GetView<DashboardController> {
               Expanded(
                 child: _buildStatCard(
                   title: 'Check-Out',
-                  value: checkOut,
-                  subtitle: isCheckedOut
-                      ? 'Ended: $checkOut'
-                      : (isCheckedIn ? 'In Progress' : 'Pending'),
-                  tag: isCheckedOut
-                      ? 'Completed'
-                      : (isCheckedIn ? 'Running' : 'Pending'),
-                  tagColor: isCheckedOut
-                      ? AppColors.info
-                      : (isCheckedIn ? AppColors.secondary : AppColors.subTextColor),
+                  value: checkOutDisplayVal,
+                  subtitle: checkOutSubtitle,
+                  tag: checkOutTag,
+                  tagColor: checkOutTagColor,
                   icon: Icons.logout_rounded,
-                  accentColor: isCheckedOut ? AppColors.info : AppColors.secondary,
+                  accentColor: checkOutAccentColor,
                 ),
               ),
             ],

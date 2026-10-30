@@ -58,6 +58,12 @@ class FaceBiometricMatchModel {
   }
 }
 
+/// Modes for local face biometric operations
+enum FaceActionMode {
+  register,
+  verify,
+}
+
 /// Live evaluation checks of the user's face stream inside the oval viewfinder
 class FaceCheckResult {
   final bool hasExactlyOneFace;
@@ -73,6 +79,7 @@ class FaceCheckResult {
   final double centerOffsetY;
   final bool isScaleValid;
   final double scaleRatio;
+  final bool isInsideOval;
   final String statusMessage;
 
   const FaceCheckResult({
@@ -89,11 +96,17 @@ class FaceCheckResult {
     this.centerOffsetY = 0.0,
     required this.isScaleValid,
     this.scaleRatio = 0.0,
+    this.isInsideOval = false,
     required this.statusMessage,
   });
 
   bool get allPassed =>
-      hasExactlyOneFace && eyesOpen && headStraight && isCentered && isScaleValid;
+      hasExactlyOneFace &&
+      eyesOpen &&
+      headStraight &&
+      isCentered &&
+      isScaleValid &&
+      isInsideOval;
 
   factory FaceCheckResult.initial() {
     return const FaceCheckResult(
@@ -103,6 +116,7 @@ class FaceCheckResult {
       headStraight: false,
       isCentered: false,
       isScaleValid: false,
+      isInsideOval: false,
       statusMessage: 'Position your face inside the oval frame',
     );
   }
@@ -115,6 +129,7 @@ class FaceCheckResult {
       headStraight: false,
       isCentered: false,
       isScaleValid: false,
+      isInsideOval: false,
       statusMessage: 'No face detected. Align your face inside the frame.',
     );
   }
@@ -127,6 +142,7 @@ class FaceCheckResult {
       headStraight: false,
       isCentered: false,
       isScaleValid: false,
+      isInsideOval: false,
       statusMessage: '$count faces detected. Only 1 person allowed in frame.',
     );
   }

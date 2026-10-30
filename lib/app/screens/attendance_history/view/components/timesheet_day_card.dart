@@ -270,9 +270,11 @@ class TimesheetDayCard extends StatelessWidget {
                               ),
                               AppSpaces.hSpace4,
                               Text(
-                                log.totalBreakMinutes > 0
-                                    ? 'Breaks (${log.totalBreakFormatted})'
-                                    : 'Check Breaks',
+                                log.totalBreakUsedMinutes > 0
+                                    ? 'Breaks (${log.totalBreakUsedFormatted})'
+                                    : (log.allowedBreakMinutes > 0
+                                        ? 'Breaks (0m / ${log.allowedBreakFormatted})'
+                                        : 'Breaks'),
                                 style: AppTextStyles.text10.copyWith(
                                   fontWeight: FontWeight.bold,
                                   color: AppColors.secondary,

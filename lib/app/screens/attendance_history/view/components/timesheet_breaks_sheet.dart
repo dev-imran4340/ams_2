@@ -139,107 +139,208 @@ class TimesheetBreaksSheet extends StatelessWidget {
               ),
               AppSpaces.vSpace14,
 
-              // 3. Summary Banner (Total Break Time & Sessions)
+              // 3. Multi-Metric Quota & Usage Summary Banner
               Container(
                 width: double.infinity,
                 padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
                 decoration: BoxDecoration(
                   color: AppColors.primary.withValues(alpha: 0.05),
-                  borderRadius: BorderRadius.circular(12.r),
+                  borderRadius: BorderRadius.circular(14.r),
                   border: Border.all(
                     color: AppColors.borderColor,
                     width: 1.w,
                   ),
                 ),
-                child: Row(
+                child: Column(
                   children: [
-                    // Total Break Time
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Total Break Time',
-                            style: AppTextStyles.text10.copyWith(
-                              color: AppColors.subTextColor,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          AppSpaces.vSpace4,
-                          Row(
+                    Row(
+                      children: [
+                        // Column 1: Allowed Break Quota
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                log.totalBreakMinutes > 0
-                                    ? log.totalBreakFormatted
-                                    : (hasInProgress ? 'In Progress' : '0m'),
-                                style: AppTextStyles.text16.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.primary,
+                                'Allowed Quota',
+                                style: AppTextStyles.text10.copyWith(
+                                  color: AppColors.subTextColor,
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
-                              if (hasInProgress) ...[
-                                AppSpaces.hSpace6,
-                                Container(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 6.w,
-                                    vertical: 2.h,
+                              AppSpaces.vSpace4,
+                              Text(
+                                log.allowedBreakMinutes > 0
+                                    ? log.allowedBreakFormatted
+                                    : 'None',
+                                style: AppTextStyles.text14.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textColor,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        Container(
+                          width: 1.w,
+                          height: 28.h,
+                          color: AppColors.borderColor,
+                        ),
+
+                        // Column 2: Total Break Used (Sum of breaks list)
+                        Expanded(
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 10.w),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Total Used',
+                                  style: AppTextStyles.text10.copyWith(
+                                    color: AppColors.subTextColor,
+                                    fontWeight: FontWeight.w500,
                                   ),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.warning
-                                        .withValues(alpha: 0.15),
-                                    borderRadius: BorderRadius.circular(6.r),
-                                  ),
-                                  child: Text(
-                                    'Active',
-                                    style: AppTextStyles.text10.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                      color: AppColors.warning,
+                                ),
+                                AppSpaces.vSpace4,
+                                Row(
+                                  children: [
+                                    Text(
+                                      log.totalBreakUsedMinutes > 0
+                                          ? log.totalBreakUsedFormatted
+                                          : (hasInProgress ? 'In Progress' : '0m'),
+                                      style: AppTextStyles.text14.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        color: log.isBreakExceeded
+                                            ? AppColors.error
+                                            : AppColors.primary,
+                                      ),
                                     ),
+                                    if (hasInProgress) ...[
+                                      AppSpaces.hSpace4,
+                                      Container(
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: 4.w,
+                                          vertical: 1.h,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.warning
+                                              .withValues(alpha: 0.15),
+                                          borderRadius:
+                                              BorderRadius.circular(4.r),
+                                        ),
+                                        child: Text(
+                                          'Active',
+                                          style: AppTextStyles.text10.copyWith(
+                                            fontSize: 8.sp,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppColors.warning,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        Container(
+                          width: 1.w,
+                          height: 28.h,
+                          color: AppColors.borderColor,
+                        ),
+
+                        // Column 3: Remaining / Over Quota
+                        Expanded(
+                          child: Padding(
+                            padding: EdgeInsets.only(left: 10.w),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  log.isBreakExceeded
+                                      ? 'Exceeded'
+                                      : 'Remaining',
+                                  style: AppTextStyles.text10.copyWith(
+                                    color: AppColors.subTextColor,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                AppSpaces.vSpace4,
+                                Text(
+                                  log.isBreakExceeded
+                                      ? '+${log.exceededBreakFormatted}'
+                                      : (log.allowedBreakMinutes > 0
+                                          ? log.remainingBreakFormatted
+                                          : '${breaks.length} Rec'),
+                                  style: AppTextStyles.text14.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: log.isBreakExceeded
+                                        ? AppColors.error
+                                        : AppColors.secondary,
                                   ),
                                 ),
                               ],
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    Container(
-                      width: 1.w,
-                      height: 32.h,
-                      color: AppColors.borderColor,
-                    ),
-
-                    // Logged Sessions Count
-                    Expanded(
-                      child: Padding(
-                        padding: EdgeInsets.only(left: 14.w),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Total Breaks',
-                              style: AppTextStyles.text10.copyWith(
-                                color: AppColors.subTextColor,
-                                fontWeight: FontWeight.w500,
-                              ),
                             ),
-                            AppSpaces.vSpace4,
-                            Text(
-                              breaks.isNotEmpty
-                                  ? '${breaks.length} ${breaks.length == 1 ? 'Record' : 'Records'}'
-                                  : (log.totalBreakMinutes > 0
-                                      ? '1 Record'
-                                      : '0 Records'),
-                              style: AppTextStyles.text16.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.secondary,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    if (log.allowedBreakMinutes > 0) ...[
+                      AppSpaces.vSpace10,
+                      // Quota Consumption Progress Bar
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(3.r),
+                        child: Stack(
+                          children: [
+                            Container(
+                              height: 5.h,
+                              color: AppColors.borderColor.withValues(alpha: 0.6),
+                            ),
+                            FractionallySizedBox(
+                              widthFactor: (log.totalBreakUsedMinutes /
+                                      log.allowedBreakMinutes)
+                                  .clamp(0.0, 1.0),
+                              child: Container(
+                                height: 5.h,
+                                decoration: BoxDecoration(
+                                  color: log.isBreakExceeded
+                                      ? AppColors.error
+                                      : AppColors.secondary,
+                                ),
                               ),
                             ),
                           ],
                         ),
                       ),
-                    ),
+                      AppSpaces.vSpace4,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            '${log.totalBreakUsedMinutes} of ${log.allowedBreakMinutes} mins used',
+                            style: AppTextStyles.text10.copyWith(
+                              fontSize: 9.sp,
+                              color: AppColors.subTextColor,
+                            ),
+                          ),
+                          Text(
+                            log.isBreakExceeded
+                                ? 'Exceeded by ${log.exceededBreakFormatted}'
+                                : '${((log.totalBreakUsedMinutes / log.allowedBreakMinutes) * 100).toInt()}%',
+                            style: AppTextStyles.text10.copyWith(
+                              fontSize: 9.sp,
+                              fontWeight: FontWeight.bold,
+                              color: log.isBreakExceeded
+                                  ? AppColors.error
+                                  : AppColors.secondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -247,7 +348,7 @@ class TimesheetBreaksSheet extends StatelessWidget {
 
               // 4. Section Label
               Text(
-                'LOGGED BREAK SESSIONS',
+                'LOGGED BREAK SESSIONS (${breaks.length})',
                 style: AppTextStyles.text10.copyWith(
                   fontWeight: FontWeight.bold,
                   color: AppColors.subTextColor,
@@ -283,9 +384,7 @@ class TimesheetBreaksSheet extends StatelessWidget {
                             ),
                             AppSpaces.vSpace8,
                             Text(
-                              log.totalBreakMinutes > 0
-                                  ? 'Total Break: ${log.totalBreakFormatted}'
-                                  : 'No Breaks Logged',
+                              'No Break Sessions Logged',
                               style: AppTextStyles.text12.copyWith(
                                 fontWeight: FontWeight.bold,
                                 color: AppColors.textColor,
@@ -293,8 +392,8 @@ class TimesheetBreaksSheet extends StatelessWidget {
                             ),
                             AppSpaces.vSpace2,
                             Text(
-                              log.totalBreakMinutes > 0
-                                  ? 'Daily aggregate break duration recorded without punch breakdown.'
+                              log.allowedBreakMinutes > 0
+                                  ? 'Allowed daily break is ${log.allowedBreakFormatted}. No break punch sessions were recorded for this date.'
                                   : 'No break duration or sessions were logged for this date.',
                               textAlign: TextAlign.center,
                               style: AppTextStyles.text10.copyWith(

@@ -110,38 +110,71 @@ class VerificationSuccessSheet extends GetView<FaceRecognitionController> {
                     width: 1.w,
                   ),
                 ),
-                child: Column(
-                  children: [
-                    // Row 1: Employee Name
-                    _buildCredentialRow(
-                      icon: Icons.person_outline_rounded,
-                      label: 'Employee Name',
-                      value: controller.employeeName.value,
-                    ),
+                child: Obx(
+                  () => Column(
+                    children: [
+                      // Row 1: Employee Name
+                      _buildCredentialRow(
+                        icon: Icons.person_outline_rounded,
+                        label: 'Employee Name',
+                        value: controller.employeeName.value.isNotEmpty
+                            ? controller.employeeName.value
+                            : 'Staff Member',
+                      ),
 
-                    AppSpaces.vSpace8,
-                    Divider(color: AppColors.borderColor, height: 1.h),
-                    AppSpaces.vSpace8,
+                      AppSpaces.vSpace8,
+                      Divider(color: AppColors.borderColor, height: 1.h),
+                      AppSpaces.vSpace8,
 
-                    // Row 2: Badge ID
-                    _buildCredentialRow(
-                      icon: Icons.badge_outlined,
-                      label: 'Employee Code',
-                      value: controller.employeeId.value,
-                    ),
+                      // Row 2: Employee Code
+                      _buildCredentialRow(
+                        icon: Icons.badge_outlined,
+                        label: 'Employee Code',
+                        value: controller.employeeId.value.isNotEmpty
+                            ? controller.employeeId.value
+                            : 'N/A',
+                      ),
 
-                    AppSpaces.vSpace8,
-                    Divider(color: AppColors.borderColor, height: 1.h),
-                    AppSpaces.vSpace8,
+                      if (controller.companyName.value.isNotEmpty) ...[
+                        AppSpaces.vSpace8,
+                        Divider(color: AppColors.borderColor, height: 1.h),
+                        AppSpaces.vSpace8,
 
-                    // Row 3: Biometric Match Confidence
-                    _buildCredentialRow(
-                      icon: Icons.fingerprint_rounded,
-                      label: 'Biometric Match',
-                      value: '99.4% • Liveness Passed',
-                      valueColor: AppColors.success,
-                    ),
-                  ],
+                        // Row 3: Company / Organization
+                        _buildCredentialRow(
+                          icon: Icons.business_rounded,
+                          label: 'Organization',
+                          value: controller.companyName.value,
+                        ),
+                      ],
+
+                      AppSpaces.vSpace8,
+                      Divider(color: AppColors.borderColor, height: 1.h),
+                      AppSpaces.vSpace8,
+
+                      // Row 4: Biometric Match Confidence
+                      _buildCredentialRow(
+                        icon: Icons.fingerprint_rounded,
+                        label: 'Biometric Match',
+                        value:
+                            '${controller.confidenceReadout.value.toStringAsFixed(1)}% • Liveness Passed',
+                        valueColor: AppColors.success,
+                      ),
+
+                      if (controller.verificationTime.value.isNotEmpty) ...[
+                        AppSpaces.vSpace8,
+                        Divider(color: AppColors.borderColor, height: 1.h),
+                        AppSpaces.vSpace8,
+
+                        // Row 5: Verified Timestamp
+                        _buildCredentialRow(
+                          icon: Icons.access_time_rounded,
+                          label: 'Verified At',
+                          value: controller.verificationTime.value,
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
               ),
 
@@ -149,9 +182,9 @@ class VerificationSuccessSheet extends GetView<FaceRecognitionController> {
 
               // Primary Action Button: Proceed to Dashboard
               CustomButton(
-                text: 'Proceed to Dashboard',
+                text: 'Done • Back to Dashboard',
                 isGradient: true,
-                onPressed: controller.proceedToDashboard,
+                onPressed: () async => await controller.proceedToDashboard(),
               ),
 
               AppSpaces.vSpace12,

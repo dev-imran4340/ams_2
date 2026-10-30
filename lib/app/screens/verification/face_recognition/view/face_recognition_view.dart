@@ -17,7 +17,13 @@ class FaceRecognitionView extends GetView<FaceRecognitionController> {
   @override
   Widget build(BuildContext context) {
     return NetworkBoundaryWrapper(
-      child: Scaffold(
+      child: PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) async {
+          if (didPop) return;
+          await controller.cleanupAndExit();
+        },
+        child: Scaffold(
         backgroundColor: AppColors.primary,
         body: Stack(
           children: [
@@ -62,6 +68,7 @@ class FaceRecognitionView extends GetView<FaceRecognitionController> {
             ),
           ],
         ),
+      ),
       ),
     );
   }
@@ -146,9 +153,9 @@ class FaceRecognitionView extends GetView<FaceRecognitionController> {
                   Material(
                     color: Colors.transparent,
                     child: InkWell(
-                      onTap: () {
+                      onTap: () async {
                         HapticFeedback.lightImpact();
-                        Get.back();
+                        await controller.cleanupAndExit();
                       },
                       borderRadius: BorderRadius.circular(20.r),
                       child: Container(

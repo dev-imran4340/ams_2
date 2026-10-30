@@ -8,10 +8,23 @@ import '../model/me_model.dart';
 
 class IndexRepo {
   final String _tag = 'IndexRepo / MainShell';
+  Future<MeResponseModel?>? _inFlightMeRequest;
 
   /// Fetches authenticated user identity, company, permissions, modules, and dynamic menu.
-  /// Strictly persists full response and separately isolates user and company in AppPreferences.
+  /// Deduplicates concurrent in-flight requests to eliminate duplicate HTTP round-trips.
   Future<MeResponseModel?> fetchMe() async {
+    if (_inFlightMeRequest != null) {
+      return await _inFlightMeRequest;
+    }
+    _inFlightMeRequest = _fetchMeInternal();
+    try {
+      return await _inFlightMeRequest;
+    } finally {
+      _inFlightMeRequest = null;
+    }
+  }
+
+  Future<MeResponseModel?> _fetchMeInternal() async {
     try {
       final response = await ApiClient.request(
         endpoint: ApiEndpoints.me,

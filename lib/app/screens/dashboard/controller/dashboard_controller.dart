@@ -9,6 +9,7 @@ import '../../../routes/app_routes.dart';
 import '../model/dashboard_model.dart';
 import '../repo/dashboard_repo.dart';
 import '../view/components/selfie_punch_sheet.dart';
+import '../../main_shell/controller/session_me_controller.dart';
 
 class DashboardController extends GetxController {
   final DashboardRepo repo;
@@ -29,12 +30,23 @@ class DashboardController extends GetxController {
 
   // Active Live Running Clock Timer
   Timer? _clockTimer;
+  Worker? _permissionWorker;
 
   @override
   void onInit() {
     super.onInit();
     _startLiveClock();
     loadDashboard();
+
+    // Reactively trigger loadDashboard when /me session arrives or updates permissions
+    if (Get.isRegistered<SessionMeController>()) {
+      final session = Get.find<SessionMeController>();
+      _permissionWorker = ever(session.permissions, (_) {
+        if (dashboardData.value == null && !isLoading.value) {
+          loadDashboard();
+        }
+      });
+    }
   }
 
   /// Starts 1-second periodic timer for real-time clock & running shift duration
@@ -90,44 +102,70 @@ class DashboardController extends GetxController {
   /// Calculates and updates active shift elapsed time if checked in
   void _updateRunningShiftTimer() {
     final today = dashboardData.value?.todayAttendance;
-    if (today == null || !today.isCheckedIn || today.checkInDateTime == null) {
-      if (today?.isCheckedIn == false) {
-        if (today?.checkOutTime != null && today?.checkOutTime != '--:--') {
-          elapsedShiftTimer.value = '${today!.workingHours} (Done)';
-          elapsedHoursMinutes.value = today.workingHours;
-          elapsedSeconds.value = '00';
-        } else {
-          elapsedShiftTimer.value = '00:00:00';
-          elapsedHoursMinutes.value = '00:00';
-          elapsedSeconds.value = '00';
-        }
-      } else {
-        elapsedShiftTimer.value = '00:00:00';
-        elapsedHoursMinutes.value = '00:00';
-        elapsedSeconds.value = '00';
-      }
-      return;
-    }
-
-    final now = DateTime.now();
-    final difference = now.difference(today.checkInDateTime!);
-    if (difference.isNegative) {
+    if (today == null) {
       elapsedShiftTimer.value = '00:00:00';
       elapsedHoursMinutes.value = '00:00';
       elapsedSeconds.value = '00';
       return;
     }
 
-    final hours = difference.inHours.toString().padLeft(2, '0');
-    final minutes = (difference.inMinutes % 60).toString().padLeft(2, '0');
-    final seconds = (difference.inSeconds % 60).toString().padLeft(2, '0');
+    // Base worked seconds from server (completed work segments)
+    final int baseWorkedSeconds = today.workedMinutes * 60;
+
+    // Case 1: Employee is NOT checked in
+    if (!today.isCheckedIn) {
+      final String doneHours = today.workingHours.isNotEmpty && today.workingHours != '0:00'
+          ? today.workingHours
+          : (baseWorkedSeconds > 0
+              ? '${(baseWorkedSeconds ~/ 3600)}h ${((baseWorkedSeconds % 3600) ~/ 60).toString().padLeft(2, '0')}m'
+              : '0h 00m');
+
+      final String timeDisplay = baseWorkedSeconds > 0
+          ? '${(baseWorkedSeconds ~/ 3600).toString().padLeft(2, '0')}:${((baseWorkedSeconds % 3600) ~/ 60).toString().padLeft(2, '0')}'
+          : '00:00';
+
+      final bool hasEnded = (today.checkOutTime != '--:--') || (today.latestCheckOutTime != null);
+      elapsedShiftTimer.value = hasEnded ? '$doneHours (Done)' : '00:00:00';
+      elapsedHoursMinutes.value = hasEnded ? timeDisplay : '00:00';
+      elapsedSeconds.value = '00';
+      return;
+    }
+
+    // Case 2: Employee is ON BREAK (shift timer paused at completed worked hours)
+    if (today.isOnBreak) {
+      final h = (baseWorkedSeconds ~/ 3600).toString().padLeft(2, '0');
+      final m = ((baseWorkedSeconds % 3600) ~/ 60).toString().padLeft(2, '0');
+      final s = (baseWorkedSeconds % 60).toString().padLeft(2, '0');
+
+      elapsedShiftTimer.value = '${h}h ${m}m (Paused)';
+      elapsedHoursMinutes.value = '$h:$m';
+      elapsedSeconds.value = s;
+      return;
+    }
+
+    // Case 3: Employee is actively CHECKED IN
+    // When checked in, total worked time = base worked seconds (completed segments)
+    // + time elapsed in current active session (since_at)
+    int activeSegmentSeconds = 0;
+    if (today.checkInDateTime != null) {
+      final now = DateTime.now();
+      final difference = now.difference(today.checkInDateTime!);
+      if (!difference.isNegative) {
+        activeSegmentSeconds = difference.inSeconds;
+      }
+    }
+
+    final int totalSeconds = baseWorkedSeconds + activeSegmentSeconds;
+    final String hours = (totalSeconds ~/ 3600).toString().padLeft(2, '0');
+    final String minutes = ((totalSeconds % 3600) ~/ 60).toString().padLeft(2, '0');
+    final String seconds = (totalSeconds % 60).toString().padLeft(2, '0');
 
     elapsedShiftTimer.value = '${hours}h ${minutes}m ${seconds}s';
     elapsedHoursMinutes.value = '$hours:$minutes';
     elapsedSeconds.value = seconds;
 
     // Reactively sync workingHours so card metrics show live elapsed progression
-    final currentHours = '${hours}h ${minutes}m';
+    final currentHours = '${int.parse(hours)}h ${minutes}m';
     if (today.workingHours != currentHours && dashboardData.value != null) {
       dashboardData.value = DashboardDataModel(
         todayAttendance: today.copyWith(workingHours: currentHours),
@@ -136,13 +174,18 @@ class DashboardController extends GetxController {
     }
   }
 
-  /// Loads live dashboard telemetry from server with Zero Dummy Fallback Policy
+  /// Loads live dashboard telemetry from server with Zero Dummy Fallback Policy.
+  /// If permissions are already cached and attendance is explicitly absent, skips fetch.
+  /// On initial login (before /me arrives), does NOT block; triggers server fetch immediately.
   Future<void> loadDashboard() async {
-    final bool hasAttendance = AppPreferences.hasModule('attendance') &&
-        AppPreferences.hasPermission('attendance.view');
-    if (!hasAttendance) {
-      dashboardData.value = null;
-      return;
+    final cachedPerms = AppPreferences.permissions;
+    if (cachedPerms != null && cachedPerms.isNotEmpty) {
+      final bool hasAttendance = AppPreferences.hasModule('attendance') &&
+          AppPreferences.hasPermission('attendance.view');
+      if (!hasAttendance) {
+        dashboardData.value = null;
+        return;
+      }
     }
 
     try {
@@ -346,6 +389,8 @@ class DashboardController extends GetxController {
   void onClose() {
     _clockTimer?.cancel();
     _clockTimer = null;
+    _permissionWorker?.dispose();
+    _permissionWorker = null;
     super.onClose();
   }
 }

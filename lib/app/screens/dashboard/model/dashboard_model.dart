@@ -209,11 +209,63 @@ class TodayAttendanceModel {
   bool get isPositionRequired => requires?.position == true;
   bool get isPhotoRequired => requires?.photo == true;
   bool get isFaceRequired => requires != null && requires!.face != 'off';
+
   String get plannedHoursFormatted {
     if (plannedMinutes <= 0) return '0h 00m';
     final h = plannedMinutes ~/ 60;
     final m = (plannedMinutes % 60).toString().padLeft(2, '0');
     return '${h}h ${m}m';
+  }
+
+  String get workedHoursFormatted {
+    if (workedMinutes <= 0) {
+      return workingHours.isNotEmpty && workingHours != '0:00' ? workingHours : '0h 00m';
+    }
+    final h = workedMinutes ~/ 60;
+    final m = (workedMinutes % 60).toString().padLeft(2, '0');
+    return '${h}h ${m}m';
+  }
+
+  String get countedHoursFormatted {
+    if (countedMinutes <= 0) return '0h 00m';
+    final h = countedMinutes ~/ 60;
+    final m = (countedMinutes % 60).toString().padLeft(2, '0');
+    return '${h}h ${m}m';
+  }
+
+  /// Returns the most recent check-out time across today's sessions,
+  /// even if the employee is currently re-checked in and day.last_out is null.
+  String? get latestCheckOutTime {
+    if (checkOutTime != '--:--' && checkOutTime.isNotEmpty) {
+      return checkOutTime;
+    }
+    for (final s in segments.reversed) {
+      if (s.kind.toLowerCase() == 'work' &&
+          s.ends != null &&
+          s.ends!.isNotEmpty &&
+          s.ends != '--:--') {
+        return s.ends;
+      }
+    }
+    return null;
+  }
+
+  /// Returns the most recent check-in time across today's sessions.
+  String? get latestCheckInTime {
+    for (final s in segments.reversed) {
+      if (s.kind.toLowerCase() == 'work' &&
+          s.starts != null &&
+          s.starts!.isNotEmpty &&
+          s.starts != '--:--') {
+        return s.starts;
+      }
+    }
+    return checkInTime != '--:--' ? checkInTime : null;
+  }
+
+  /// Total number of work segments today
+  int get totalWorkSessions {
+    return segments.where((s) => s.kind.toLowerCase() == 'work').length;
   }
 
   TodayAttendanceModel copyWith({
@@ -326,6 +378,15 @@ class TodayAttendanceModel {
     final plannedMin = day?['planned_minutes'] as int? ?? 0;
     final workedMin = day?['worked_minutes'] as int? ?? 0;
 
+    String initialWorkingHours = '0h 00m';
+    if (workedMin > 0) {
+      final h = workedMin ~/ 60;
+      final m = (workedMin % 60).toString().padLeft(2, '0');
+      initialWorkingHours = '${h}h ${m}m';
+    } else if (worked.isNotEmpty && worked != '0:00') {
+      initialWorkingHours = worked;
+    }
+
     String remainingStr = '00h 00m';
     if (plannedMin > 0) {
       final remMin = (plannedMin - workedMin).clamp(0, plannedMin);
@@ -382,7 +443,7 @@ class TodayAttendanceModel {
     return TodayAttendanceModel(
       checkInTime: effectiveCheckIn,
       checkOutTime: lastOut,
-      workingHours: worked,
+      workingHours: initialWorkingHours,
       shiftRemaining: remainingStr,
       overtime: overtime,
       isCheckedIn: isCheckedIn,

@@ -105,5 +105,63 @@ void main() {
       expect(day.totalBreakMinutes, equals(45));
       expect(day.totalBreakFormatted, equals('45m'));
     });
+
+    test('break_minutes represents allowed break quota and breaks list calculates total break used', () {
+      final json = {
+        'id': '01m5zbsgk84t5jp8nqbafhsxj1',
+        'date': '2026-10-28',
+        'date_label': 'Wed 28/10/2026',
+        'status': 'present',
+        'status_label': 'Present',
+        'status_code': 'P',
+        'tone': 'emerald',
+        'day_type': 'working',
+        'break_minutes': 60,
+        'breaks': [
+          {'starts': '10:58', 'ends': '10:58', 'minutes': 0, 'type': null, 'paid': false},
+          {'starts': '12:06', 'ends': '12:18', 'minutes': 12, 'type': null, 'paid': false},
+          {'starts': '16:19', 'ends': '16:38', 'minutes': 18, 'type': null, 'paid': false},
+        ],
+      };
+
+      final day = AttendanceHistoryDayModel.fromJson(json);
+
+      // Allowed Quota
+      expect(day.allowedBreakMinutes, equals(60));
+      expect(day.allowedBreakFormatted, equals('1h'));
+
+      // Total Break Used (0 + 12 + 18)
+      expect(day.totalBreakUsedMinutes, equals(30));
+      expect(day.totalBreakUsedFormatted, equals('30m'));
+      expect(day.totalBreakMinutes, equals(30));
+      expect(day.totalBreakFormatted, equals('30m'));
+
+      // Remaining Break (60 - 30)
+      expect(day.remainingBreakMinutes, equals(30));
+      expect(day.remainingBreakFormatted, equals('30m'));
+      expect(day.isBreakExceeded, isFalse);
+
+      // Verify Empty breaks day (allowed 60m, used 0m)
+      final emptyDayJson = {
+        'id': '01m61y67kxnebesrh3mxtrh0n1',
+        'date': '2026-10-29',
+        'date_label': 'Thu 29/10/2026',
+        'status': 'present',
+        'status_label': 'Present',
+        'status_code': 'P',
+        'tone': 'emerald',
+        'day_type': 'working',
+        'break_minutes': 60,
+        'breaks': [],
+      };
+
+      final emptyDay = AttendanceHistoryDayModel.fromJson(emptyDayJson);
+      expect(emptyDay.allowedBreakMinutes, equals(60));
+      expect(emptyDay.allowedBreakFormatted, equals('1h'));
+      expect(emptyDay.totalBreakUsedMinutes, equals(0));
+      expect(emptyDay.totalBreakUsedFormatted, equals('0m'));
+      expect(emptyDay.remainingBreakMinutes, equals(60));
+      expect(emptyDay.remainingBreakFormatted, equals('1h'));
+    });
   });
 }

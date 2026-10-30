@@ -1,4 +1,9 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
+import 'package:get/get_core/get_core.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:path_provider/path_provider.dart';
+
 import '../core/utils/encryption_helper.dart';
 import '../screens/auth/model/auth_model.dart';
 
@@ -32,13 +37,18 @@ class AppPreferences {
   static const String _keyMeData = 'server_me_full_payload';
   static const String _keyTodayAttendance = 'today_attendance_state';
   static const String _keyFcmToken = 'firebase_fcm_token';
+  static const String _keyEnrolledFacePath = 'enrolled_face_image_path';
+  static const String _keyEnrolledFaceEmbedding = 'enrolled_face_192_vector';
+  static const String _keyEnrolledFaceTimestamp = 'enrolled_face_timestamp';
+  static const String _keyEnrolledFaceVerified = 'enrolled_face_verified';
 
   /// Initialize local storage container (Must be invoked before runApp in main.dart)
   static Future<void> init() async {
     await GetStorage.init();
     // Ensure persistent device ID exists
     if (deviceId == null || deviceId!.isEmpty) {
-      final generated = 'ams_dev_${DateTime.now().millisecondsSinceEpoch.toRadixString(36)}';
+      final generated =
+          'ams_dev_${DateTime.now().millisecondsSinceEpoch.toRadixString(36)}';
       await _box.write(_keyDeviceId, generated);
     }
   }
@@ -89,7 +99,12 @@ class AppPreferences {
     await _box.remove(_key2FAChallenge);
     await _box.remove(_keyMeData);
     await _box.remove(_keyTodayAttendance);
+    await clearEnrolledFace();
     await _box.write(_keyIsLoggedIn, false);
+    await _box.erase();
+    if (kDebugMode) {
+      Get.log('User logged out successfully : Clean All from local');
+    }
   }
 
   // --- Auth Token Getters / Setters ---
@@ -198,7 +213,9 @@ class AppPreferences {
     }
     if (value is List) {
       if (scope == null) return value.isNotEmpty;
-      final scopes = value.map((e) => e.toString().toLowerCase().trim()).toSet();
+      final scopes = value
+          .map((e) => e.toString().toLowerCase().trim())
+          .toSet();
       final req = scope.toLowerCase().trim();
 
       // Exact match
@@ -208,7 +225,10 @@ class AppPreferences {
       // company scope grants location, department, and own access
       if (scopes.contains('company')) return true;
       // location scope grants department and own access
-      if (req == 'own' && (scopes.contains('department') || scopes.contains('location'))) return true;
+      if (req == 'own' &&
+          (scopes.contains('department') || scopes.contains('location'))) {
+        return true;
+      }
       if (req == 'department' && scopes.contains('location')) return true;
 
       return false;
@@ -281,8 +301,7 @@ class AppPreferences {
   static Future<void> saveMeData(dynamic rawPayload) async {
     if (rawPayload == null || rawPayload is! Map) return;
 
-    final Map<String, dynamic> rawMap =
-        Map<String, dynamic>.from(rawPayload);
+    final Map<String, dynamic> rawMap = Map<String, dynamic>.from(rawPayload);
     final Map<String, dynamic> data = (rawMap['data'] is Map)
         ? Map<String, dynamic>.from(rawMap['data'] as Map)
         : rawMap;
@@ -305,7 +324,8 @@ class AppPreferences {
     // 4. Persist permissions map
     if (data['permissions'] is Map) {
       await setPermissions(
-          Map<String, dynamic>.from(data['permissions'] as Map));
+        Map<String, dynamic>.from(data['permissions'] as Map),
+      );
     }
 
     // 5. Persist modules list
@@ -326,8 +346,7 @@ class AppPreferences {
 
   // --- Two-Factor Authentication Challenge ---
 
-  static String? get twoFactorChallenge =>
-      _box.read<String>(_key2FAChallenge);
+  static String? get twoFactorChallenge => _box.read<String>(_key2FAChallenge);
 
   static Future<void> setTwoFactorChallenge(String? challenge) async {
     if (challenge == null) {
@@ -489,6 +508,85 @@ class AppPreferences {
     }
   }
 
+  // --- AI Biometric Face Enrollment (Phase 10) ---
+
+  /// Verifies if an enrolled reference face exists in local storage
+  static bool get hasEnrolledFace {
+    final path = enrolledFacePath;
+    if (path == null || path.isEmpty) return false;
+    final file = File(path);
+    return file.existsSync() && file.lengthSync() > 0;
+  }
+
+  /// Retrieves the enrolled face image file path
+  static String? get enrolledFacePath => _box.read<String>(_keyEnrolledFacePath);
+
+  /// Retrieves the complete enrolled face bundle
+  static Map<String, dynamic>? getEnrolledFace() {
+    final path = enrolledFacePath;
+    final embedding = enrolledFaceEmbedding;
+    if (path == null || embedding == null) return null;
+    return {
+      'imagePath': path,
+      'embedding': embedding,
+      'timestamp': enrolledFaceTimestamp,
+    };
+  }
+
+  /// Retrieves the enrolled 192-dimensional biometric embedding vector
+  static List<double>? get enrolledFaceEmbedding {
+    final raw = _box.read<List<dynamic>>(_keyEnrolledFaceEmbedding);
+    if (raw == null || raw.isEmpty) return null;
+    return raw.map((e) => (e as num).toDouble()).toList();
+  }
+
+  /// Retrieves the enrollment timestamp
+  static DateTime? get enrolledFaceTimestamp {
+    final raw = _box.read<String>(_keyEnrolledFaceTimestamp);
+    if (raw == null) return null;
+    return DateTime.tryParse(raw);
+  }
+
+  /// Persists enrolled face image path and 192-dimensional vector in AppPreferences
+  static Future<void> saveEnrolledFace({
+    required String imagePath,
+    required List<double> embedding,
+  }) async {
+    await _box.write(_keyEnrolledFacePath, imagePath);
+    await _box.write(_keyEnrolledFaceEmbedding, embedding);
+    await _box.write(_keyEnrolledFaceTimestamp, DateTime.now().toIso8601String());
+    await _box.write(_keyEnrolledFaceVerified, true);
+  }
+
+  /// Purges enrolled face: deletes image file and embedding file from disk and clears storage keys
+  static Future<void> clearEnrolledFace() async {
+    try {
+      final savedPath = _box.read<String>(_keyEnrolledFacePath);
+      if (savedPath != null && savedPath.isNotEmpty) {
+        final f = File(savedPath);
+        if (f.existsSync()) {
+          await f.delete();
+        }
+      }
+
+      // Also clean default document directory enrolled files
+      final docsDir = await getApplicationDocumentsDirectory();
+      final defaultImg = File('${docsDir.path}/enrolled_reference_face.jpg');
+      if (defaultImg.existsSync()) {
+        await defaultImg.delete();
+      }
+      final defaultEmbed = File('${docsDir.path}/enrolled_face_embedding.json');
+      if (defaultEmbed.existsSync()) {
+        await defaultEmbed.delete();
+      }
+    } catch (_) {}
+
+    await _box.remove(_keyEnrolledFacePath);
+    await _box.remove(_keyEnrolledFaceEmbedding);
+    await _box.remove(_keyEnrolledFaceTimestamp);
+    await _box.remove(_keyEnrolledFaceVerified);
+  }
+
   // --- Clear / Reset ---
 
   static Future<void> clearAuth() async {
@@ -496,6 +594,7 @@ class AppPreferences {
   }
 
   static Future<void> clearAll() async {
+    await clearEnrolledFace();
     await _box.erase();
   }
 }

@@ -350,10 +350,18 @@ class LiveShiftClockCard extends GetView<DashboardController> {
       statusSubtitle = 'On Break • Shift Paused';
     } else if (isCheckedIn) {
       activeTimerColor = AppColors.onTimeColor;
-      statusSubtitle = 'Started at ${today?.checkInTime}';
-    } else if (isCheckedOut) {
+      final latestIn = today?.latestCheckInTime;
+      if (latestIn != null && latestIn != today?.checkInTime && today?.checkInTime != '--:--') {
+        statusSubtitle = 'Active since $latestIn • First in: ${today?.checkInTime}';
+      } else {
+        statusSubtitle = 'Started at ${today?.checkInTime}';
+      }
+    } else if (isCheckedOut || today?.latestCheckOutTime != null) {
       activeTimerColor = AppColors.secondary;
-      statusSubtitle = 'Ended at ${today?.checkOutTime}';
+      final outTime = (isCheckedOut && today?.checkOutTime != '--:--')
+          ? today?.checkOutTime
+          : today?.latestCheckOutTime;
+      statusSubtitle = 'Ended at $outTime';
     } else {
       activeTimerColor = AppColors.subTextColor;
       statusSubtitle = 'Target: ${today?.plannedHoursFormatted ?? "7h 00m"}';

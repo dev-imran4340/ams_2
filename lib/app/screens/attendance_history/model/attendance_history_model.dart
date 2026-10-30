@@ -264,13 +264,11 @@ class AttendanceHistoryDayModel {
     return const [];
   }
 
-  int get totalBreakMinutes {
-    if (breakMinutes > 0) return breakMinutes;
-    return allBreaks.fold<int>(0, (acc, b) => acc + b.minutes);
-  }
+  /// Allowed break duration assigned for the day / shift (e.g. 60 mins from API break_minutes)
+  int get allowedBreakMinutes => breakMinutes;
 
-  String get totalBreakFormatted {
-    final mins = totalBreakMinutes;
+  String get allowedBreakFormatted {
+    final mins = allowedBreakMinutes;
     if (mins <= 0) return '0m';
     final h = mins ~/ 60;
     final m = mins % 60;
@@ -280,7 +278,63 @@ class AttendanceHistoryDayModel {
     return '${m}m';
   }
 
-  bool get hasBreaks => allBreaks.isNotEmpty || totalBreakMinutes > 0;
+  /// Total actual break minutes consumed by the employee (sum of all logged break sessions)
+  int get totalBreakUsedMinutes {
+    return allBreaks.fold<int>(0, (acc, b) => acc + b.minutes);
+  }
+
+  String get totalBreakUsedFormatted {
+    final mins = totalBreakUsedMinutes;
+    if (mins <= 0) return '0m';
+    final h = mins ~/ 60;
+    final m = mins % 60;
+    if (h > 0) {
+      return m > 0 ? '${h}h ${m}m' : '${h}h';
+    }
+    return '${m}m';
+  }
+
+  /// Backwards-compatible aliases mapping to actual used break duration
+  int get totalBreakMinutes => totalBreakUsedMinutes;
+  String get totalBreakFormatted => totalBreakUsedFormatted;
+
+  /// Remaining allowed break duration before exceeding quota
+  int get remainingBreakMinutes {
+    if (allowedBreakMinutes <= 0) return 0;
+    return (allowedBreakMinutes - totalBreakUsedMinutes).clamp(0, 24 * 60);
+  }
+
+  String get remainingBreakFormatted {
+    final mins = remainingBreakMinutes;
+    if (mins <= 0) return '0m';
+    final h = mins ~/ 60;
+    final m = mins % 60;
+    if (h > 0) {
+      return m > 0 ? '${h}h ${m}m' : '${h}h';
+    }
+    return '${m}m';
+  }
+
+  /// Whether employee exceeded allowed break quota
+  bool get isBreakExceeded =>
+      allowedBreakMinutes > 0 && totalBreakUsedMinutes > allowedBreakMinutes;
+
+  int get exceededBreakMinutes =>
+      isBreakExceeded ? (totalBreakUsedMinutes - allowedBreakMinutes) : 0;
+
+  String get exceededBreakFormatted {
+    final mins = exceededBreakMinutes;
+    if (mins <= 0) return '0m';
+    final h = mins ~/ 60;
+    final m = mins % 60;
+    if (h > 0) {
+      return m > 0 ? '${h}h ${m}m' : '${h}h';
+    }
+    return '${m}m';
+  }
+
+  bool get hasBreaks =>
+      allBreaks.isNotEmpty || totalBreakUsedMinutes > 0 || allowedBreakMinutes > 0;
 
   String get checkInDisplay => (firstIn != null && firstIn!.isNotEmpty) ? firstIn! : '--:--';
   String get checkOutDisplay {

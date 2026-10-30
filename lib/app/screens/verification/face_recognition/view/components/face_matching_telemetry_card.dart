@@ -7,6 +7,7 @@ import '../../../../../core/utils/app_spaces.dart';
 import '../../../../../core/utils/app_text_styles.dart';
 import '../../../../../core/widgets/custom_button.dart';
 import '../../controller/face_recognition_controller.dart';
+import '../../model/face_recognition_model.dart';
 
 class FaceMatchingTelemetryCard extends GetView<FaceRecognitionController> {
   const FaceMatchingTelemetryCard({super.key});
@@ -160,8 +161,7 @@ class FaceMatchingTelemetryCard extends GetView<FaceRecognitionController> {
 
           // 2. Animated Progress Bar
           Obx(() {
-            final isSuccess = controller.isMatchSuccess.value;
-            final progress = controller.matchProgress.value;
+            final isSuccess = controller.isMatchSuccess.value;            final progress = controller.matchProgress.value;
 
             return ClipRRect(
               borderRadius: BorderRadius.circular(3.r),
@@ -191,32 +191,60 @@ class FaceMatchingTelemetryCard extends GetView<FaceRecognitionController> {
 
           AppSpaces.vSpace10,
 
-          // 3. Five Real-Time Biometric Quality Checks Strip
+          // 3. Six Real-Time Biometric Quality Checks Strip (2 Rows of 3)
           Obx(() {
             final res = controller.checkResult.value;
 
-            return Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            return Column(
               children: [
-                _buildQualityChip(
-                  label: '1 Face',
-                  passed: res.hasExactlyOneFace,
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildQualityChip(
+                        label: '1 Face',
+                        passed: res.hasExactlyOneFace,
+                      ),
+                    ),
+                    AppSpaces.hSpace8,
+                    Expanded(
+                      child: _buildQualityChip(
+                        label: 'Eyes Open',
+                        passed: res.eyesOpen,
+                      ),
+                    ),
+                    AppSpaces.hSpace8,
+                    Expanded(
+                      child: _buildQualityChip(
+                        label: 'Straight',
+                        passed: res.headStraight,
+                      ),
+                    ),
+                  ],
                 ),
-                _buildQualityChip(
-                  label: 'Eyes Open',
-                  passed: res.eyesOpen,
-                ),
-                _buildQualityChip(
-                  label: 'Straight',
-                  passed: res.headStraight,
-                ),
-                _buildQualityChip(
-                  label: 'Centered',
-                  passed: res.isCentered,
-                ),
-                _buildQualityChip(
-                  label: 'Distance',
-                  passed: res.isScaleValid,
+                AppSpaces.vSpace6,
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildQualityChip(
+                        label: 'Centered',
+                        passed: res.isCentered,
+                      ),
+                    ),
+                    AppSpaces.hSpace8,
+                    Expanded(
+                      child: _buildQualityChip(
+                        label: 'Distance',
+                        passed: res.isScaleValid,
+                      ),
+                    ),
+                    AppSpaces.hSpace8,
+                    Expanded(
+                      child: _buildQualityChip(
+                        label: 'In Oval',
+                        passed: res.isInsideOval,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             );
@@ -224,34 +252,88 @@ class FaceMatchingTelemetryCard extends GetView<FaceRecognitionController> {
 
           AppSpaces.vSpace10,
 
-          // 4. Action Buttons (Save Baseline / Match with AI / Submit Punch)
+          // 4. Comparison Outcome Banner (when a report exists)
+          Obx(() {
+            final report = controller.comparisonReport.value;
+            if (report == null) return const SizedBox.shrink();
+
+            return Container(
+              margin: EdgeInsets.only(bottom: 8.h),
+              padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+              decoration: BoxDecoration(
+                color: report.matched
+                    ? AppColors.success.withValues(alpha: 0.15)
+                    : AppColors.error.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(8.r),
+                border: Border.all(
+                  color: report.matched ? AppColors.success : AppColors.error,
+                  width: 1.w,
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    report.matched
+                        ? Icons.verified_rounded
+                        : Icons.cancel_rounded,
+                    size: 15.sp,
+                    color: report.matched ? AppColors.success : AppColors.error,
+                  ),
+                  AppSpaces.hSpace6,
+                  Text(
+                    report.matched ? 'MATCH' : 'NOT MATCH',
+                    style: AppTextStyles.text12.copyWith(
+                      color:
+                          report.matched ? AppColors.success : AppColors.error,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    ' • ${(report.score * 100).toStringAsFixed(1)}% (Threshold: ${(controller.repo.matchThreshold * 100).toInt()}%)',
+                    style: AppTextStyles.text12.copyWith(
+                      color: AppColors.white,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+
+          // 5. Action Buttons (Register Face vs Verify Face)
           Obx(() {
             final isSuccess = controller.isMatchSuccess.value;
             final isVerifying = controller.isVerifying.value;
             final isSaving = controller.isSavingReference.value;
-            final isChecksPassed = controller.isAllChecksPassed.value;
             final hasRef = controller.hasReferenceFace.value;
+            final activeMode = controller.actionMode.value;
 
             if (isSuccess) {
               return CustomButton(
                 text: 'Done • Proceed',
                 isGradient: true,
-                onPressed: controller.proceedToDashboard,
+                onPressed: () async => await controller.proceedToDashboard(),
               );
             }
 
+            final isRegisterActive = activeMode == FaceActionMode.register;
+            final isVerifyActive = activeMode == FaceActionMode.verify;
+
             return Row(
               children: [
-                // Enrollment Button: Save Reference Face
+                // Register Face Mode Button
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: (isChecksPassed && !isSaving && !isVerifying)
-                        ? controller.saveReferenceFace
-                        : null,
+                    onPressed: isSaving || isVerifying
+                        ? null
+                        : () {
+                            controller.setMode(FaceActionMode.register);
+                          },
                     icon: isSaving
                         ? SizedBox(
-                            width: 14.r,
-                            height: 14.r,
+                            width: 13.r,
+                            height: 13.r,
                             child: CircularProgressIndicator(
                               strokeWidth: 2.w,
                               valueColor: const AlwaysStoppedAnimation<Color>(
@@ -263,29 +345,34 @@ class FaceMatchingTelemetryCard extends GetView<FaceRecognitionController> {
                             hasRef
                                 ? Icons.bookmark_added_rounded
                                 : Icons.face_retouching_natural,
-                            size: 15.sp,
-                            color: isChecksPassed
-                                ? AppColors.liteSecondary
-                                : AppColors.subTextColor,
+                            size: 14.sp,
+                            color: isRegisterActive
+                                ? AppColors.white
+                                : AppColors.liteSecondary,
                           ),
                     label: Text(
-                      hasRef ? 'Update Face' : 'Save Baseline',
+                      hasRef ? 'Re-Register' : 'Register Face',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: AppTextStyles.text12.copyWith(
-                        color: isChecksPassed
+                        color: isRegisterActive
                             ? AppColors.white
-                            : AppColors.subTextColor,
-                        fontWeight: FontWeight.w600,
+                            : AppColors.liteSecondary,
+                        fontWeight: isRegisterActive
+                            ? FontWeight.bold
+                            : FontWeight.w500,
                       ),
                     ),
                     style: OutlinedButton.styleFrom(
                       padding: EdgeInsets.symmetric(vertical: 9.h),
+                      backgroundColor: isRegisterActive
+                          ? AppColors.secondary.withValues(alpha: 0.35)
+                          : Colors.transparent,
                       side: BorderSide(
-                        color: isChecksPassed
-                            ? AppColors.secondary.withValues(alpha: 0.6)
-                            : AppColors.white.withValues(alpha: 0.15),
-                        width: 1.w,
+                        color: isRegisterActive
+                            ? AppColors.secondary
+                            : AppColors.white.withValues(alpha: 0.18),
+                        width: isRegisterActive ? 1.5.w : 1.w,
                       ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10.r),
@@ -296,17 +383,16 @@ class FaceMatchingTelemetryCard extends GetView<FaceRecognitionController> {
 
                 AppSpaces.hSpace8,
 
-                // Matching Action Button
+                // Verify Face Action Button
                 Expanded(
-                  flex: 1,
                   child: CustomButton(
-                    text: controller.isPunchMode.value
-                        ? 'Confirm Punch'
-                        : 'Match AI',
-                    isGradient: true,
+                    text: 'Verify Face',
+                    isGradient: isVerifyActive,
                     isLoading: isVerifying,
-                    onPressed: (isChecksPassed && !isVerifying)
-                        ? controller.verifyFaceMatch
+                    onPressed: hasRef && !isSaving && !isVerifying
+                        ? () {
+                            controller.setMode(FaceActionMode.verify);
+                          }
                         : null,
                   ),
                 ),
@@ -326,7 +412,8 @@ class FaceMatchingTelemetryCard extends GetView<FaceRecognitionController> {
     final Color color = passed ? AppColors.secondary : AppColors.subTextColor;
 
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 3.h),
+      padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 3.5.h),
+      alignment: Alignment.center,
       decoration: BoxDecoration(
         color: passed
             ? AppColors.secondary.withValues(alpha: 0.15)
@@ -341,6 +428,7 @@ class FaceMatchingTelemetryCard extends GetView<FaceRecognitionController> {
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
             passed ? Icons.check_circle_rounded : Icons.radio_button_unchecked,
@@ -348,12 +436,16 @@ class FaceMatchingTelemetryCard extends GetView<FaceRecognitionController> {
             color: color,
           ),
           AppSpaces.hSpace4,
-          Text(
-            label,
-            style: AppTextStyles.text10.copyWith(
-              color: passed ? AppColors.white : AppColors.subTextColor,
-              fontSize: 9.sp,
-              fontWeight: passed ? FontWeight.bold : FontWeight.normal,
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTextStyles.text10.copyWith(
+                color: passed ? AppColors.white : AppColors.subTextColor,
+                fontSize: 9.sp,
+                fontWeight: passed ? FontWeight.bold : FontWeight.normal,
+              ),
             ),
           ),
         ],

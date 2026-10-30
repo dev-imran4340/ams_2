@@ -101,63 +101,24 @@ class RecentActivityTimeline extends GetView<DashboardController> {
     bool isCheckedIn,
     bool isCheckedOut,
   ) {
-    // 1. Extract breaks directly from API payload (day.breaks or break segments)
-    final List<_BreakItem> rawBreaks = [];
-    final dynamic breaksList = today?.breaks;
-    final List segments = today?.segments ?? [];
-
-    if (breaksList is List && breaksList.isNotEmpty) {
-      for (final b in breaksList) {
-        if (b is Map) {
-          final starts = b['starts']?.toString() ?? '--:--';
-          final ends = b['ends']?.toString();
-          final paid = b['paid'] as bool? ?? false;
-          rawBreaks.add(_BreakItem(starts: starts, ends: ends, paid: paid));
-        }
-      }
-    } else if (segments.isNotEmpty) {
-      for (final s in segments) {
-        if (s.kind?.toString().toLowerCase() == 'break') {
-          rawBreaks.add(
-            _BreakItem(
-              starts: s.starts ?? '--:--',
-              ends: s.ends,
-              paid: s.paid == true,
-            ),
-          );
-        }
-      }
-    }
-
-    // 2. Strict Deduplication: Eliminate duplicate break occurrences (e.g. repeated test punches in the same minute)
-    final List<_BreakItem> uniqueBreaks = [];
-    final Set<String> seenBreakKeys = {};
-
-    for (final b in rawBreaks) {
-      final key = '${b.starts}_${b.ends}';
-      if (!seenBreakKeys.contains(key)) {
-        seenBreakKeys.add(key);
-        uniqueBreaks.add(b);
-      }
-    }
-
-    // 3. Build Timeline Events (Check-In -> Breaks -> Check-Out)
     final List<_ActivityTimelineEvent> events = [];
     final Set<String> seenEventKeys = {};
 
     void addEvent({
+      DateTime? timestamp,
       required String time,
       required String title,
       required String subtitle,
       required String tag,
       required Color color,
+      required String uniqueKey,
     }) {
-      if (time.isEmpty || (time == '--:--' && title != 'Shift Check-In')) return;
-      final key = '${time}_$title';
-      if (!seenEventKeys.contains(key)) {
-        seenEventKeys.add(key);
+      if (time.isEmpty || (time == '--:--' && !title.contains('Check-In'))) return;
+      if (!seenEventKeys.contains(uniqueKey)) {
+        seenEventKeys.add(uniqueKey);
         events.add(
           _ActivityTimelineEvent(
+            timestamp: timestamp,
             time: time,
             title: title,
             subtitle: subtitle,
@@ -168,63 +129,241 @@ class RecentActivityTimeline extends GetView<DashboardController> {
       }
     }
 
-    // Step A: Shift Check-In (only when first_in is present from server)
-    final String? checkIn = today?.checkInTime;
-    if (checkIn != null && checkIn != '--:--' && checkIn.isNotEmpty) {
-      addEvent(
-        time: checkIn,
-        title: 'Shift Check-In',
-        subtitle: isCheckedIn ? 'Shift in progress' : 'Workday started',
-        tag: 'Check In',
-        color: AppColors.onTimeColor,
-      );
-    }
+    final List segments = today?.segments ?? [];
+    final dynamic breaksList = today?.breaks;
 
-    // Step B: Breaks (Break Start & Break End)
-    for (final b in uniqueBreaks) {
-      final bool isOngoing = (b.ends == null || b.ends == '--:--' || b.ends!.isEmpty);
+    if (segments.isNotEmpty) {
+      // 1. Separate segments into work & break
+      final workSegments = segments
+          .where((s) => s.kind?.toString().toLowerCase() == 'work')
+          .toList();
+      final totalWork = workSegments.length;
 
-      addEvent(
-        time: b.starts,
-        title: 'Break Start',
-        subtitle: isOngoing ? 'Break in progress' : 'Started break',
-        tag: b.paid ? 'Paid Break' : 'Break',
-        color: AppColors.warning,
-      );
+      int workIndex = 0;
+      for (final s in workSegments) {
+        workIndex++;
+        final bool isFirstSession = (workIndex == 1);
+        final bool isLastSession = (workIndex == totalWork);
+        final bool isCurrentlyActive = (s.ends == null && isCheckedIn);
 
-      if (!isOngoing) {
+        // Check-In Event for this session
+        final String inTime = s.starts ?? '--:--';
+        final String inTitle = isFirstSession
+            ? 'Shift Check-In'
+            : (totalWork > 1 ? 'Work Check-In ($workIndex)' : 'Work Check-In');
+        final String inTag = isFirstSession ? 'First In' : 'Re-entry';
+        final String inSubtitle = isCurrentlyActive
+            ? 'Active work session'
+            : (isFirstSession ? 'Workday started' : 'Resumed shift');
+
         addEvent(
-          time: b.ends!,
-          title: 'Break End',
-          subtitle: 'Resumed shift',
-          tag: 'Resumed',
-          color: AppColors.secondary,
+          timestamp: s.startsAt,
+          time: inTime,
+          title: inTitle,
+          subtitle: inSubtitle,
+          tag: inTag,
+          color: AppColors.onTimeColor,
+          uniqueKey: 'work_in_${workIndex}_${inTime}_${s.startsAt?.toIso8601String()}',
+        );
+
+        // Check-Out Event for this session (if ended)
+        if (s.ends != null && s.ends!.isNotEmpty && s.ends != '--:--') {
+          final String outTime = s.ends!;
+          String durationText = '';
+          if (s.startsAt != null && s.endsAt != null) {
+            final diff = s.endsAt!.difference(s.startsAt!);
+            final m = diff.inMinutes;
+            final sec = diff.inSeconds % 60;
+            if (m > 0) {
+              durationText = ' • ${m}m ${sec}s session';
+            } else if (sec > 0) {
+              durationText = ' • ${sec}s session';
+            }
+          }
+
+          final bool isFinalOut = isLastSession && !isCheckedIn;
+          final String outTitle = isFinalOut
+              ? 'Shift Check-Out'
+              : (totalWork > 1 ? 'Check-Out ($workIndex)' : 'Check-Out');
+          final String outTag = isFinalOut ? 'Completed' : 'Check Out';
+          final String outSubtitle = isFinalOut
+              ? 'Workday completed$durationText'
+              : 'Session logged$durationText';
+
+          addEvent(
+            timestamp: s.endsAt,
+            time: outTime,
+            title: outTitle,
+            subtitle: outSubtitle,
+            tag: outTag,
+            color: AppColors.info,
+            uniqueKey: 'work_out_${workIndex}_${outTime}_${s.endsAt?.toIso8601String()}',
+          );
+        }
+      }
+
+    } else {
+      // Legacy Fallback if segments array is empty
+      final String? checkIn = today?.checkInTime;
+      if (checkIn != null && checkIn != '--:--' && checkIn.isNotEmpty) {
+        addEvent(
+          timestamp: today?.checkInDateTime,
+          time: checkIn,
+          title: 'Shift Check-In',
+          subtitle: isCheckedIn ? 'Shift in progress' : 'Workday started',
+          tag: 'Check In',
+          color: AppColors.onTimeColor,
+          uniqueKey: 'legacy_in_$checkIn',
+        );
+      }
+      final String? checkOut = today?.checkOutTime;
+      if (isCheckedOut && checkOut != null && checkOut != '--:--' && checkOut.isNotEmpty) {
+        addEvent(
+          time: checkOut,
+          title: 'Shift Check-Out',
+          subtitle: 'Workday completed',
+          tag: 'Completed',
+          color: AppColors.info,
+          uniqueKey: 'legacy_out_$checkOut',
         );
       }
     }
 
-    // Step C: Live break state from state.on_break
-    if (today?.isOnBreak ?? false) {
-      addEvent(
-        time: today?.breakSince ?? '--:--',
-        title: 'Break Start',
-        subtitle: 'Break in progress',
-        tag: 'On Break',
-        color: AppColors.warning,
-      );
+    // 2. Breaks strictly parsed from today.breaks (break list)
+    bool hasOngoingBreakInList = false;
+    if (breaksList is List && breaksList.isNotEmpty) {
+      final totalBreaks = breaksList.length;
+      int bIdx = 0;
+      for (final b in breaksList) {
+        bIdx++;
+        String starts = '--:--';
+        String? ends;
+        DateTime? startsAt;
+        DateTime? endsAt;
+        bool paid = false;
+        int minutes = 0;
+
+        if (b is Map) {
+          starts = b['starts']?.toString() ?? '--:--';
+          final rawEnds = b['ends']?.toString();
+          if (rawEnds != null && rawEnds.isNotEmpty && rawEnds != '--:--') {
+            ends = rawEnds;
+          }
+          if (b['starts_at'] != null) {
+            startsAt = b['starts_at'] is DateTime
+                ? b['starts_at'] as DateTime
+                : DateTime.tryParse(b['starts_at'].toString())?.toLocal();
+          }
+          if (b['ends_at'] != null) {
+            endsAt = b['ends_at'] is DateTime
+                ? b['ends_at'] as DateTime
+                : DateTime.tryParse(b['ends_at'].toString())?.toLocal();
+          }
+          paid = b['paid'] as bool? ?? false;
+          minutes = (b['minutes'] as num?)?.toInt() ?? 0;
+        } else {
+          try {
+            starts = (b as dynamic).starts?.toString() ?? '--:--';
+            final rawEnds = (b as dynamic).ends?.toString();
+            if (rawEnds != null && rawEnds.isNotEmpty && rawEnds != '--:--') {
+              ends = rawEnds;
+            }
+            if ((b as dynamic).startsAt != null) {
+              startsAt = (b as dynamic).startsAt;
+            }
+            if ((b as dynamic).endsAt != null) {
+              endsAt = (b as dynamic).endsAt;
+            }
+            paid = (b as dynamic).paid as bool? ?? false;
+            minutes = ((b as dynamic).minutes as num?)?.toInt() ?? 0;
+          } catch (_) {}
+        }
+
+        final bool isBreakOngoing =
+            (ends == null || ends.isEmpty || ends == '--:--');
+        if (isBreakOngoing || (today?.breakSince != null && starts == today?.breakSince)) {
+          hasOngoingBreakInList = true;
+        }
+
+        // Break In Event
+        final String inTitle = totalBreaks > 1 ? 'Break In ($bIdx)' : 'Break In';
+        final String inSubtitle =
+            isBreakOngoing ? 'Break in progress' : 'Started break';
+        final String inTag = paid ? 'Paid Break' : 'Break In';
+
+        addEvent(
+          timestamp: startsAt,
+          time: starts,
+          title: inTitle,
+          subtitle: inSubtitle,
+          tag: inTag,
+          color: AppColors.warning,
+          uniqueKey: 'break_in_${bIdx}_$starts',
+        );
+
+        // Break Out Event (if completed)
+        if (!isBreakOngoing) {
+          final String outTime = ends;
+          String bDurationText = '';
+          if (minutes >= 60) {
+            final h = minutes ~/ 60;
+            final m = minutes % 60;
+            bDurationText = m > 0 ? ' • ${h}h ${m}m break' : ' • ${h}h break';
+          } else if (minutes > 0) {
+            bDurationText = ' • ${minutes}m break';
+          } else if (startsAt != null && endsAt != null) {
+            final diff = endsAt.difference(startsAt);
+            final m = diff.inMinutes;
+            final sec = diff.inSeconds % 60;
+            if (m > 0) {
+              bDurationText = ' • ${m}m break';
+            } else if (sec > 0) {
+              bDurationText = ' • ${sec}s break';
+            }
+          }
+
+          final String outTitle = totalBreaks > 1 ? 'Break Out ($bIdx)' : 'Break Out';
+          final String outSubtitle = 'Resumed shift$bDurationText';
+
+          addEvent(
+            timestamp: endsAt,
+            time: outTime,
+            title: outTitle,
+            subtitle: outSubtitle,
+            tag: 'Break Out',
+            color: AppColors.secondary,
+            uniqueKey: 'break_out_${bIdx}_$outTime',
+          );
+        }
+      }
     }
 
-    // Step D: Shift Check-Out (only when employee has actually checked out)
-    final String? checkOut = today?.checkOutTime;
-    if (isCheckedOut && checkOut != null && checkOut != '--:--' && checkOut.isNotEmpty) {
-      addEvent(
-        time: checkOut,
-        title: 'Shift Check-Out',
-        subtitle: 'Workday completed',
-        tag: 'Completed',
-        color: AppColors.info,
-      );
+    // 3. Live ongoing break check (only if not already listed in breaksList)
+    if (today?.isOnBreak ?? false) {
+      final breakTime = today?.breakSince ?? '--:--';
+      final bool alreadyLogged = hasOngoingBreakInList ||
+          events.any((e) => e.title.contains('Break In') && e.time == breakTime);
+
+      if (!alreadyLogged && breakTime.isNotEmpty && breakTime != '--:--') {
+        addEvent(
+          time: breakTime,
+          title: 'Break In',
+          subtitle: 'Break in progress',
+          tag: 'On Break',
+          color: AppColors.warning,
+          uniqueKey: 'live_break_in_$breakTime',
+        );
+      }
     }
+
+    // Sort events chronologically so the timeline flows from earliest to latest
+    events.sort((a, b) {
+      if (a.timestamp != null && b.timestamp != null) {
+        final cmp = a.timestamp!.compareTo(b.timestamp!);
+        if (cmp != 0) return cmp;
+      }
+      return a.time.compareTo(b.time);
+    });
 
     if (events.isNotEmpty) {
       return Column(
@@ -398,6 +537,7 @@ class RecentActivityTimeline extends GetView<DashboardController> {
 }
 
 class _ActivityTimelineEvent {
+  final DateTime? timestamp;
   final String time;
   final String title;
   final String subtitle;
@@ -405,22 +545,11 @@ class _ActivityTimelineEvent {
   final Color color;
 
   const _ActivityTimelineEvent({
+    this.timestamp,
     required this.time,
     required this.title,
     required this.subtitle,
     required this.tag,
     required this.color,
-  });
-}
-
-class _BreakItem {
-  final String starts;
-  final String? ends;
-  final bool paid;
-
-  const _BreakItem({
-    required this.starts,
-    this.ends,
-    required this.paid,
   });
 }

@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import '../../../api/app_preferences.dart';
 import '../../../core/widgets/custom_snackbar.dart';
 import '../../dashboard/view/dashboard_view.dart';
+import '../../dashboard/controller/dashboard_controller.dart';
 
 import '../../approvals/view/approvals_inbox_view.dart';
 
@@ -280,6 +281,14 @@ class IndexController extends GetxController {
           '👤 [/me] Successfully hydrated identity for: ${result.user.name} (${result.company.name})',
         );
         refreshDynamicTabs();
+
+        // Ensure Dashboard telemetry loads after identity/permissions hydration
+        if (Get.isRegistered<DashboardController>()) {
+          final dashboardCtrl = Get.find<DashboardController>();
+          if (dashboardCtrl.dashboardData.value == null && !dashboardCtrl.isLoading.value) {
+            dashboardCtrl.loadDashboard();
+          }
+        }
       }
     } finally {
       isLoadingMe.value = false;

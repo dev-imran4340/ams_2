@@ -6,6 +6,7 @@ import '../../../core/widgets/custom_snackbar.dart';
 import '../../../routes/app_routes.dart';
 import '../../index/model/me_model.dart';
 import '../../index/repo/index_repo.dart';
+import '../../dashboard/controller/dashboard_controller.dart';
 
 class SessionMeController extends GetxController {
   final IndexRepo? repo;
@@ -99,6 +100,14 @@ class SessionMeController extends GetxController {
         company.value = result.company;
         modules.assignAll(result.modules);
         permissions.assignAll(result.permissions);
+
+        // Ensure Dashboard telemetry loads if not already loaded
+        if (Get.isRegistered<DashboardController>()) {
+          final dashboardCtrl = Get.find<DashboardController>();
+          if (dashboardCtrl.dashboardData.value == null && !dashboardCtrl.isLoading.value) {
+            dashboardCtrl.loadDashboard();
+          }
+        }
       }
     } catch (_) {
       // Silently fall back to cached session data on network interruption

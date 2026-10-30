@@ -44,13 +44,22 @@ class DashboardView extends GetView<DashboardController> {
             );
           }
 
-          final hasAttendance = (sessionController.hasModule('attendance') ||
+          final hasAttendance =
+              (sessionController.hasModule('attendance') ||
                   AppPreferences.hasModule('attendance')) &&
               (sessionController.hasPermission('attendance.view') ||
                   AppPreferences.hasPermission('attendance.view'));
 
           final data = controller.dashboardData.value;
           if (hasAttendance && data == null) {
+            if (sessionController.isLoading.value) {
+              return Center(
+                child: CircularProgressIndicator(
+                  color: AppColors.primary,
+                  strokeWidth: 2.5.w,
+                ),
+              );
+            }
             return CustomStateView.empty(
               title: 'No Attendance Data',
               message: 'No attendance records available for today.',
@@ -77,6 +86,7 @@ class DashboardView extends GetView<DashboardController> {
                   onRefresh: controller.loadDashboard,
                   color: AppColors.primary,
                   child: SingleChildScrollView(
+                    physics: AlwaysScrollableScrollPhysics(),
                     padding: EdgeInsets.symmetric(
                       horizontal: 14.w,
                       vertical: 10.h,
@@ -112,7 +122,9 @@ class DashboardView extends GetView<DashboardController> {
                                       height: 16.h,
                                       decoration: BoxDecoration(
                                         color: AppColors.secondary,
-                                        borderRadius: BorderRadius.circular(2.r),
+                                        borderRadius: BorderRadius.circular(
+                                          2.r,
+                                        ),
                                       ),
                                     ),
                                     AppSpaces.hSpace8,

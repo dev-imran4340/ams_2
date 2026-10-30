@@ -82,10 +82,6 @@ class AppDrawer extends StatelessWidget {
                       sessionController.hasPermission('employees.view');
                   final bool hasSupport =
                       sessionController.hasPermission('support.view');
-                  final bool hasKioskTerminal =
-                      sessionController.hasModule('devices') &&
-                      (sessionController.hasPermission('devices.manage') ||
-                          sessionController.hasPermission('kiosk.manage'));
 
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -143,13 +139,13 @@ class AppDrawer extends StatelessWidget {
                           onTap: () => _navigateToRoute(Routes.SCHEDULE),
                         ),
 
-                      // Card 3: Biometric Verification (Module: devices)
+                      // Card 3: AI Face Recognition (Module: devices)
                       if (hasDevices)
                         DrawerModuleCard(
-                          title: 'Biometric Verification',
-                          subtitle: 'AI face match & liveness check gate',
-                          icon: Icons.fingerprint_rounded,
-                          accentTint: const Color(0xFF6366F1), // Indigo accent
+                          title: 'AI Face Recognition',
+                          subtitle: 'Biometric verification, liveness & match',
+                          icon: Icons.face_retouching_natural,
+                          accentTint: AppColors.secondary,
                           onTap: () =>
                               _navigateToRoute(Routes.FACE_RECOGNITION),
                         ),
@@ -220,17 +216,7 @@ class AppDrawer extends StatelessWidget {
                           onTap: () => _navigateToRoute(Routes.ADD_EMPLOYEE),
                         ),
 
-                      // Card 10: Terminal Kiosk Portal (Module: devices && Permission: devices.manage / kiosk.manage)
-                      if (hasKioskTerminal)
-                        DrawerModuleCard(
-                          title: 'Verification Terminal',
-                          subtitle: 'Employee verification',
-                          icon: Icons.storefront_outlined,
-                          accentTint: AppColors.primary,
-                          onTap: () {},
-                        ),
-
-                      // Card 11: Helpdesk & Support (Permission: support.view)
+                      // Card 10: Helpdesk & Support (Permission: support.view)
                       if (hasSupport)
                         DrawerModuleCard(
                           title: 'Helpdesk & Support',
@@ -240,15 +226,6 @@ class AppDrawer extends StatelessWidget {
                           onTap: () =>
                               _navigateToRoute(Routes.SUPPORT_TICKETS),
                         ),
-
-                      // Card 12: AI Face Biometrics
-                      DrawerModuleCard(
-                        title: 'AI Face Biometrics',
-                        subtitle: 'Biometric verification, liveness & match',
-                        icon: Icons.face_retouching_natural,
-                        accentTint: AppColors.secondary,
-                        onTap: () => _navigateToRoute(Routes.FACE_RECOGNITION),
-                      ),
 
                       AppSpaces.vSpace8,
                     ],

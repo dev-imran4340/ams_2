@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:ams_2/firebase_options.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -20,8 +21,17 @@ Future<void> main() async {
   // Initialize Firebase Cloud Messaging & Push Notification Service
   await PushNotificationService.instance.initialize();
 
-  // Initialize ThemeController permanently for dynamic theme switching
-  // Get.put(ThemeController(), permanent: true);
+  // Intercept and gracefully silence known platform plugin race conditions
+  // (e.g. camera_avfoundation buffer drain race condition during stopImageStream on iOS)
+  PlatformDispatcher.instance.onError = (error, stack) {
+    final errorStr = error.toString();
+    final stackStr = stack.toString();
+    if (errorStr.contains('Null check operator used on a null value') &&
+        (stackStr.contains('AVFoundationCamera') || stackStr.contains('camera_avfoundation'))) {
+      return true;
+    }
+    return false;
+  };
 
   runApp(const MyApp());
 }
