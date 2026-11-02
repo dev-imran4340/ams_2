@@ -301,6 +301,13 @@ class _AttendanceDateRangeSheetState extends State<AttendanceDateRangeSheet> {
               physics: const BouncingScrollPhysics(),
               child: Row(
                 children: [
+                  _buildShortcutChip('Today', () {
+                    final n = DateTime.now();
+                    setState(() {
+                      _startDate = n;
+                      _endDate = n;
+                    });
+                  }),
                   _buildShortcutChip('Last 7 Days', () => _applyPreset(7)),
                   _buildShortcutChip('Last 14 Days', () => _applyPreset(14)),
                   _buildShortcutChip('Last 30 Days', () => _applyPreset(30)),

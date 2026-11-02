@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -27,6 +28,12 @@ class DashboardController extends GetxController {
   final RxString elapsedShiftTimer = '00:00:00'.obs;
   final RxString elapsedHoursMinutes = '00:00'.obs;
   final RxString elapsedSeconds = '00'.obs;
+
+  // Dedicated Break Observables (Work timer pauses & Break timer ticks live / resumes)
+  final RxString elapsedBreakTimer = '00:00:00'.obs;
+  final RxString elapsedBreakHoursMinutes = '00:00'.obs;
+  final RxString elapsedBreakSeconds = '00'.obs;
+  final RxString pausedWorkDuration = '0h 00m'.obs;
 
   // Active Live Running Clock Timer
   Timer? _clockTimer;
@@ -99,6 +106,149 @@ class DashboardController extends GetxController {
     liveDate.value = '$dayName, ${now.day} $monthName ${now.year}';
   }
 
+  /// Deep, mathematically accurate calculation of total shift worked seconds.
+  /// Seamlessly handles all real-world check-in / check-out edge cases:
+  /// 1. App killed and reopened hours later (calculates exact seconds from timestamps).
+  /// 2. User starts break (shift timer freezes / pauses; break duration is excluded from worked time).
+  /// 3. User checks out directly during break (shift ends, timer freezes at total worked time).
+  /// 4. User checks out immediately after check-in (few seconds or zero elapsed).
+  /// 5. Multiple check-ins & check-outs in a single day (accumulates all completed work sessions + active session).
+  /// 6. Shift finished/ended (stops ticking, freezes at total completed time with "(Done)").
+  int _calculateShiftWorkedSeconds(TodayAttendanceModel today) {
+    final now = DateTime.now();
+
+    // 1. Primary Strategy: Calculate from individual attendance timeline segments (Precision standard)
+    if (today.segments.isNotEmpty) {
+      int completedWorkSeconds = 0;
+      DateTime? activeWorkStart;
+
+      for (final segment in today.segments) {
+        final isWork = segment.kind.toLowerCase() == 'work';
+        if (!isWork) continue;
+
+        if (segment.startsAt != null && segment.endsAt != null) {
+          // Closed work session
+          final diff = segment.endsAt!.difference(segment.startsAt!).inSeconds;
+          if (diff > 0) {
+            completedWorkSeconds += diff;
+          }
+        } else if (segment.startsAt != null && segment.endsAt == null) {
+          // Open active work session
+          activeWorkStart = segment.startsAt;
+        }
+      }
+
+      // Case A: Actively checked in and NOT on break
+      if (today.isCheckedIn && !today.isOnBreak) {
+        final start = activeWorkStart ?? today.checkInDateTime;
+        int activeSeconds = 0;
+        if (start != null) {
+          final diff = now.difference(start).inSeconds;
+          if (diff > 0) {
+            activeSeconds = diff;
+          }
+        }
+        int total = completedWorkSeconds + activeSeconds;
+
+        // If segments do not separate break intervals, deduct logged break minutes so timer matches net server worked time
+        final bool hasBreakSegment =
+            today.segments.any((s) => s.kind.toLowerCase() == 'break');
+        if (!hasBreakSegment && today.breakMinutes > 0) {
+          total = math.max(0, total - (today.breakMinutes * 60));
+        }
+
+        return total;
+      }
+
+      // Case B: On Break or Checked Out
+      int completed = completedWorkSeconds;
+      final bool hasBreakSegment =
+          today.segments.any((s) => s.kind.toLowerCase() == 'break');
+      if (!hasBreakSegment && today.breakMinutes > 0) {
+        completed = math.max(0, completed - (today.breakMinutes * 60));
+      }
+      if (completed > 0) {
+        return completed;
+      }
+    }
+
+    // 2. Fallback Strategy: If server response did not provide segments array
+    final int baseSeconds = today.workedMinutes * 60;
+    final int breakSec = today.breakMinutes * 60;
+
+    if (today.isCheckedIn && !today.isOnBreak) {
+      if (today.checkInDateTime != null) {
+        final grossDiff = now.difference(today.checkInDateTime!).inSeconds;
+        final netDiff = math.max(0, grossDiff - breakSec);
+        if (netDiff > 0) {
+          return math.max(baseSeconds, netDiff);
+        }
+      }
+      return baseSeconds;
+    }
+
+    // On break or checked out
+    return baseSeconds;
+  }
+
+  /// Calculates total break seconds today.
+  /// When on break, includes previous completed breaks + real-time elapsed seconds of active break.
+  /// When off break, returns exact accumulated completed break seconds.
+  /// Resumes seamlessly across multiple breaks in a single day.
+  int _calculateShiftBreakSeconds(TodayAttendanceModel today) {
+    final now = DateTime.now();
+
+    // 1. Calculate from individual attendance timeline segments (Precision standard)
+    if (today.segments.isNotEmpty) {
+      int completedBreakSeconds = 0;
+      DateTime? activeBreakStart;
+
+      for (final segment in today.segments) {
+        final isBreak = segment.kind.toLowerCase() == 'break';
+        if (!isBreak) continue;
+
+        if (segment.startsAt != null && segment.endsAt != null) {
+          // Closed break session
+          final diff = segment.endsAt!.difference(segment.startsAt!).inSeconds;
+          if (diff > 0) {
+            completedBreakSeconds += diff;
+          }
+        } else if (segment.startsAt != null && segment.endsAt == null) {
+          // Open active break session
+          activeBreakStart = segment.startsAt;
+        }
+      }
+
+      // Case A: Currently ON BREAK -> Resume previous completed breaks + active break duration
+      if (today.isOnBreak) {
+        final start = activeBreakStart ?? today.checkInDateTime;
+        int activeBreakSeconds = 0;
+        if (start != null) {
+          final diff = now.difference(start).inSeconds;
+          if (diff > 0) {
+            activeBreakSeconds = diff;
+          }
+        }
+        return completedBreakSeconds + activeBreakSeconds;
+      }
+
+      // Case B: Not on break (accumulated completed breaks)
+      if (completedBreakSeconds > 0) {
+        return completedBreakSeconds;
+      }
+    }
+
+    // 2. Fallback Strategy: If segments array is not provided
+    final int baseBreakSeconds = today.breakMinutes * 60;
+    if (today.isOnBreak && today.checkInDateTime != null) {
+      final diff = now.difference(today.checkInDateTime!).inSeconds;
+      if (diff > 0) {
+        return baseBreakSeconds + diff;
+      }
+    }
+    return baseBreakSeconds;
+  }
+
   /// Calculates and updates active shift elapsed time if checked in
   void _updateRunningShiftTimer() {
     final today = dashboardData.value?.todayAttendance;
@@ -106,66 +256,69 @@ class DashboardController extends GetxController {
       elapsedShiftTimer.value = '00:00:00';
       elapsedHoursMinutes.value = '00:00';
       elapsedSeconds.value = '00';
+      elapsedBreakTimer.value = '00:00:00';
+      elapsedBreakHoursMinutes.value = '00:00';
+      elapsedBreakSeconds.value = '00';
+      pausedWorkDuration.value = '0h 00m';
       return;
     }
 
-    // Base worked seconds from server (completed work segments)
-    final int baseWorkedSeconds = today.workedMinutes * 60;
+    final int workSeconds = _calculateShiftWorkedSeconds(today);
+    final int breakSeconds = _calculateShiftBreakSeconds(today);
+
+    final String wHours = (workSeconds ~/ 3600).toString().padLeft(2, '0');
+    final String wMinutes = ((workSeconds % 3600) ~/ 60).toString().padLeft(2, '0');
+    final String wSec = (workSeconds % 60).toString().padLeft(2, '0');
+
+    final String bHours = (breakSeconds ~/ 3600).toString().padLeft(2, '0');
+    final String bMinutes = ((breakSeconds % 3600) ~/ 60).toString().padLeft(2, '0');
+    final String bSec = (breakSeconds % 60).toString().padLeft(2, '0');
+
+    elapsedBreakTimer.value = '${bHours}h ${bMinutes}m ${bSec}s';
+    elapsedBreakHoursMinutes.value = '$bHours:$bMinutes';
+    elapsedBreakSeconds.value = bSec;
+    pausedWorkDuration.value = '${int.parse(wHours)}h ${wMinutes}m';
 
     // Case 1: Employee is NOT checked in
     if (!today.isCheckedIn) {
-      final String doneHours = today.workingHours.isNotEmpty && today.workingHours != '0:00'
-          ? today.workingHours
-          : (baseWorkedSeconds > 0
-              ? '${(baseWorkedSeconds ~/ 3600)}h ${((baseWorkedSeconds % 3600) ~/ 60).toString().padLeft(2, '0')}m'
-              : '0h 00m');
+      final bool hasEnded = workSeconds > 0 ||
+          today.workedMinutes > 0 ||
+          (today.checkOutTime != '--:--' && today.checkOutTime.isNotEmpty) ||
+          (today.latestCheckOutTime != null);
 
-      final String timeDisplay = baseWorkedSeconds > 0
-          ? '${(baseWorkedSeconds ~/ 3600).toString().padLeft(2, '0')}:${((baseWorkedSeconds % 3600) ~/ 60).toString().padLeft(2, '0')}'
-          : '00:00';
-
-      final bool hasEnded = (today.checkOutTime != '--:--') || (today.latestCheckOutTime != null);
-      elapsedShiftTimer.value = hasEnded ? '$doneHours (Done)' : '00:00:00';
-      elapsedHoursMinutes.value = hasEnded ? timeDisplay : '00:00';
-      elapsedSeconds.value = '00';
-      return;
-    }
-
-    // Case 2: Employee is ON BREAK (shift timer paused at completed worked hours)
-    if (today.isOnBreak) {
-      final h = (baseWorkedSeconds ~/ 3600).toString().padLeft(2, '0');
-      final m = ((baseWorkedSeconds % 3600) ~/ 60).toString().padLeft(2, '0');
-      final s = (baseWorkedSeconds % 60).toString().padLeft(2, '0');
-
-      elapsedShiftTimer.value = '${h}h ${m}m (Paused)';
-      elapsedHoursMinutes.value = '$h:$m';
-      elapsedSeconds.value = s;
-      return;
-    }
-
-    // Case 3: Employee is actively CHECKED IN
-    // When checked in, total worked time = base worked seconds (completed segments)
-    // + time elapsed in current active session (since_at)
-    int activeSegmentSeconds = 0;
-    if (today.checkInDateTime != null) {
-      final now = DateTime.now();
-      final difference = now.difference(today.checkInDateTime!);
-      if (!difference.isNegative) {
-        activeSegmentSeconds = difference.inSeconds;
+      if (hasEnded) {
+        // Shift has ended / completed
+        final String formattedDone = '${int.parse(wHours)}h ${wMinutes}m';
+        elapsedShiftTimer.value = '$formattedDone (Done)';
+        elapsedHoursMinutes.value = '$wHours:$wMinutes';
+        elapsedSeconds.value = wSec;
+      } else {
+        // Not checked in yet today (Shift has not started)
+        elapsedShiftTimer.value = '00:00:00';
+        elapsedHoursMinutes.value = '00:00';
+        elapsedSeconds.value = '00';
       }
+      return;
     }
 
-    final int totalSeconds = baseWorkedSeconds + activeSegmentSeconds;
-    final String hours = (totalSeconds ~/ 3600).toString().padLeft(2, '0');
-    final String minutes = ((totalSeconds % 3600) ~/ 60).toString().padLeft(2, '0');
-    final String seconds = (totalSeconds % 60).toString().padLeft(2, '0');
+    // Case 2: Employee is ON BREAK
+    // Shift/Work timer is PAUSED at completed worked hours.
+    // Break timer is LIVE TICKING in foreground display!
+    if (today.isOnBreak) {
+      elapsedShiftTimer.value = '${wHours}h ${wMinutes}m (Paused)';
+      elapsedHoursMinutes.value = '$bHours:$bMinutes';
+      elapsedSeconds.value = bSec;
+      return;
+    }
 
-    elapsedShiftTimer.value = '${hours}h ${minutes}m ${seconds}s';
-    elapsedHoursMinutes.value = '$hours:$minutes';
-    elapsedSeconds.value = seconds;
+    // Case 3: Employee is actively CHECKED IN & WORKING
+    // Work timer is LIVE TICKING in foreground display!
+    elapsedShiftTimer.value = '${wHours}h ${wMinutes}m ${wSec}s';
+    elapsedHoursMinutes.value = '$wHours:$wMinutes';
+    elapsedSeconds.value = wSec;
 
     // Reactively sync workingHours so card metrics show live elapsed progression
-    final currentHours = '${int.parse(hours)}h ${minutes}m';
+    final currentHours = '${int.parse(wHours)}h ${wMinutes}m';
     if (today.workingHours != currentHours && dashboardData.value != null) {
       dashboardData.value = DashboardDataModel(
         todayAttendance: today.copyWith(workingHours: currentHours),

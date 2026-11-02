@@ -229,11 +229,13 @@ class LiveShiftClockCard extends GetView<DashboardController> {
                       ),
                       AppSpaces.vSpace2,
                       Text(
-                        today != null && today.breakMinutes > 0
-                            ? '${today.breakMinutes}m Logged'
-                            : (today?.usesBreaks == true
-                                  ? 'Allowed'
-                                  : 'Disabled'),
+                        isOnBreak
+                            ? '${controller.elapsedBreakHoursMinutes.value} Active'
+                            : (today != null && today.breakMinutes > 0
+                                ? '${today.breakMinutes}m Logged'
+                                : (today?.usesBreaks == true
+                                    ? 'Allowed'
+                                    : 'Disabled')),
                         style: AppTextStyles.text12.copyWith(
                           fontWeight: FontWeight.bold,
                           color: isOnBreak
@@ -347,7 +349,8 @@ class LiveShiftClockCard extends GetView<DashboardController> {
 
     if (isOnBreak) {
       activeTimerColor = AppColors.warning;
-      statusSubtitle = 'On Break • Shift Paused';
+      statusSubtitle =
+          'On Break • Shift Paused at ${controller.pausedWorkDuration.value}';
     } else if (isCheckedIn) {
       activeTimerColor = AppColors.onTimeColor;
       final latestIn = today?.latestCheckInTime;

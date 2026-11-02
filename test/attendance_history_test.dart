@@ -1,5 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ams_2/app/screens/attendance_history/model/attendance_history_model.dart';
+import 'package:ams_2/app/screens/attendance_history/controller/attendance_history_controller.dart';
+import 'package:ams_2/app/screens/attendance_history/repo/attendance_history_repo.dart';
 
 void main() {
   group('AttendanceHistory Model & Typedef Tests', () {
@@ -162,6 +164,62 @@ void main() {
       expect(emptyDay.totalBreakUsedFormatted, equals('0m'));
       expect(emptyDay.remainingBreakMinutes, equals(60));
       expect(emptyDay.remainingBreakFormatted, equals('1h'));
+    });
+
+    group('AttendanceHistoryController Dynamic Date Range Tests', () {
+      late AttendanceHistoryController controller;
+
+      setUp(() {
+        controller = AttendanceHistoryController(repo: AttendanceHistoryRepo());
+      });
+
+      tearDown(() {
+        controller.onClose();
+      });
+
+      test('Default initialization loads current active month based on DateTime.now()', () {
+        final now = DateTime.now();
+        final startOfMonth = DateTime(now.year, now.month, 1);
+        final endOfMonth = DateTime(now.year, now.month + 1, 0);
+
+        final expectedFrom = AttendanceHistoryController.formatIsoDate(startOfMonth);
+        final expectedTo = AttendanceHistoryController.formatIsoDate(endOfMonth);
+        final expectedLabel =
+            '${AttendanceHistoryController.monthNames[now.month - 1]} ${now.year}';
+
+        expect(controller.activeDateRangeFilter.value, equals('this_month'));
+        expect(controller.fromDate.value, equals(expectedFrom));
+        expect(controller.toDate.value, equals(expectedTo));
+        expect(controller.filterLabel.value, equals(expectedLabel));
+      });
+
+      test('applyToday sets exact single day range for today', () {
+        final now = DateTime.now();
+        final todayIso = AttendanceHistoryController.formatIsoDate(now);
+
+        controller.applyToday();
+
+        expect(controller.activeDateRangeFilter.value, equals('today'));
+        expect(controller.fromDate.value, equals(todayIso));
+        expect(controller.toDate.value, equals(todayIso));
+        expect(controller.filterLabel.value, contains('Today'));
+      });
+
+      test('applyLastMonth dynamically computes previous month date range', () {
+        final now = DateTime.now();
+        final lastMonth = DateTime(now.year, now.month - 1);
+        final startOfLastMonth = DateTime(lastMonth.year, lastMonth.month, 1);
+        final endOfLastMonth = DateTime(lastMonth.year, lastMonth.month + 1, 0);
+
+        final expectedFrom = AttendanceHistoryController.formatIsoDate(startOfLastMonth);
+        final expectedTo = AttendanceHistoryController.formatIsoDate(endOfLastMonth);
+
+        controller.applyLastMonth();
+
+        expect(controller.activeDateRangeFilter.value, equals('last_month'));
+        expect(controller.fromDate.value, equals(expectedFrom));
+        expect(controller.toDate.value, equals(expectedTo));
+      });
     });
   });
 }

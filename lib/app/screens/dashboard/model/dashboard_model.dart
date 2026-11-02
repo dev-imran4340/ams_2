@@ -364,6 +364,15 @@ class TodayAttendanceModel {
       checkInDt = DateTime.tryParse(state['since_at'].toString())?.toLocal();
     } else if (day?['first_in_at'] != null) {
       checkInDt = DateTime.tryParse(day!['first_in_at'].toString())?.toLocal();
+    } else if (day?['segments'] is List) {
+      for (final s in (day!['segments'] as List).reversed) {
+        if (s is Map &&
+            s['kind']?.toString().toLowerCase() == 'work' &&
+            s['starts_at'] != null) {
+          checkInDt = DateTime.tryParse(s['starts_at'].toString())?.toLocal();
+          break;
+        }
+      }
     }
 
     final firstIn = day?['first_in']?.toString();

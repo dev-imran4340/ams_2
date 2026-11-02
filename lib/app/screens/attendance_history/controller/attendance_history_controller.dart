@@ -24,10 +24,10 @@ class AttendanceHistoryController extends GetxController {
   final RxString selectedFilter = 'all'.obs;
 
   // Date Range / Month Filter Observables (matching GET /me/attendance?from=...&to=...)
-  final RxString activeDateRangeFilter = 'this_month'.obs; // 'this_month', 'last_month', 'last_14_days', 'custom'
-  final RxString filterLabel = 'October 2026'.obs;
-  final RxString filterSubtitle = '01 Oct 2026 — 31 Oct 2026'.obs;
-  final Rx<DateTime> selectedMonth = DateTime(2026, 10).obs;
+  final RxString activeDateRangeFilter = 'this_month'.obs; // 'this_month', 'today', 'last_month', 'last_14_days', 'custom'
+  final RxString filterLabel = ''.obs;
+  final RxString filterSubtitle = ''.obs;
+  final Rx<DateTime> selectedMonth = DateTime.now().obs;
   final Rxn<DateTimeRange> customRange = Rxn<DateTimeRange>();
 
   final RxString fromDate = ''.obs;
@@ -97,7 +97,7 @@ class AttendanceHistoryController extends GetxController {
         targetEmployeeName.value = args['employeeName'].toString();
       }
     }
-    // Default load current active month with from=2026-10-01 & to=2026-10-31
+    // Default load current active month dynamically based on today's date & month
     applyThisMonth();
   }
 
@@ -134,28 +134,67 @@ class AttendanceHistoryController extends GetxController {
     }
   }
 
-  /// Quick Filter 1: This Month (e.g. October 2026) -> from=2026-10-01&to=2026-10-31
+  /// Quick Filter 1: This Month (Dynamic current month based on DateTime.now())
   void applyThisMonth() {
     HapticFeedback.selectionClick();
     activeDateRangeFilter.value = 'this_month';
-    final month = DateTime(2026, 10);
+    final now = DateTime.now();
+    final month = DateTime(now.year, now.month);
     selectedMonth.value = month;
-    filterLabel.value = 'October 2026';
-    filterSubtitle.value = '01 Oct 2026 — 31 Oct 2026 (Month)';
 
-    loadTimesheet(from: '2026-10-01', to: '2026-10-31');
+    final startOfMonth = DateTime(now.year, now.month, 1);
+    final endOfMonth = DateTime(now.year, now.month + 1, 0);
+
+    final fromIso = formatIsoDate(startOfMonth);
+    final toIso = formatIsoDate(endOfMonth);
+
+    final monthName = monthNames[now.month - 1];
+    final shortMonth = monthName.substring(0, 3);
+    final lastDayStr = endOfMonth.day.toString().padLeft(2, '0');
+
+    filterLabel.value = '$monthName ${now.year}';
+    filterSubtitle.value =
+        '01 $shortMonth ${now.year} — $lastDayStr $shortMonth ${now.year} (Month)';
+
+    loadTimesheet(from: fromIso, to: toIso);
   }
 
-  /// Quick Filter 2: Last Month (e.g. September 2026) -> from=2026-09-01&to=2026-09-30
+  /// Quick Filter: Today (Single day punch history for current day)
+  void applyToday() {
+    HapticFeedback.selectionClick();
+    activeDateRangeFilter.value = 'today';
+    final now = DateTime.now();
+    final todayIso = formatIsoDate(now);
+
+    filterLabel.value = 'Today (${formatReadableDate(now)})';
+    filterSubtitle.value = 'Daily punch records for today';
+
+    loadTimesheet(from: todayIso, to: todayIso);
+  }
+
+  /// Quick Filter 2: Last Month (Dynamic previous calendar month)
   void applyLastMonth() {
     HapticFeedback.selectionClick();
     activeDateRangeFilter.value = 'last_month';
-    final month = DateTime(2026, 9);
-    selectedMonth.value = month;
-    filterLabel.value = 'September 2026';
-    filterSubtitle.value = '01 Sep 2026 — 30 Sep 2026 (Month)';
+    final now = DateTime.now();
+    final lastMonth = DateTime(now.year, now.month - 1);
+    selectedMonth.value = lastMonth;
 
-    loadTimesheet(from: '2026-09-01', to: '2026-09-30');
+    final start = DateTime(lastMonth.year, lastMonth.month, 1);
+    final end = DateTime(lastMonth.year, lastMonth.month + 1, 0);
+
+    final fromIso = formatIsoDate(start);
+    final toIso = formatIsoDate(end);
+
+    final monthName = monthNames[lastMonth.month - 1];
+    final shortMonth = monthName.substring(0, 3);
+    final lastDayStr = end.day.toString().padLeft(2, '0');
+
+    filterLabel.value = '$monthName ${lastMonth.year}';
+    filterSubtitle.value =
+        '01 $shortMonth ${lastMonth.year} — $lastDayStr $shortMonth ${lastMonth.year} (Month)';
+
+    loadTimesheet(from: fromIso, to: toIso);
   }
 
   /// Quick Filter 3: Recent 14 Days (Default unfiltered API response)

@@ -126,27 +126,41 @@ class AttendanceDateRangeBar extends GetView<AttendanceHistoryController> {
         // ─── 2. Quick Preset Filter Pills ───
         Obx(() {
           final active = controller.activeDateRangeFilter.value;
+          final now = DateTime.now();
+          final currShort =
+              AttendanceHistoryController.monthNames[now.month - 1].substring(0, 3);
+          final currYr = now.year.toString().substring(2);
+
+          final lastMonthDate = DateTime(now.year, now.month - 1);
+          final lastShort =
+              AttendanceHistoryController.monthNames[lastMonthDate.month - 1].substring(0, 3);
+          final lastYr = lastMonthDate.year.toString().substring(2);
 
           final filters = [
             {
               'key': 'this_month',
-              'label': 'This Month (Oct 26)',
-              'icon': Icons.today_rounded
+              'label': 'This Month ($currShort \'$currYr)',
+              'icon': Icons.calendar_month_rounded,
+            },
+            {
+              'key': 'today',
+              'label': 'Today',
+              'icon': Icons.today_rounded,
             },
             {
               'key': 'last_month',
-              'label': 'Last Month (Sep 26)',
-              'icon': Icons.history_rounded
+              'label': 'Last Month ($lastShort \'$lastYr)',
+              'icon': Icons.history_rounded,
             },
             {
               'key': 'last_14_days',
               'label': 'Recent 14 Days',
-              'icon': Icons.timeline_rounded
+              'icon': Icons.timeline_rounded,
             },
             {
               'key': 'custom',
               'label': 'Custom Range 📅',
-              'icon': Icons.tune_rounded
+              'icon': Icons.tune_rounded,
             },
           ];
 
@@ -166,6 +180,8 @@ class AttendanceDateRangeBar extends GetView<AttendanceHistoryController> {
                     onTap: () {
                       if (key == 'this_month') {
                         controller.applyThisMonth();
+                      } else if (key == 'today') {
+                        controller.applyToday();
                       } else if (key == 'last_month') {
                         controller.applyLastMonth();
                       } else if (key == 'last_14_days') {
