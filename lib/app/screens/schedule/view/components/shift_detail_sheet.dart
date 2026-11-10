@@ -57,18 +57,23 @@ class ShiftDetailSheet extends StatelessWidget {
 
             // Header Row
             Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
                   width: 44.r,
                   height: 44.r,
                   decoration: BoxDecoration(
-                    color: (shift?.themeColor ?? AppColors.secondary).withValues(alpha: 0.12),
+                    color: (shift?.themeColor ?? AppColors.secondary)
+                        .withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(12.r),
                   ),
                   child: Icon(
                     isWorking
                         ? Icons.access_time_filled_rounded
-                        : (isHoliday ? Icons.celebration_rounded : Icons.weekend_rounded),
+                        : (isHoliday
+                              ? Icons.celebration_rounded
+                              : Icons.weekend_rounded),
                     color: shift?.themeColor ?? AppColors.secondary,
                     size: 24.sp,
                   ),
@@ -81,9 +86,10 @@ class ShiftDetailSheet extends StatelessWidget {
                       Text(
                         isWorking
                             ? (shift?.name ?? day.label)
-                            : (isHoliday ? (day.holiday?.name ?? "Holiday") : "Rest Day"),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                            : (isHoliday
+                                  ? (day.holiday?.name ?? "Holiday")
+                                  : "Rest Day"),
+
                         style: AppTextStyles.text18.copyWith(
                           fontWeight: FontWeight.bold,
                           color: AppColors.textColor,
@@ -110,31 +116,63 @@ class ShiftDetailSheet extends StatelessWidget {
             if (isWorking && shift != null) ...[
               _buildRow('Shift Timings', shift.timeRangeLabel),
               AppSpaces.vSpace8,
-              _buildRow('Planned Hours', '${day.planned} (${day.plannedMinutes} minutes)'),
+              _buildRow(
+                'Planned Hours',
+                '${day.planned} (${day.plannedMinutes} mins)',
+              ),
               AppSpaces.vSpace8,
               _buildRow('Break Duration', '${shift.breakMinutes} Minutes'),
+              if (day.pattern != null && day.pattern!.isNotEmpty) ...[
+                AppSpaces.vSpace8,
+                _buildRow('Work Pattern', day.pattern!),
+              ],
               AppSpaces.vSpace8,
-              _buildRow('Work Pattern', day.pattern ?? 'Standard Week'),
-              AppSpaces.vSpace8,
-              _buildRow('Overnight Shift', shift.overnight ? 'Yes (Crosses Midnight)' : 'No (Same Day)'),
-              AppSpaces.vSpace8,
-              _buildRow('Shift Code', shift.code),
-              if (day.timezone != null) ...[
+              _buildRow(
+                'Overnight Shift',
+                shift.overnight ? 'Yes (Crosses Midnight)' : 'No (Same Day)',
+              ),
+              if (shift.code != null && shift.code!.isNotEmpty) ...[
+                AppSpaces.vSpace8,
+                _buildRow('Shift Code', shift.code!),
+              ] else ...[
+                AppSpaces.vSpace8,
+                _buildRow('Shift Type', shift.kind.toUpperCase()),
+              ],
+              if (day.timezone != null && day.timezone!.isNotEmpty) ...[
                 AppSpaces.vSpace8,
                 _buildRow('Timezone', day.timezone!),
               ],
               AppSpaces.vSpace8,
               _buildRow('Source', day.source.capitalizeFirst ?? day.source),
             ] else if (isHoliday) ...[
-              _buildRow('Holiday Name', day.holiday?.name ?? 'Designated Holiday'),
+              _buildRow(
+                'Holiday Name',
+                day.holiday?.name ?? 'Designated Holiday',
+              ),
               AppSpaces.vSpace8,
-              _buildRow('Holiday Type', day.holiday?.isPublicHoliday == true ? 'Public Gazetted' : 'Company'),
+              _buildRow(
+                'Holiday Type',
+                day.holiday?.isPublicHoliday == true
+                    ? 'Public Gazetted'
+                    : 'Company',
+              ),
               AppSpaces.vSpace8,
-              _buildRow('Compensation', day.holiday?.isPaid == true ? 'Paid Holiday' : 'Unpaid'),
+              _buildRow(
+                'Compensation',
+                day.holiday?.isPaid == true ? 'Paid Holiday' : 'Unpaid',
+              ),
+              if (day.timezone != null && day.timezone!.isNotEmpty) ...[
+                AppSpaces.vSpace8,
+                _buildRow('Timezone', day.timezone!),
+              ],
             ] else ...[
               _buildRow('Schedule Type', 'Rest Day / Weekly Off'),
               AppSpaces.vSpace8,
               _buildRow('Source', day.source.capitalizeFirst ?? 'Pattern'),
+              if (day.pattern != null && day.pattern!.isNotEmpty) ...[
+                AppSpaces.vSpace8,
+                _buildRow('Work Pattern', day.pattern!),
+              ],
               AppSpaces.vSpace8,
               _buildRow('Planned Hours', '0:00 (No shift required)'),
             ],
@@ -154,23 +192,34 @@ class ShiftDetailSheet extends StatelessWidget {
   }
 
   Widget _buildRow(String title, String value) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          title,
-          style: AppTextStyles.text12.copyWith(
-            color: AppColors.subTextColor,
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 2.h),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120.w,
+            child: Text(
+              title,
+              style: AppTextStyles.text12.copyWith(
+                color: AppColors.subTextColor,
+              ),
+            ),
           ),
-        ),
-        Text(
-          value,
-          style: AppTextStyles.text12.copyWith(
-            fontWeight: FontWeight.w600,
-            color: AppColors.textColor,
+          AppSpaces.hSpace8,
+          Expanded(
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              style: AppTextStyles.text12.copyWith(
+                fontWeight: FontWeight.w600,
+                color: AppColors.textColor,
+                height: 1.3,
+              ),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

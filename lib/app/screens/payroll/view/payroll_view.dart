@@ -96,14 +96,15 @@ class PayrollView extends GetView<PayrollController> {
                         );
                       }
 
-                      // Loading State
+                      // Loading State: Show clean circular progress bar without text
                       if (controller.isLoading.value &&
-                          controller.payslips.isEmpty &&
-                          controller.salaryStructure.value == null) {
+                          (controller.selectedTabIndex.value == 0
+                              ? controller.payslips.isEmpty
+                              : controller.salaryStructure.value == null)) {
                         return Center(
                           child: CircularProgressIndicator(
-                            color: AppColors.primary,
-                            strokeWidth: 2.5.w,
+                            color: AppColors.secondary,
+                            strokeWidth: 2.8.w,
                           ),
                         );
                       }
@@ -294,14 +295,55 @@ class PayrollView extends GetView<PayrollController> {
     BuildContext context,
     PayslipSummaryModel summary,
   ) async {
-    final details = await controller.fetchDetails(summary.id);
+    // Show instant non-blocking progress dialog while details are fetched (clean spinner only, no text)
+    Get.dialog(
+      PopScope(
+        canPop: false,
+        child: Center(
+          child: Container(
+            padding: EdgeInsets.all(18.r),
+            decoration: BoxDecoration(
+              color: AppColors.cardBackground,
+              borderRadius: BorderRadius.circular(16.r),
+              border: Border.all(color: AppColors.borderColor, width: 1.w),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.15),
+                  blurRadius: 16.r,
+                  offset: Offset(0, 4.h),
+                ),
+              ],
+            ),
+            child: SizedBox(
+              width: 32.r,
+              height: 32.r,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.8.w,
+                color: AppColors.secondary,
+              ),
+            ),
+          ),
+        ),
+      ),
+      barrierDismissible: false,
+    );
+
+    PayslipDetailsModel? details;
+    try {
+      details = await controller.fetchDetails(summary.id);
+    } finally {
+      if (Get.isDialogOpen == true) {
+        Get.back(); // Dismiss loading dialog
+      }
+    }
+
     if (details != null && context.mounted) {
       PayslipDetailsBottomSheet.show(
         context,
         details: details,
         isDownloadingPdf: controller.isDownloadingPdf.value,
         onDownloadPdf: () => controller.downloadAndOpenPdf(
-          details.id,
+          details!.id,
           periodLabel: details.period?.label,
         ),
       );

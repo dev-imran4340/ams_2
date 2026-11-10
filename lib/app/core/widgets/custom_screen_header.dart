@@ -21,6 +21,8 @@ class CustomScreenHeader extends StatelessWidget {
   final Widget? customTitleWidget;
   final Color? titleColor;
   final Color? subtitleColor;
+  final int? titleMaxLines;
+  final TextOverflow titleOverflow;
 
   const CustomScreenHeader({
     super.key,
@@ -32,6 +34,8 @@ class CustomScreenHeader extends StatelessWidget {
     this.customTitleWidget,
     this.titleColor,
     this.subtitleColor,
+    this.titleMaxLines = 1,
+    this.titleOverflow = TextOverflow.ellipsis,
   });
 
   /// Factory helper for a uniform square action button with white card styling
@@ -135,8 +139,8 @@ class CustomScreenHeader extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                    maxLines: titleMaxLines,
+                    overflow: titleOverflow,
                     style: AppTextStyles.text16.copyWith(
                       fontWeight: FontWeight.bold,
                       color: titleColor ?? AppColors.textColor,

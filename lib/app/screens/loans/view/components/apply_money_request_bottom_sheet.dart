@@ -107,190 +107,183 @@ class _ApplyMoneyRequestBottomSheetState
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.90,
-      ),
-      decoration: BoxDecoration(
-        color: AppColors.backgroundColor,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
-      ),
-      child: Column(
-        children: [
-          // Drag handle
-          Center(
-            child: Container(
-              margin: EdgeInsets.only(top: 10.h, bottom: 6.h),
-              width: 40.w,
-              height: 4.h,
-              decoration: BoxDecoration(
-                color: AppColors.borderColor,
-                borderRadius: BorderRadius.circular(2.r),
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+
+    return PopScope(
+      canPop: !widget.controller.isSubmitting.value,
+      child: Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.90,
+        ),
+        margin: EdgeInsets.only(bottom: bottomInset),
+        decoration: BoxDecoration(
+          color: AppColors.backgroundColor,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+        ),
+        child: Column(
+          children: [
+            // Drag handle
+            Center(
+              child: Container(
+                margin: EdgeInsets.only(top: 10.h, bottom: 6.h),
+                width: 40.w,
+                height: 4.h,
+                decoration: BoxDecoration(
+                  color: AppColors.borderColor,
+                  borderRadius: BorderRadius.circular(2.r),
+                ),
               ),
             ),
-          ),
 
-          // Header
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Request Money / Claim',
-                      style: AppTextStyles.text18.copyWith(
-                        color: AppColors.textColor,
-                        fontWeight: FontWeight.w700,
+            // Header
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Request Money / Claim',
+                        style: AppTextStyles.text18.copyWith(
+                          color: AppColors.textColor,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
-                    ),
-                    Text(
-                      'Select type, enter details and submit for approval',
-                      style: AppTextStyles.text12.copyWith(
-                        color: AppColors.subTextColor,
+                      Text(
+                        'Select type, enter details and submit for approval',
+                        style: AppTextStyles.text12.copyWith(
+                          color: AppColors.subTextColor,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close_rounded),
-                  color: AppColors.subTextColor,
-                  onPressed: () => Get.back(),
-                ),
-              ],
+                    ],
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded),
+                    color: AppColors.subTextColor,
+                    onPressed: () {
+                      if (!widget.controller.isSubmitting.value) {
+                        Navigator.of(context).pop();
+                      }
+                    },
+                  ),
+                ],
+              ),
             ),
-          ),
 
-          Divider(color: AppColors.borderColor, height: 1.h),
+            Divider(color: AppColors.borderColor, height: 1.h),
 
-          // Scrollable Form
-          Expanded(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-              child: Obx(() {
-                final types = widget.controller.requestTypes;
-                final selectedType = widget.controller.selectedFormType.value;
+            // Scrollable Form
+            Expanded(
+              child: SingleChildScrollView(
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
+                physics: const BouncingScrollPhysics(),
+                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+                child: Obx(() {
+                  final types = widget.controller.requestTypes;
+                  final selectedType = widget.controller.selectedFormType.value;
 
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // 1. Request Type Selector Chips
-                    Text(
-                      'REQUEST TYPE',
-                      style: AppTextStyles.text10.copyWith(
-                        color: AppColors.subTextColor,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.5,
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 1. Request Type Selector Chips
+                      Text(
+                        'REQUEST TYPE',
+                        style: AppTextStyles.text10.copyWith(
+                          color: AppColors.subTextColor,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.5,
+                        ),
                       ),
-                    ),
-                    AppSpaces.vSpace8,
-                    Wrap(
-                      spacing: 8.w,
-                      runSpacing: 8.h,
-                      children: types.map((type) {
-                        final isSelected = selectedType?.id == type.id;
-                        return ChoiceChip(
-                          label: Text(
-                            type.name,
-                            style: AppTextStyles.text12.copyWith(
+                      AppSpaces.vSpace8,
+                      Wrap(
+                        spacing: 8.w,
+                        runSpacing: 8.h,
+                        children: types.map((type) {
+                          final isSelected = selectedType?.id == type.id;
+                          return ChoiceChip(
+                            label: Text(
+                              type.name,
+                              style: AppTextStyles.text12.copyWith(
+                                color: isSelected
+                                    ? Colors.white
+                                    : AppColors.textColor,
+                                fontWeight: isSelected
+                                    ? FontWeight.w700
+                                    : FontWeight.w500,
+                              ),
+                            ),
+                            avatar: Icon(
+                              type.icon,
+                              size: 16.sp,
                               color: isSelected
                                   ? Colors.white
-                                  : AppColors.textColor,
-                              fontWeight: isSelected
-                                  ? FontWeight.w700
-                                  : FontWeight.w500,
+                                  : AppColors.subTextColor,
                             ),
-                          ),
-                          avatar: Icon(
-                            type.icon,
-                            size: 16.sp,
-                            color: isSelected
-                                ? Colors.white
-                                : AppColors.subTextColor,
-                          ),
-                          selected: isSelected,
-                          selectedColor: AppColors.primary,
-                          backgroundColor: AppColors.cardBackground,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20.r),
-                            side: BorderSide(
-                              color: isSelected
-                                  ? AppColors.primary
-                                  : AppColors.borderColor,
-                              width: 1.w,
-                            ),
-                          ),
-                          onSelected: (_) {
-                            widget.controller.selectedFormType.value = type;
-                            setState(() {});
-                          },
-                        );
-                      }).toList(),
-                    ),
-
-                    if (selectedType != null) ...[
-                      AppSpaces.vSpace12,
-
-                      // Policy Limits Hint Banner
-                      if (selectedType.maxPerRequest != null ||
-                          selectedType.maxInstalments != null)
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                              horizontal: 10.w, vertical: 8.h),
-                          decoration: BoxDecoration(
-                            color: AppColors.secondary.withValues(alpha: 0.08),
-                            borderRadius: BorderRadius.circular(8.r),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.info_outline_rounded,
-                                size: 16.sp,
-                                color: AppColors.secondary,
+                            selected: isSelected,
+                            selectedColor: AppColors.primary,
+                            backgroundColor: AppColors.cardBackground,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20.r),
+                              side: BorderSide(
+                                color: isSelected
+                                    ? AppColors.primary
+                                    : AppColors.borderColor,
+                                width: 1.w,
                               ),
-                              AppSpaces.hSpace8,
-                              Expanded(
-                                child: Text(
-                                  'Limits: '
-                                  '${selectedType.maxPerRequest != null ? "Max ${selectedType.maxPerRequest} • " : ""}'
-                                  '${selectedType.maxInstalments != null ? "Max ${selectedType.maxInstalments} months" : ""}',
-                                  style: AppTextStyles.text12.copyWith(
-                                    color: AppColors.textColor,
-                                    fontSize: 11.sp,
+                            ),
+                            onSelected: (_) {
+                              widget.controller.selectedFormType.value = type;
+                              setState(() {});
+                            },
+                          );
+                        }).toList(),
+                      ),
+
+                      if (selectedType != null) ...[
+                        AppSpaces.vSpace12,
+
+                        // Policy Limits Hint Banner
+                        if (selectedType.maxPerRequest != null ||
+                            selectedType.maxInstalments != null)
+                          Container(
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 10.w, vertical: 8.h),
+                            decoration: BoxDecoration(
+                              color: AppColors.secondary.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(8.r),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.info_outline_rounded,
+                                  size: 16.sp,
+                                  color: AppColors.secondary,
+                                ),
+                                AppSpaces.hSpace8,
+                                Expanded(
+                                  child: Text(
+                                    'Limits: '
+                                    '${selectedType.maxPerRequest != null ? "Max ${selectedType.maxPerRequest} • " : ""}'
+                                    '${selectedType.maxInstalments != null ? "Max ${selectedType.maxInstalments} months" : ""}',
+                                    style: AppTextStyles.text12.copyWith(
+                                      color: AppColors.textColor,
+                                      fontSize: 11.sp,
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
 
-                      AppSpaces.vSpace14,
+                        AppSpaces.vSpace14,
 
-                      // Non-Line Types (Loan, Advance, Payment): Single Amount + Instalments
-                      if (!selectedType.hasLines) ...[
-                        Text(
-                          'REQUESTED AMOUNT',
-                          style: AppTextStyles.text10.copyWith(
-                            color: AppColors.subTextColor,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                        AppSpaces.vSpace6,
-                        CustomTextField(
-                          controller: widget.controller.amountController,
-                          hintText: 'e.g. 50000',
-                          keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true),
-                        ),
-
-                        // Instalments for repayable types
-                        if (selectedType.repayable) ...[
-                          AppSpaces.vSpace14,
+                        // Non-Line Types (Loan, Advance, Payment): Single Amount + Instalments
+                        if (!selectedType.hasLines) ...[
                           Text(
-                            'NUMBER OF MONTHLY INSTALMENTS',
+                            'REQUESTED AMOUNT',
                             style: AppTextStyles.text10.copyWith(
                               color: AppColors.subTextColor,
                               fontWeight: FontWeight.w700,
@@ -299,161 +292,183 @@ class _ApplyMoneyRequestBottomSheetState
                           ),
                           AppSpaces.vSpace6,
                           CustomTextField(
-                            controller:
-                                widget.controller.instalmentsController,
-                            hintText:
-                                'e.g. 6 (max ${selectedType.maxInstalments ?? 24})',
-                            keyboardType: TextInputType.number,
+                            controller: widget.controller.amountController,
+                            hintText: 'e.g. 50000',
+                            keyboardType: const TextInputType.numberWithOptions(
+                                decimal: true),
                           ),
-                        ],
-                      ],
 
-                      // Line Types (Expense Claim): Dynamic Expense Lines
-                      if (selectedType.hasLines) ...[
+                          // Instalments for repayable types
+                          if (selectedType.repayable) ...[
+                            AppSpaces.vSpace14,
+                            Text(
+                              'NUMBER OF MONTHLY INSTALMENTS',
+                              style: AppTextStyles.text10.copyWith(
+                                color: AppColors.subTextColor,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            AppSpaces.vSpace6,
+                            CustomTextField(
+                              controller:
+                                  widget.controller.instalmentsController,
+                              hintText:
+                                  'e.g. 6 (max ${selectedType.maxInstalments ?? 24})',
+                              keyboardType: TextInputType.number,
+                            ),
+                          ],
+                        ],
+
+                        // Line Types (Expense Claim): Dynamic Expense Lines
+                        if (selectedType.hasLines) ...[
+                          Text(
+                            'ADD EXPENSE LINES',
+                            style: AppTextStyles.text10.copyWith(
+                              color: AppColors.subTextColor,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          AppSpaces.vSpace8,
+                          _buildAddExpenseLineCard(),
+                          AppSpaces.vSpace12,
+
+                          // List of already added draft lines
+                          if (widget.controller.draftExpenseLines.isNotEmpty) ...[
+                            Text(
+                              'DRAFT CLAIM LINES (${widget.controller.draftExpenseLines.length})',
+                              style: AppTextStyles.text10.copyWith(
+                                color: AppColors.subTextColor,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            AppSpaces.vSpace8,
+                            ...widget.controller.draftExpenseLines
+                                .asMap()
+                                .entries
+                                .map((entry) {
+                              final idx = entry.key;
+                              final line = entry.value;
+                              return Container(
+                                margin: EdgeInsets.only(bottom: 6.h),
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: 10.w, vertical: 8.h),
+                                decoration: BoxDecoration(
+                                  color: AppColors.cardBackground,
+                                  borderRadius: BorderRadius.circular(8.r),
+                                  border: Border.all(
+                                      color: AppColors.borderColor, width: 1.w),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          '${line.categoryName} • ${line.spentOn}',
+                                          style: AppTextStyles.text12.copyWith(
+                                            color: AppColors.textColor,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        if (line.note.isNotEmpty)
+                                          Text(
+                                            line.note,
+                                            style: AppTextStyles.text10.copyWith(
+                                              color: AppColors.subTextColor,
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                    Row(
+                                      children: [
+                                        Text(
+                                          line.amount,
+                                          style: AppTextStyles.text14.copyWith(
+                                            color: AppColors.primary,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        IconButton(
+                                          icon: Icon(Icons.delete_outline,
+                                              size: 18.sp,
+                                              color: AppColors.error),
+                                          onPressed: () => widget.controller
+                                              .removeExpenseLine(idx),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }),
+                          ],
+                        ],
+
+                        AppSpaces.vSpace14,
+
+                        // Reason Field
                         Text(
-                          'ADD EXPENSE LINES',
+                          'PURPOSE / REASON',
                           style: AppTextStyles.text10.copyWith(
                             color: AppColors.subTextColor,
                             fontWeight: FontWeight.w700,
                             letterSpacing: 0.5,
                           ),
                         ),
-                        AppSpaces.vSpace8,
-                        _buildAddExpenseLineCard(),
-                        AppSpaces.vSpace12,
-
-                        // List of already added draft lines
-                        if (widget.controller.draftExpenseLines.isNotEmpty) ...[
-                          Text(
-                            'DRAFT CLAIM LINES (${widget.controller.draftExpenseLines.length})',
-                            style: AppTextStyles.text10.copyWith(
-                              color: AppColors.subTextColor,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          AppSpaces.vSpace8,
-                          ...widget.controller.draftExpenseLines
-                              .asMap()
-                              .entries
-                              .map((entry) {
-                            final idx = entry.key;
-                            final line = entry.value;
-                            return Container(
-                              margin: EdgeInsets.only(bottom: 6.h),
-                              padding: EdgeInsets.symmetric(
-                                  horizontal: 10.w, vertical: 8.h),
-                              decoration: BoxDecoration(
-                                color: AppColors.cardBackground,
-                                borderRadius: BorderRadius.circular(8.r),
-                                border: Border.all(
-                                    color: AppColors.borderColor, width: 1.w),
-                              ),
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        '${line.categoryName} • ${line.spentOn}',
-                                        style: AppTextStyles.text12.copyWith(
-                                          color: AppColors.textColor,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                      if (line.note.isNotEmpty)
-                                        Text(
-                                          line.note,
-                                          style: AppTextStyles.text10.copyWith(
-                                            color: AppColors.subTextColor,
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                  Row(
-                                    children: [
-                                      Text(
-                                        line.amount,
-                                        style: AppTextStyles.text14.copyWith(
-                                          color: AppColors.primary,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      IconButton(
-                                        icon: Icon(Icons.delete_outline,
-                                            size: 18.sp,
-                                            color: AppColors.error),
-                                        onPressed: () => widget.controller
-                                            .removeExpenseLine(idx),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            );
-                          }),
-                        ],
+                        AppSpaces.vSpace6,
+                        CustomTextField(
+                          controller: widget.controller.reasonController,
+                          hintText: 'Brief explanation for management approval',
+                          maxLines: 2,
+                        ),
                       ],
 
-                      AppSpaces.vSpace14,
-
-                      // Reason Field
-                      Text(
-                        'PURPOSE / REASON',
-                        style: AppTextStyles.text10.copyWith(
-                          color: AppColors.subTextColor,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      AppSpaces.vSpace6,
-                      CustomTextField(
-                        controller: widget.controller.reasonController,
-                        hintText: 'Brief explanation for management approval',
-                        maxLines: 2,
-                      ),
+                      AppSpaces.vSpace20,
                     ],
-
-                    AppSpaces.vSpace20,
-                  ],
-                );
-              }),
-            ),
-          ),
-
-          // Submit Action Button
-          Container(
-            padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 16.h),
-            decoration: BoxDecoration(
-              color: AppColors.cardBackground,
-              border: Border(
-                top: BorderSide(color: AppColors.borderColor, width: 1.w),
+                  );
+                }),
               ),
             ),
-            child: SafeArea(
-              top: false,
-              child: Obx(() => CustomButton(
-                    isGradient: true,
-                    isLoading: widget.controller.isSubmitting.value,
-                    text: 'Submit Request for Approval',
-                    icon: Icon(
-                      Icons.send_rounded,
-                      color: Colors.white,
-                      size: 16.sp,
-                    ),
-                    onPressed: () async {
-                      final success =
-                          await widget.controller.submitRequest();
-                      if (success) {
-                        Get.back();
-                      }
-                    },
-                  )),
+
+            // Submit Action Button
+            Container(
+              padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 16.h),
+              decoration: BoxDecoration(
+                color: AppColors.cardBackground,
+                border: Border(
+                  top: BorderSide(color: AppColors.borderColor, width: 1.w),
+                ),
+              ),
+              child: SafeArea(
+                top: false,
+                child: Obx(() => CustomButton(
+                      isGradient: true,
+                      isLoading: widget.controller.isSubmitting.value,
+                      text: 'Submit Request for Approval',
+                      icon: Icon(
+                        Icons.send_rounded,
+                        color: Colors.white,
+                        size: 16.sp,
+                      ),
+                      onPressed: () async {
+                        // Hide keyboard before submission
+                        FocusManager.instance.primaryFocus?.unfocus();
+                        final success =
+                            await widget.controller.submitRequest();
+                        if (success && context.mounted) {
+                          Navigator.of(context).pop();
+                        }
+                      },
+                    )),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

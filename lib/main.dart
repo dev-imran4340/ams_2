@@ -64,8 +64,11 @@ class MyApp extends StatelessWidget {
             }
           },
       builder: (context, child) {
-        // return Obx(() {
-          return GetMaterialApp(
+        // Wrap entire app in a dismiss keyboard detector so tapping anywhere outside unfocuses
+        return GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+          child: GetMaterialApp(
             title: 'AMS 2',
             debugShowCheckedModeBanner: false,
             // theme: AppTheme.lightTheme,
@@ -75,8 +78,8 @@ class MyApp extends StatelessWidget {
             //     : ThemeMode.light,
             initialRoute: AppPages.INITIAL,
             getPages: AppPages.routes,
-          );
-        // });
+          ),
+        );
       },
     );
   }

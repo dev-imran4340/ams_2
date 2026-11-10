@@ -26,8 +26,8 @@ class ScheduleHeroSummaryCard extends StatelessWidget {
       final holidays = controller.holidaysCount;
 
       return CustomCard(
-        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 14.h),
-        borderRadius: 15.r,
+        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 10.h),
+        borderRadius: 14.r,
         accentColor: AppColors.secondary,
         showBottomAccent: true,
         child: Column(
@@ -40,40 +40,41 @@ class ScheduleHeroSummaryCard extends StatelessWidget {
                 Row(
                   children: [
                     Container(
-                      width: 8.r,
-                      height: 8.r,
+                      width: 7.r,
+                      height: 7.r,
                       decoration: BoxDecoration(
                         color: AppColors.secondary,
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
                             color: AppColors.secondary.withValues(alpha: 0.4),
-                            blurRadius: 6.r,
+                            blurRadius: 4.r,
                             spreadRadius: 1.r,
                           ),
                         ],
                       ),
                     ),
-                    AppSpaces.hSpace8,
+                    AppSpaces.hSpace6,
                     Text(
                       'WORK SCHEDULE OVERVIEW',
                       style: AppTextStyles.text10.copyWith(
+                        fontSize: 8.5.sp,
                         fontWeight: FontWeight.bold,
                         color: AppColors.subTextColor,
-                        letterSpacing: 0.8,
+                        letterSpacing: 0.6,
                       ),
                     ),
                   ],
                 ),
                 if (nextShift != null)
                   Container(
-                    padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                    padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 3.h),
                     decoration: BoxDecoration(
                       color: AppColors.secondary.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(20.r),
+                      borderRadius: BorderRadius.circular(14.r),
                       border: Border.all(
                         color: AppColors.secondary.withValues(alpha: 0.3),
-                        width: 1.w,
+                        width: 0.8.w,
                       ),
                     ),
                     child: Row(
@@ -81,13 +82,14 @@ class ScheduleHeroSummaryCard extends StatelessWidget {
                       children: [
                         Icon(
                           Icons.schedule_rounded,
-                          size: 12.sp,
+                          size: 11.sp,
                           color: AppColors.secondary,
                         ),
                         AppSpaces.hSpace4,
                         Text(
                           'Next: ${nextShift.dayOfWeek} ${nextShift.shift?.starts ?? ""}',
                           style: AppTextStyles.text10.copyWith(
+                            fontSize: 9.sp,
                             fontWeight: FontWeight.bold,
                             color: AppColors.secondary,
                           ),
@@ -98,32 +100,32 @@ class ScheduleHeroSummaryCard extends StatelessWidget {
               ],
             ),
 
-            AppSpaces.vSpace12,
+            AppSpaces.vSpace8,
 
-            // Next Shift Title / Banner
+            // Next Shift Title / Banner (Wrap to Next Line, No Ellipsis)
             if (nextShift != null) ...[
               Text(
                 nextShift.label.isNotEmpty
                     ? nextShift.label
                     : '${nextShift.shift?.name ?? "Scheduled Shift"} (${nextShift.shift?.timeRangeLabel ?? ""})',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: AppTextStyles.text18.copyWith(
+                style: AppTextStyles.text14.copyWith(
                   fontWeight: FontWeight.bold,
                   color: AppColors.textColor,
+                  height: 1.2,
                 ),
               ),
               AppSpaces.vSpace2,
               Text(
-                'Pattern: ${nextShift.pattern ?? "Standard Assigned Shift"} • Source: ${nextShift.source.capitalizeFirst}',
-                style: AppTextStyles.text12.copyWith(
+                'Pattern: ${nextShift.pattern ?? "Standard Assigned"} • Source: ${nextShift.source.capitalizeFirst}',
+                style: AppTextStyles.text10.copyWith(
                   color: AppColors.subTextColor,
+                  fontSize: 9.5.sp,
                 ),
               ),
             ] else ...[
               Text(
                 'No Upcoming Shifts',
-                style: AppTextStyles.text18.copyWith(
+                style: AppTextStyles.text14.copyWith(
                   fontWeight: FontWeight.bold,
                   color: AppColors.textColor,
                 ),
@@ -131,15 +133,15 @@ class ScheduleHeroSummaryCard extends StatelessWidget {
               AppSpaces.vSpace2,
               Text(
                 'No working shifts scheduled in the active query window.',
-                style: AppTextStyles.text12.copyWith(
+                style: AppTextStyles.text10.copyWith(
                   color: AppColors.subTextColor,
                 ),
               ),
             ],
 
-            AppSpaces.vSpace14,
-            Container(height: 1.h, color: AppColors.borderColor),
-            AppSpaces.vSpace12,
+            AppSpaces.vSpace10,
+            Container(height: 0.8.h, color: AppColors.borderColor),
+            AppSpaces.vSpace8,
 
             // 4 Metrics Grid (Working Shifts, Planned Hours, Rest Days, Holidays)
             Row(
@@ -152,7 +154,7 @@ class ScheduleHeroSummaryCard extends StatelessWidget {
                     color: AppColors.primary,
                   ),
                 ),
-                Container(width: 1.w, height: 32.h, color: AppColors.borderColor),
+                Container(width: 0.8.w, height: 26.h, color: AppColors.borderColor),
                 Expanded(
                   child: _buildMetricItem(
                     icon: Icons.access_time_filled_rounded,
@@ -161,7 +163,7 @@ class ScheduleHeroSummaryCard extends StatelessWidget {
                     color: AppColors.secondary,
                   ),
                 ),
-                Container(width: 1.w, height: 32.h, color: AppColors.borderColor),
+                Container(width: 0.8.w, height: 26.h, color: AppColors.borderColor),
                 Expanded(
                   child: _buildMetricItem(
                     icon: Icons.weekend_rounded,
@@ -170,7 +172,7 @@ class ScheduleHeroSummaryCard extends StatelessWidget {
                     color: const Color(0xFF64748B),
                   ),
                 ),
-                Container(width: 1.w, height: 32.h, color: AppColors.borderColor),
+                Container(width: 0.8.w, height: 26.h, color: AppColors.borderColor),
                 Expanded(
                   child: _buildMetricItem(
                     icon: Icons.celebration_rounded,

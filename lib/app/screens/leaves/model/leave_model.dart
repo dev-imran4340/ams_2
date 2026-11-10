@@ -236,7 +236,7 @@ class LeavePreviewModel {
   final bool ok;
   final String? message;
   final Map<String, dynamic> fields;
-  final double days;
+  final List<LeaveDayBreakdownModel> days;
   final double amount;
   final String amountText;
   final String availableText;
@@ -246,7 +246,7 @@ class LeavePreviewModel {
     required this.ok,
     this.message,
     this.fields = const {},
-    required this.days,
+    this.days = const [],
     required this.amount,
     required this.amountText,
     required this.availableText,
@@ -254,11 +254,20 @@ class LeavePreviewModel {
   });
 
   factory LeavePreviewModel.fromJson(Map<String, dynamic> json) {
+    final daysList = <LeaveDayBreakdownModel>[];
+    if (json['days'] is List) {
+      for (final d in json['days'] as List) {
+        if (d is Map) {
+          daysList.add(LeaveDayBreakdownModel.fromJson(Map<String, dynamic>.from(d)));
+        }
+      }
+    }
+
     return LeavePreviewModel(
       ok: json['ok'] == true,
       message: json['message']?.toString(),
       fields: json['fields'] is Map ? Map<String, dynamic>.from(json['fields'] as Map) : {},
-      days: (json['days'] as num?)?.toDouble() ?? 0.0,
+      days: daysList,
       amount: (json['amount'] as num?)?.toDouble() ?? 0.0,
       amountText: json['amount_text']?.toString() ?? '',
       availableText: json['available_text']?.toString() ?? '',

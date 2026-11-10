@@ -169,8 +169,8 @@ class HolidaysBottomSheet extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            width: 44.w,
-            padding: EdgeInsets.symmetric(vertical: 6.h),
+            width: 48.w,
+            padding: EdgeInsets.symmetric(vertical: 6.h, horizontal: 2.w),
             decoration: BoxDecoration(
               color: AppColors.success.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8.r),
@@ -182,13 +182,23 @@ class HolidaysBottomSheet extends StatelessWidget {
                   style: AppTextStyles.text16.copyWith(
                     fontWeight: FontWeight.bold,
                     color: AppColors.success,
+                    height: 1.1,
                   ),
                 ),
+                AppSpaces.vSpace2,
                 Text(
                   _parseMonth(item.startsOn),
                   style: AppTextStyles.text10.copyWith(
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w700,
                     color: AppColors.success,
+                  ),
+                ),
+                Text(
+                  _parseYear(item.startsOn),
+                  style: AppTextStyles.text10.copyWith(
+                    fontSize: 8.sp,
+                    color: AppColors.success.withValues(alpha: 0.8),
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
@@ -201,25 +211,36 @@ class HolidaysBottomSheet extends StatelessWidget {
               children: [
                 Text(
                   item.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                   style: AppTextStyles.text14.copyWith(
                     fontWeight: FontWeight.bold,
                     color: AppColors.textColor,
+                    height: 1.25,
                   ),
                 ),
-                AppSpaces.vSpace2,
-                Text(
-                  item.startsOn == item.endsOn
-                      ? item.startsOn
-                      : '${item.startsOn} — ${item.endsOn}',
-                  style: AppTextStyles.text12.copyWith(
-                    color: AppColors.subTextColor,
-                  ),
+                AppSpaces.vSpace4,
+                Row(
+                  children: [
+                    Icon(
+                      Icons.calendar_today_rounded,
+                      size: 11.sp,
+                      color: AppColors.subTextColor,
+                    ),
+                    AppSpaces.hSpace4,
+                    Expanded(
+                      child: Text(
+                        item.formattedDateWithYear,
+                        style: AppTextStyles.text12.copyWith(
+                          color: AppColors.subTextColor,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
+          AppSpaces.hSpace8,
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
@@ -242,6 +263,7 @@ class HolidaysBottomSheet extends StatelessWidget {
                 item.isPublicHoliday ? 'Public' : 'Company',
                 style: AppTextStyles.text10.copyWith(
                   color: AppColors.subTextColor,
+                  fontSize: 10.sp,
                 ),
               ),
             ],
@@ -261,5 +283,10 @@ class HolidaysBottomSheet extends StatelessWidget {
     if (dt == null) return '';
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     return months[dt.month - 1];
+  }
+
+  String _parseYear(String dateStr) {
+    final dt = DateTime.tryParse(dateStr);
+    return dt != null ? dt.year.toString() : '';
   }
 }

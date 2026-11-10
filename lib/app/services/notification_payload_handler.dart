@@ -113,6 +113,24 @@ class NotificationPayloadHandler {
       return;
     }
 
+    // 2.5 Attendance Screen (screen: "attendance")
+    if (cleanScreen == 'attendance') {
+      Get.log('🧭 [$_tag] Navigating to Attendance History');
+      if (Get.currentRoute != Routes.ATTENDANCE_HISTORY) {
+        await Get.toNamed(Routes.ATTENDANCE_HISTORY);
+      }
+      return;
+    }
+
+    // 2.6 Schedule Screen (screen: "schedule")
+    if (cleanScreen == 'schedule') {
+      Get.log('🧭 [$_tag] Navigating to Schedule & Rota');
+      if (Get.currentRoute != Routes.SCHEDULE) {
+        await Get.toNamed(Routes.SCHEDULE);
+      }
+      return;
+    }
+
     // 3. Fallback for Unknown Screen Values -> Open Notifications List
     Get.log('🧭 [$_tag] Screen "$screen" unknown or general notification. Opening Notifications View.');
     if (Get.currentRoute != Routes.NOTIFICATIONS) {

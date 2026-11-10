@@ -120,18 +120,23 @@ class PayslipDetailsBottomSheet extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 1. Employee Info & Payment Method
+                  // 1. Net Take-Home Highlight Card (Placed at the very top as requested)
+                  _buildNetSummaryCard(),
+
+                  AppSpaces.vSpace14,
+
+                  // 2. Employee Info & Payment Method
                   if (details.employee != null)
                     _buildEmployeeCard(details.employee!, details.paymentMethod),
 
                   AppSpaces.vSpace14,
 
-                  // 2. Attendance & Calendar Days
+                  // 3. Attendance & Calendar Days
                   if (details.days != null) _buildDaysCard(details.days!),
 
                   AppSpaces.vSpace14,
 
-                  // 3. Itemized Earnings
+                  // 4. Itemized Earnings
                   _buildSectionCard(
                     title: 'EARNINGS & ALLOWANCES',
                     icon: Icons.add_circle_outline_rounded,
@@ -143,7 +148,7 @@ class PayslipDetailsBottomSheet extends StatelessWidget {
 
                   AppSpaces.vSpace14,
 
-                  // 4. Itemized Deductions
+                  // 5. Itemized Deductions
                   _buildSectionCard(
                     title: 'DEDUCTIONS & TAXES',
                     icon: Icons.remove_circle_outline_rounded,
@@ -153,7 +158,7 @@ class PayslipDetailsBottomSheet extends StatelessWidget {
                     totalLabel: 'Total Deductions',
                   ),
 
-                  // 5. Employer Contributions (if any)
+                  // 6. Employer Contributions (if any)
                   if (details.employerContributions.isNotEmpty) ...[
                     AppSpaces.vSpace14,
                     _buildSectionCard(
@@ -167,11 +172,6 @@ class PayslipDetailsBottomSheet extends StatelessWidget {
                           'Paid directly by employer (not subtracted from salary)',
                     ),
                   ],
-
-                  AppSpaces.vSpace14,
-
-                  // 6. Net Take-Home Highlight Card
-                  _buildNetSummaryCard(),
 
                   AppSpaces.vSpace20,
                 ],

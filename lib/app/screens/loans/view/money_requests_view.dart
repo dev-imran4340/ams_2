@@ -115,8 +115,8 @@ class MoneyRequestsView extends GetView<MoneyRequestController> {
                           controller.moneyRequests.isEmpty) {
                         return Center(
                           child: CircularProgressIndicator(
-                            color: AppColors.primary,
-                            strokeWidth: 2.5.w,
+                            color: AppColors.secondary,
+                            strokeWidth: 2.8.w,
                           ),
                         );
                       }
@@ -241,7 +241,48 @@ class MoneyRequestsView extends GetView<MoneyRequestController> {
     BuildContext context,
     MoneyRequestItemModel req,
   ) async {
-    final fullDetails = await controller.fetchDetails(req.id);
+    // Show non-blocking minimal spinner dialog (no text label)
+    Get.dialog(
+      PopScope(
+        canPop: false,
+        child: Center(
+          child: Container(
+            padding: EdgeInsets.all(18.r),
+            decoration: BoxDecoration(
+              color: AppColors.cardBackground,
+              borderRadius: BorderRadius.circular(16.r),
+              border: Border.all(color: AppColors.borderColor, width: 1.w),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.15),
+                  blurRadius: 16.r,
+                  offset: Offset(0, 4.h),
+                ),
+              ],
+            ),
+            child: SizedBox(
+              width: 32.r,
+              height: 32.r,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.8.w,
+                color: AppColors.secondary,
+              ),
+            ),
+          ),
+        ),
+      ),
+      barrierDismissible: false,
+    );
+
+    MoneyRequestItemModel? fullDetails;
+    try {
+      fullDetails = await controller.fetchDetails(req.id);
+    } finally {
+      if (Get.isDialogOpen == true) {
+        Get.back(); // Dismiss loading spinner
+      }
+    }
+
     if (fullDetails != null && context.mounted) {
       MoneyRequestDetailsBottomSheet.show(
         context,
@@ -249,7 +290,7 @@ class MoneyRequestsView extends GetView<MoneyRequestController> {
         isCancelling: controller.isCancelling.value,
         onCancelRequest: (reason) async {
           controller.cancelReasonController.text = reason;
-          await controller.cancelRequest(fullDetails.id);
+          await controller.cancelRequest(fullDetails!.id);
         },
       );
     }

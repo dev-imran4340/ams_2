@@ -543,9 +543,14 @@ class LiveShiftClockCard extends GetView<DashboardController> {
     required bool isCheckedIn,
     required bool isOnBreak,
   }) {
-    final bool canInteract = isCheckedIn || isOnBreak;
-    final Color ringColor =
-        isOnBreak ? AppColors.warning : AppColors.secondary;
+    // Check if server specifically allows starting or ending break
+    final bool isPermittedByServer =
+        isOnBreak ? (today?.canEndBreak ?? false) : (today?.canStartBreak ?? false);
+    final bool canInteract = (isCheckedIn || isOnBreak) && isPermittedByServer;
+
+    final Color ringColor = isOnBreak
+        ? (canInteract ? AppColors.warning : AppColors.warning.withValues(alpha: 0.4))
+        : (canInteract ? AppColors.secondary : AppColors.subTextColor.withValues(alpha: 0.4));
     final String label = isOnBreak ? 'STOP' : 'BREAK';
     final IconData icon = isOnBreak ? Icons.stop_rounded : Icons.coffee_rounded;
 
@@ -557,7 +562,16 @@ class LiveShiftClockCard extends GetView<DashboardController> {
         child: InkWell(
           onTap: () {
             HapticFeedback.lightImpact();
-            if (!canInteract) {
+            if (!isPermittedByServer) {
+              final refusalMsg = isOnBreak
+                  ? (today?.refusals['break_end']?.message ??
+                      'Ending break is not allowed right now.')
+                  : (today?.refusals['break_start']?.message ??
+                      'Taking a break is not allowed right now.');
+              CustomSnackbar.showInfo(message: refusalMsg);
+              return;
+            }
+            if (!isCheckedIn && !isOnBreak) {
               CustomSnackbar.showInfo(
                 message: 'Please check in first to take a break.',
               );
@@ -568,20 +582,22 @@ class LiveShiftClockCard extends GetView<DashboardController> {
             }
           },
           customBorder: const CircleBorder(),
-          child: SizedBox(
-            width: 78.r,
-            height: 78.r,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                // 1. Cyber Radar Arc & Guide Orbit Ring (matching user screenshot)
-                CustomPaint(
-                  size: Size(78.r, 78.r),
-                  painter: _CyberRadarArcPainter(
-                    color: ringColor,
-                    isActive: canInteract,
+          child: Opacity(
+            opacity: canInteract ? 1.0 : 0.45,
+            child: SizedBox(
+              width: 78.r,
+              height: 78.r,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // 1. Cyber Radar Arc & Guide Orbit Ring (matching user screenshot)
+                  CustomPaint(
+                    size: Size(78.r, 78.r),
+                    painter: _CyberRadarArcPainter(
+                      color: ringColor,
+                      isActive: canInteract,
+                    ),
                   ),
-                ),
 
                 // 2. Intermediate Translucent Disc
                 Container(
@@ -688,8 +704,9 @@ class LiveShiftClockCard extends GetView<DashboardController> {
             ),
           ),
         ),
-      );
-    });
+      ),
+    );
+  });
   }
 }
 

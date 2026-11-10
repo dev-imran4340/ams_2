@@ -5,6 +5,7 @@ import 'package:get/get_utils/src/extensions/string_extensions.dart';
 import '../../../../core/utils/app_colors.dart';
 import '../../../../core/utils/app_spaces.dart';
 import '../../../../core/utils/app_text_styles.dart';
+import '../../../../core/widgets/custom_card.dart';
 import '../../model/payroll_model.dart';
 
 /// Signature Floating Card displaying active salary structure and formula lines
@@ -16,30 +17,12 @@ class SalaryStructureCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.cardBackground,
-        borderRadius: BorderRadius.circular(15.r),
-        border: Border.all(color: AppColors.borderColor, width: 1.w),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(15.r),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 14.h),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+    return CustomCard(
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 14.h),
+      showBottomAccent: true,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
                   // Top Overview Header
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -270,13 +253,8 @@ class SalaryStructureCard extends StatelessWidget {
                   ),
                 ],
               ),
-            ),
-            Container(height: 3.w, color: AppColors.secondary),
-          ],
-        ),
-      ),
-    );
-  }
+            );
+          }
 
   Widget _buildInfoTile(String label, String value) {
     return Column(

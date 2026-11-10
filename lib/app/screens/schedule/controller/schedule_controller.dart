@@ -102,7 +102,14 @@ class ScheduleController extends GetxController {
       final targetYr = year ?? activeYear.value;
       final result = await repo.fetchHolidays(year: targetYr);
       if (result != null) {
-        holidays.assignAll(result.data);
+        // Sort descending so the latest / newest holidays appear at the top
+        final sortedList = List<HolidayModel>.from(result.data)
+          ..sort((a, b) {
+            final dateA = a.parsedStartsOn ?? DateTime(1970);
+            final dateB = b.parsedStartsOn ?? DateTime(1970);
+            return dateB.compareTo(dateA); // Descending (latest first)
+          });
+        holidays.assignAll(sortedList);
         activeYear.value = result.year;
       }
     } finally {
@@ -183,6 +190,14 @@ class ScheduleController extends GetxController {
       toDate.value = formatIsoDate(picked.end);
       loadSchedule(from: fromDate.value, to: toDate.value);
     }
+  }
+
+  /// Sets custom date range from ScheduleDateRangeSheet and triggers live API call
+  void setCustomDateRange(DateTime start, DateTime end) {
+    fromDate.value = formatIsoDate(start);
+    toDate.value = formatIsoDate(end);
+    selectedRange.value = 'custom';
+    loadSchedule(from: fromDate.value, to: toDate.value);
   }
 
   // Filtered days based on active tab

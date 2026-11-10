@@ -354,8 +354,9 @@ class MoneyRequestDetailsBottomSheet extends StatelessWidget {
             ],
           ),
           AppSpaces.vSpace10,
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            spacing: 16.w,
+            runSpacing: 10.h,
             children: [
               _buildPayoutDetailItem('Method', payout.methodLabel),
               if (payout.paidOutOn != null)
@@ -372,6 +373,7 @@ class MoneyRequestDetailsBottomSheet extends StatelessWidget {
   Widget _buildPayoutDetailItem(String label, String value) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           label.toUpperCase(),

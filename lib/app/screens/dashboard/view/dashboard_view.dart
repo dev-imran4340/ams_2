@@ -86,7 +86,9 @@ class DashboardView extends GetView<DashboardController> {
                   onRefresh: controller.loadDashboard,
                   color: AppColors.primary,
                   child: SingleChildScrollView(
-                    physics: AlwaysScrollableScrollPhysics(),
+                    physics: ScrollPhysics(
+                      parent: AlwaysScrollableScrollPhysics(),
+                    ),
                     padding: EdgeInsets.symmetric(
                       horizontal: 14.w,
                       vertical: 10.h,

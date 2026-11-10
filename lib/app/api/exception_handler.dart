@@ -239,8 +239,10 @@ class ExceptionHandler {
       errorCode = 'too_many_requests';
     }
 
-    // Auto-clear auth on 401 Unauthorized or disabled account and redirect to login
-    if (statusCode == 401 || (statusCode == 403 && errorCode == 'account_unavailable')) {
+    // Auto-clear auth on 401 unauthenticated session expiry or disabled account and redirect to login
+    // Note: Do NOT clear auth or treat as session expiry if the error is invalid_credentials during login attempt
+    if ((statusCode == 401 && errorCode != 'invalid_credentials') ||
+        (statusCode == 403 && errorCode == 'account_unavailable')) {
       AppPreferences.clearAuth();
       if (Get.currentRoute.isNotEmpty &&
           Get.currentRoute != Routes.LOGIN &&
@@ -271,6 +273,7 @@ class ExceptionHandler {
     if (errorCode == 'too_many_requests' || statusCode == 429) {
       return 'Rate Limit Hit';
     }
+    if (errorCode == 'invalid_credentials') return 'Login Failed';
     if (statusCode == null) return 'Connection Error';
     if (statusCode == 400) return 'Invalid Request';
     if (statusCode == 401) return 'Session Expired';

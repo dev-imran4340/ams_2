@@ -29,6 +29,7 @@ class CustomTextField extends StatelessWidget {
   final TextInputAction? textInputAction;
   final AutovalidateMode? autovalidateMode;
   final EdgeInsetsGeometry? contentPadding;
+  final bool showDoneButtonOnKeyboard;
 
   const CustomTextField({
     super.key,
@@ -55,11 +56,53 @@ class CustomTextField extends StatelessWidget {
     this.textInputAction,
     this.autovalidateMode,
     this.contentPadding,
+    this.showDoneButtonOnKeyboard = true,
   });
 
   @override
   Widget build(BuildContext context) {
     final effectiveRadius = BorderRadius.circular(borderRadius ?? 12.r);
+
+    // Resolve effective keyboardType and textInputAction according to Flutter's assertion:
+    // If textInputAction is newline or maxLines > 1, keyboardType MUST be TextInputType.multiline.
+    final bool isMultiline = maxLines != null && maxLines! > 1;
+    final TextInputType effectiveKeyboardType =
+        (keyboardType == TextInputType.text && isMultiline)
+            ? TextInputType.multiline
+            : keyboardType;
+
+    final TextInputAction effectiveTextInputAction = textInputAction ??
+        (isMultiline ? TextInputAction.newline : TextInputAction.done);
+
+    Widget? effectiveSuffix = suffixIcon;
+
+    // For number/phone/numeric keyboards on iOS, provide a quick in-field keyboard dismiss button
+    // if suffixIcon is not already custom provided and field is editable.
+    final isNumeric = effectiveKeyboardType == TextInputType.number ||
+        effectiveKeyboardType == TextInputType.phone ||
+        effectiveKeyboardType ==
+            const TextInputType.numberWithOptions(decimal: true) ||
+        effectiveKeyboardType ==
+            const TextInputType.numberWithOptions(signed: true) ||
+        effectiveKeyboardType ==
+            const TextInputType.numberWithOptions(decimal: true, signed: true);
+
+    if (effectiveSuffix == null && showDoneButtonOnKeyboard && isNumeric && enabled && !readOnly) {
+      effectiveSuffix = IconButton(
+        icon: Icon(
+          Icons.keyboard_hide_rounded,
+          color: AppColors.subTextColor,
+          size: 20.sp,
+        ),
+        tooltip: 'Done / Hide Keyboard',
+        onPressed: () {
+          FocusManager.instance.primaryFocus?.unfocus();
+          if (focusNode != null) {
+            focusNode?.unfocus();
+          }
+        },
+      );
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -76,7 +119,7 @@ class CustomTextField extends StatelessWidget {
         ],
         TextFormField(
           controller: controller,
-          keyboardType: keyboardType,
+          keyboardType: effectiveKeyboardType,
           obscureText: obscureText,
           validator: validator,
           onChanged: onChanged,
@@ -87,8 +130,14 @@ class CustomTextField extends StatelessWidget {
           onTap: onTap,
           inputFormatters: inputFormatters,
           focusNode: focusNode,
-          onFieldSubmitted: onFieldSubmitted,
-          textInputAction: textInputAction,
+          onFieldSubmitted: (val) {
+            if (onFieldSubmitted != null) {
+              onFieldSubmitted!(val);
+            } else if (effectiveTextInputAction == TextInputAction.done) {
+              FocusManager.instance.primaryFocus?.unfocus();
+            }
+          },
+          textInputAction: effectiveTextInputAction,
           autovalidateMode: autovalidateMode,
           style: AppTextStyles.text14.copyWith(
             color: AppColors.textColor,
@@ -107,7 +156,7 @@ class CustomTextField extends StatelessWidget {
             filled: true,
             fillColor: fillColor ?? AppColors.inputFill,
             prefixIcon: prefixIcon,
-            suffixIcon: suffixIcon,
+            suffixIcon: effectiveSuffix,
             counterText: '',
             contentPadding: contentPadding ??
                 EdgeInsets.symmetric(

@@ -5,7 +5,7 @@ import '../../../core/utils/app_colors.dart';
 class ShiftModel {
   final String id;
   final String name;
-  final String code;
+  final String? code;
   final String colour;
   final String kind;
   final String starts;
@@ -16,7 +16,7 @@ class ShiftModel {
   const ShiftModel({
     required this.id,
     required this.name,
-    required this.code,
+    this.code,
     required this.colour,
     required this.kind,
     required this.starts,
@@ -29,7 +29,7 @@ class ShiftModel {
     return ShiftModel(
       id: json['id']?.toString() ?? '',
       name: json['name']?.toString() ?? 'Standard Shift',
-      code: json['code']?.toString() ?? 'STD',
+      code: json['code']?.toString(),
       colour: json['colour']?.toString() ?? 'sky',
       kind: json['kind']?.toString() ?? 'fixed',
       starts: json['starts']?.toString() ?? '09:00',
@@ -62,8 +62,9 @@ class ShiftModel {
       case 'yellow':
         return AppColors.warning;
       case 'rose':
-      case 'red':
-        return AppColors.error;
+      case 'pink':
+        // Modern soft rose accent (instead of alarming error red)
+        return const Color(0xFFF43F5E);
       case 'purple':
       case 'indigo':
         return const Color(0xFF6366F1);
@@ -117,6 +118,41 @@ class HolidayModel {
       };
 
   bool get isPublicHoliday => kind.toLowerCase() == 'public';
+
+  DateTime? get parsedStartsOn => DateTime.tryParse(startsOn);
+  DateTime? get parsedEndsOn => DateTime.tryParse(endsOn);
+
+  int get yearNumber => parsedStartsOn?.year ?? DateTime.now().year;
+
+  String get formattedDateWithYear {
+    final start = parsedStartsOn;
+    final end = parsedEndsOn;
+    if (start == null) return startsOn;
+
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    final startDay = start.day.toString().padLeft(2, '0');
+    final startMonth = months[start.month - 1];
+    final startYear = start.year.toString();
+
+    if (end == null || startsOn == endsOn) {
+      return '$startDay $startMonth $startYear';
+    }
+
+    final endDay = end.day.toString().padLeft(2, '0');
+    final endMonth = months[end.month - 1];
+    final endYear = end.year.toString();
+
+    if (start.year == end.year) {
+      if (start.month == end.month) {
+        return '$startDay–$endDay $startMonth $startYear';
+      }
+      return '$startDay $startMonth – $endDay $endMonth $startYear';
+    }
+    return '$startDay $startMonth $startYear – $endDay $endMonth $endYear';
+  }
 }
 
 /// Single scheduled day rota log returned by GET /me/schedule

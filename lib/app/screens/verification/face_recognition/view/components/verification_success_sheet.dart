@@ -230,12 +230,17 @@ class VerificationSuccessSheet extends GetView<FaceRecognitionController> {
             fontWeight: FontWeight.w500,
           ),
         ),
-        const Spacer(),
-        Text(
-          value,
-          style: AppTextStyles.text12.copyWith(
-            color: valueColor ?? AppColors.textColor,
-            fontWeight: FontWeight.bold,
+        AppSpaces.hSpace12,
+        Expanded(
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppTextStyles.text12.copyWith(
+              color: valueColor ?? AppColors.textColor,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
       ],
