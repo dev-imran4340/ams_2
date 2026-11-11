@@ -218,10 +218,75 @@ class ProfileController extends GetxController {
     }
   }
 
-  /// Selects an active section tab with light haptic feedback
+  /// Selects an active section tab with light haptic feedback or navigates to dedicated feature screen
   void selectSection(String key) {
-    if (selectedSectionKey.value == key) return;
     HapticFeedback.selectionClick();
+
+    final isOther = isViewingOtherEmployee.value;
+    final currentTargetId = activeEmployeeId.value ?? profile.value?.id;
+    final currentTargetName = profile.value?.name;
+
+    // Check if the section belongs to a dedicated full feature route
+    switch (key.toLowerCase()) {
+      case 'schedule':
+        Get.toNamed(Routes.SCHEDULE, arguments: isOther && currentTargetId != null ? {
+          'employeeId': currentTargetId,
+          'employeeName': currentTargetName,
+        } : null);
+        return;
+
+      case 'attendance':
+        Get.toNamed(Routes.ATTENDANCE_HISTORY, arguments: isOther && currentTargetId != null ? {
+          'employeeId': currentTargetId,
+          'employeeName': currentTargetName,
+        } : null);
+        return;
+
+      case 'leave':
+        if (isOther && currentTargetId != null) {
+          // If viewing another employee, navigate to department attendance/leave history
+          Get.toNamed(Routes.ATTENDANCE_HISTORY, arguments: {
+            'employeeId': currentTargetId,
+            'employeeName': currentTargetName,
+          });
+        } else {
+          Get.toNamed(Routes.LEAVE);
+        }
+        return;
+
+      case 'pay':
+        if (!isOther) {
+          Get.toNamed(Routes.PAYROLL);
+          return;
+        }
+        break;
+
+      case 'money':
+        if (!isOther) {
+          Get.toNamed(Routes.LOANS);
+          return;
+        }
+        break;
+
+      case 'performance':
+        Get.toNamed(Routes.EVALUATION);
+        return;
+
+      case 'onboarding':
+      case 'assets':
+      case 'training':
+        Get.toNamed(Routes.TASKS);
+        return;
+
+      case 'account':
+        if (!isOther) {
+          Get.toNamed(Routes.EMPLOYEE_CARD);
+          return;
+        }
+        break;
+    }
+
+    if (selectedSectionKey.value == key) return;
     selectedSectionKey.value = key;
   }
 

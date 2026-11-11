@@ -214,6 +214,11 @@ class AppPages {
           () => DepartmentEmployeesController(repo: Get.find()),
           fenix: true,
         );
+        Get.lazyPut(() => NotificationRepo(), fenix: true);
+        Get.lazyPut(
+          () => NotificationController(repo: Get.find()),
+          fenix: true,
+        );
         Get.lazyPut(() => SessionMeController(), fenix: true);
       }),
     ),

@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import '../../../core/utils/app_colors.dart';
 import '../../../core/utils/app_spaces.dart';
 import '../../../core/utils/app_text_styles.dart';
+import '../../../core/widgets/custom_button.dart';
 import '../../../core/widgets/custom_screen_header.dart';
 import '../../../core/widgets/custom_state_view.dart';
 import '../../../core/widgets/employee_ambient_header.dart';
@@ -48,14 +49,14 @@ class MoneyRequestsView extends GetView<MoneyRequestController> {
                       final isRestricted = controller.isAccessRestricted.value;
 
                       return CustomScreenHeader(
-                        title: 'Loans & Advances',
+                        title: 'Money Requests',
                         subtitle:
                             'Staff loans, salary advances & expense claims',
                         actions: (hasModule && !isRestricted)
                             ? [
                                 CustomScreenHeader.actionButton(
                                   icon: Icons.add_rounded,
-                                  tooltip: 'Request Money',
+                                  tooltip: 'Apply Money Request',
                                   onTap: () => ApplyMoneyRequestBottomSheet.show(
                                       context, controller),
                                 ),
@@ -84,9 +85,9 @@ class MoneyRequestsView extends GetView<MoneyRequestController> {
                           child: Padding(
                             padding: EdgeInsets.symmetric(horizontal: 20.w),
                             child: CustomStateView.empty(
-                              title: 'Loans Module Disabled',
+                              title: 'Money Requests Module Disabled',
                               message:
-                                  'Loans & Expenses is not included in your company subscription.',
+                                  'Money Requests is not included in your company subscription.',
                             ),
                           ),
                         );
@@ -102,7 +103,7 @@ class MoneyRequestsView extends GetView<MoneyRequestController> {
                               message: controller
                                       .accessRestrictedMessage.value.isNotEmpty
                                   ? controller.accessRestrictedMessage.value
-                                  : 'You do not have permission to access Loans & Advances.',
+                                  : 'You do not have permission to access Money Requests.',
                               buttonText: 'Back to Home',
                               onAction: () => Get.back(),
                             ),
@@ -170,8 +171,97 @@ class MoneyRequestsView extends GetView<MoneyRequestController> {
                 ],
               ),
             ),
+
+            // 3. Screen-Level Cancelling Indicator Overlay
+            Obx(() {
+              if (!controller.isCancelling.value) return const SizedBox.shrink();
+
+              return Positioned.fill(
+                child: Container(
+                  color: Colors.black.withValues(alpha: 0.35),
+                  child: Center(
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                          horizontal: 24.w, vertical: 16.h),
+                      decoration: BoxDecoration(
+                        color: AppColors.cardBackground,
+                        borderRadius: BorderRadius.circular(16.r),
+                        border: Border.all(
+                            color: AppColors.borderColor, width: 1.w),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.15),
+                            blurRadius: 16.r,
+                            offset: Offset(0, 4.h),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(
+                            width: 22.r,
+                            height: 22.r,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5.w,
+                              color: AppColors.error,
+                            ),
+                          ),
+                          AppSpaces.hSpace12,
+                          Text(
+                            'Withdrawing Request...',
+                            style: AppTextStyles.text12.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }),
           ],
         ),
+        bottomNavigationBar: Obx(() {
+          final hasModule = controller.isLoansModuleActive.value;
+          final isRestricted = controller.isAccessRestricted.value;
+
+          if (!hasModule || isRestricted) return const SizedBox.shrink();
+
+          return Container(
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+            decoration: BoxDecoration(
+              color: AppColors.cardBackground,
+              border: Border(
+                top: BorderSide(color: AppColors.borderColor, width: 1.w),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.08),
+                  blurRadius: 16.r,
+                  offset: Offset(0, -4.h),
+                ),
+              ],
+            ),
+            child: SafeArea(
+              child: CustomButton(
+                text: 'Apply Money Request',
+                isGradient: true,
+                onPressed: () =>
+                    ApplyMoneyRequestBottomSheet.show(context, controller),
+                icon: Icon(
+                  Icons.add_rounded,
+                  size: 18.sp,
+                  color: AppColors.white,
+                ),
+                height: 48.h,
+                borderRadius: 14.r,
+              ),
+            ),
+          );
+        }),
       ),
     );
   }

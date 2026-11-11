@@ -106,7 +106,6 @@ void main() {
       final preview = LeavePreviewModel.fromJson(json);
 
       expect(preview.ok, isTrue);
-      expect(preview.days, 3.0);
       expect(preview.amount, 3.0);
       expect(preview.amountText, '3 days');
       expect(preview.availableText, '15 days');

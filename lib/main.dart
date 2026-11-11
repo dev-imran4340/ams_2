@@ -6,6 +6,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
 import 'app/api/app_preferences.dart';
+import 'app/core/utils/auto_scroll_navigator_observer.dart';
 import 'app/services/push_notification_service.dart';
 import 'app/routes/app_pages.dart';
 
@@ -78,6 +79,9 @@ class MyApp extends StatelessWidget {
             //     : ThemeMode.light,
             initialRoute: AppPages.INITIAL,
             getPages: AppPages.routes,
+            navigatorObservers: [
+              AutoScrollNavigatorObserver(),
+            ],
           ),
         );
       },

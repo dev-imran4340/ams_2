@@ -38,6 +38,24 @@ class _NetworkBoundaryWrapperState extends State<NetworkBoundaryWrapper> {
     _connectivitySubscription = Connectivity().onConnectivityChanged.listen(
       _updateConnectionStatus,
     );
+
+    // Auto-scroll screen to top whenever entering or mounting
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _scrollScreenToTop();
+      }
+    });
+  }
+
+  void _scrollScreenToTop() {
+    try {
+      final primary = PrimaryScrollController.maybeOf(context);
+      if (primary != null && primary.hasClients) {
+        primary.jumpTo(0.0);
+        return;
+      }
+      Scrollable.maybeOf(context)?.position.jumpTo(0.0);
+    } catch (_) {}
   }
 
   Future<void> _checkInitialConnectivity() async {

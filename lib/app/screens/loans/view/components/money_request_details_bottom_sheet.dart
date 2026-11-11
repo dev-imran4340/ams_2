@@ -633,67 +633,155 @@ class MoneyRequestDetailsBottomSheet extends StatelessWidget {
     final reasonCtrl = TextEditingController();
 
     Get.dialog(
-      AlertDialog(
-        backgroundColor: AppColors.cardBackground,
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
-        title: Text(
-          'Withdraw Request?',
-          style: AppTextStyles.text16.copyWith(
-            color: AppColors.textColor,
-            fontWeight: FontWeight.bold,
+      Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: EdgeInsets.symmetric(horizontal: 20.w),
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 18.h),
+          decoration: BoxDecoration(
+            color: AppColors.cardBackground,
+            borderRadius: BorderRadius.circular(18.r),
+            border: Border.all(color: AppColors.borderColor, width: 1.w),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.15),
+                blurRadius: 20.r,
+                offset: Offset(0, 8.h),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header with Warning Icon & Close
+              Row(
+                children: [
+                  Container(
+                    width: 40.r,
+                    height: 40.r,
+                    decoration: BoxDecoration(
+                      color: AppColors.error.withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.warning_amber_rounded,
+                      size: 22.sp,
+                      color: AppColors.error,
+                    ),
+                  ),
+                  AppSpaces.hSpace12,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Withdraw Request?',
+                          style: AppTextStyles.text16.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textColor,
+                          ),
+                        ),
+                        AppSpaces.vSpace2,
+                        Text(
+                          'Action cannot be reversed',
+                          style: AppTextStyles.text10.copyWith(
+                            color: AppColors.subTextColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  InkWell(
+                    onTap: () => Get.back(),
+                    borderRadius: BorderRadius.circular(16.r),
+                    child: Container(
+                      padding: EdgeInsets.all(6.r),
+                      decoration: BoxDecoration(
+                        color: AppColors.inputFill,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: AppColors.borderColor,
+                          width: 1.w,
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.close_rounded,
+                        size: 16.sp,
+                        color: AppColors.subTextColor,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              AppSpaces.vSpace16,
+
+              Text(
+                'Are you sure you want to withdraw this pending money request from review?',
+                style: AppTextStyles.text12.copyWith(
+                  color: AppColors.textColor,
+                  height: 1.4,
+                ),
+              ),
+
+              AppSpaces.vSpace14,
+
+              Text(
+                'Reason for Cancellation',
+                style: AppTextStyles.text10.copyWith(
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5,
+                  color: AppColors.subTextColor,
+                ),
+              ),
+              AppSpaces.vSpace6,
+
+              CustomTextField(
+                controller: reasonCtrl,
+                hintText: 'Enter reason (optional, max 500 chars)...',
+                maxLines: 3,
+                maxLength: 500,
+                keyboardType: TextInputType.multiline,
+              ),
+
+              AppSpaces.vSpace16,
+
+              // Action Buttons Row
+              Row(
+                children: [
+                  Expanded(
+                    child: CustomButton(
+                      text: 'Keep Request',
+                      isOutlined: true,
+                      height: 44.h,
+                      borderRadius: 12.r,
+                      onPressed: () => Get.back(),
+                    ),
+                  ),
+                  AppSpaces.hSpace10,
+                  Expanded(
+                    child: CustomButton(
+                      text: 'Withdraw',
+                      backgroundColor: AppColors.error,
+                      textColor: AppColors.white,
+                      height: 44.h,
+                      borderRadius: 12.r,
+                      onPressed: () async {
+                        final reason = reasonCtrl.text.trim();
+                        Get.back(); // close dialog
+                        Get.back(); // close details bottom sheet
+                        if (onCancelRequest != null) {
+                          await onCancelRequest!(reason);
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Are you sure you want to withdraw this pending money request?',
-              style: AppTextStyles.text12.copyWith(
-                color: AppColors.subTextColor,
-              ),
-            ),
-            AppSpaces.vSpace12,
-            CustomTextField(
-              controller: reasonCtrl,
-              hintText: 'Reason for cancellation (optional)',
-              maxLines: 2,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: Text(
-              'Keep Request',
-              style: AppTextStyles.text12.copyWith(
-                color: AppColors.subTextColor,
-              ),
-            ),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8.r)),
-            ),
-            onPressed: () async {
-              Get.back(); // close dialog
-              Get.back(); // close bottom sheet
-              if (onCancelRequest != null) {
-                await onCancelRequest!(reasonCtrl.text.trim());
-              }
-            },
-            child: Text(
-              'Withdraw',
-              style: AppTextStyles.text12.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

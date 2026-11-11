@@ -265,6 +265,57 @@ class LeaveManagementView extends GetView<LeaveController> {
                 ],
               ),
             ),
+
+            // 3. Screen-Level Cancelling Indicator Overlay
+            Obx(() {
+              if (!controller.isCancelling.value) return const SizedBox.shrink();
+
+              return Positioned.fill(
+                child: Container(
+                  color: Colors.black.withValues(alpha: 0.35),
+                  child: Center(
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                          horizontal: 24.w, vertical: 16.h),
+                      decoration: BoxDecoration(
+                        color: AppColors.cardBackground,
+                        borderRadius: BorderRadius.circular(16.r),
+                        border: Border.all(
+                            color: AppColors.borderColor, width: 1.w),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.15),
+                            blurRadius: 16.r,
+                            offset: Offset(0, 4.h),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(
+                            width: 22.r,
+                            height: 22.r,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5.w,
+                              color: AppColors.error,
+                            ),
+                          ),
+                          AppSpaces.hSpace12,
+                          Text(
+                            'Cancelling Leave...',
+                            style: AppTextStyles.text12.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }),
           ],
         ),
 
@@ -314,7 +365,7 @@ class LeaveManagementView extends GetView<LeaveController> {
         {'id': 'all', 'label': 'All'},
         {'id': 'pending', 'label': 'Pending'},
         {'id': 'approved', 'label': 'Approved'},
-        {'id': 'rejected', 'label': 'Rejected'},
+        {'id': 'cancelled', 'label': 'Cancelled'},
       ];
 
       return SingleChildScrollView(
@@ -529,15 +580,23 @@ class LeaveManagementView extends GetView<LeaveController> {
 
                 if (item.isPending) ...[
                   AppSpaces.vSpace16,
-                  CustomButton(
-                    text: 'Cancel Application',
-                    isOutlined: true,
-                    onPressed: () {
-                      Navigator.pop(ctx);
-                      controller.cancelLeave(item.id, 'Withdrawn by employee');
-                    },
-                    height: 44.h,
-                    borderRadius: 12.r,
+                  Obx(
+                    () => CustomButton(
+                      text: controller.isCancelling.value
+                          ? 'Cancelling...'
+                          : 'Cancel Application',
+                      isOutlined: true,
+                      isLoading: controller.isCancelling.value,
+                      onPressed: controller.isCancelling.value
+                          ? null
+                          : () {
+                              Navigator.pop(ctx);
+                              controller.cancelLeave(
+                                  item.id, 'Withdrawn by employee');
+                            },
+                      height: 44.h,
+                      borderRadius: 12.r,
+                    ),
                   ),
                 ],
               ],

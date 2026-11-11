@@ -114,7 +114,7 @@ class DashboardQuickActions extends StatelessWidget {
     if (hasLoans) {
       actions.add(_QuickActionItem(
         icon: Icons.account_balance_wallet_rounded,
-        title: 'Loans &\nAdvances',
+        title: 'Money\nRequests',
         color: AppColors.warning,
         onTap: () {
           HapticFeedback.lightImpact();

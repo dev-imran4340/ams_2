@@ -76,8 +76,8 @@ class MoneyRequestController extends GetxController {
       if (!isLoansModuleActive.value) {
         isAccessRestricted.value = true;
         accessRestrictedMessage.value = !hasModule
-            ? 'The Loans & Advances module is not enabled for your company.'
-            : 'You do not have permission to access Loans & Advances.';
+            ? 'The Money Requests module is not enabled for your company.'
+            : 'You do not have permission to access Money Requests.';
       }
     }
   }
@@ -113,7 +113,7 @@ class MoneyRequestController extends GetxController {
         isAccessRestricted.value = true;
         accessRestrictedMessage.value = e.message.isNotEmpty
             ? e.message
-            : 'You do not have permission to access Loans & Advances.';
+            : 'You do not have permission to access Money Requests.';
       }
     } catch (_) {
       // Clean fallback handled via CustomStateView

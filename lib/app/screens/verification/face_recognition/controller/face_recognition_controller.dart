@@ -199,10 +199,19 @@ class FaceRecognitionController extends GetxController
     super.onClose();
   }
 
-  /// Checks if an enrolled reference face is available locally
+  /// Checks if an enrolled reference face is available locally or syncs from server
   Future<void> _checkExistingReferenceFace() async {
     try {
-      final exists = await repo.hasSavedReferenceFace();
+      bool exists = await repo.hasSavedReferenceFace();
+
+      // If not present locally, attempt to fetch from server GET /api/v1/me/face
+      if (!exists) {
+        final serverFace = await repo.fetchAndSyncServerFace();
+        if (serverFace != null) {
+          exists = true;
+        }
+      }
+
       hasReferenceFace.value = exists;
       if (!exists) {
         actionMode.value = FaceActionMode.register;

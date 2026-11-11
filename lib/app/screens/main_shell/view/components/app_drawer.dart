@@ -170,10 +170,10 @@ class AppDrawer extends StatelessWidget {
                           onTap: () => _navigateToRoute(Routes.PAYROLL),
                         ),
 
-                      // Card 6: Loans & Advances (Module: loans_expenses)
+                      // Card 6: Money Requests (Module: loans_expenses)
                       if (hasLoans)
                         DrawerModuleCard(
-                          title: 'Loans & Advances',
+                          title: 'Money Requests',
                           subtitle: 'Advance money requests & installments',
                           icon: Icons.account_balance_wallet_outlined,
                           accentTint: AppColors.warning,

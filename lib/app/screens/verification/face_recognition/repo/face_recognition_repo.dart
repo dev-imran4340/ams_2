@@ -6,6 +6,7 @@ import 'dart:ui' show Rect;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:get/get.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:http/http.dart' as http;
 import 'package:image/image.dart' as img;
@@ -55,6 +56,71 @@ class FaceRecognitionRepo {
       ),
     );
     return _detector!;
+  }
+
+  /// Fetches the registered reference face image from server (GET /api/v1/me/face)
+  /// If present, crops, generates 192-dim vector embedding, and saves locally as enrolled reference template.
+  Future<File?> fetchAndSyncServerFace() async {
+    const methodTag = 'FaceRecognitionRepo / FaceScreen -> fetchAndSyncServerFace()';
+    try {
+      String cleanBase = ApiEndpoints.baseUrl;
+      if (cleanBase.endsWith('/')) {
+        cleanBase = cleanBase.substring(0, cleanBase.length - 1);
+      }
+      final url = Uri.parse('$cleanBase${ApiEndpoints.meFace}');
+
+      final headers = <String, String>{
+        'Accept': 'image/jpeg, image/png, image/*, application/json',
+        'X-App-Version': '2.0.0',
+        'X-Client-Platform': defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android',
+      };
+      final token = AppPreferences.token;
+      if (token != null && token.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $token';
+      }
+      final deviceId = AppPreferences.deviceId;
+      if (deviceId != null && deviceId.isNotEmpty) {
+        headers['X-Device-Id'] = deviceId;
+      }
+
+      if (kDebugMode) {
+        Get.log('🌐 [API Request] GET -> $url\nOrigin: $methodTag');
+      }
+
+      final response = await http.get(url, headers: headers).timeout(
+        const Duration(seconds: 25),
+      );
+
+      if (kDebugMode) {
+        Get.log('🏁 [API Response] ${response.statusCode} (${response.bodyBytes.length} bytes) -> $url\nOrigin: $methodTag');
+      }
+
+      // 200 OK with binary image data
+      if (response.statusCode == 200 && response.bodyBytes.isNotEmpty) {
+        // Temporary write raw server image to disk
+        final tempDir = await getTemporaryDirectory();
+        final tempRawFile = File('${tempDir.path}/raw_server_enrolled_face.jpg');
+        await tempRawFile.writeAsBytes(response.bodyBytes, flush: true);
+
+        // Process through strict cropping (Eyes/Nose/Lips), 192-dim vector extraction & save
+        final savedFile = await saveReferenceFace(tempRawFile);
+        debugPrint('>>> [AI FACE] Server reference face successfully synchronized & saved ($savedFile).');
+        return savedFile;
+      } else if (response.statusCode == 404) {
+        debugPrint('>>> [AI FACE] No enrolled face found on server (404). Local enrollment will be used.');
+        return null;
+      } else {
+        debugPrint('>>> [AI FACE] Server face fetch failed with HTTP ${response.statusCode}');
+        return null;
+      }
+    } catch (e, stackTrace) {
+      ExceptionHandler.handle(
+        ApiException(message: 'Failed to fetch enrolled face from server: $e'),
+        tag: '$methodTag [${stackTrace.toString().split('\n').first}]',
+        showToast: false,
+      );
+      return null;
+    }
   }
 
   /// Closes ML Kit detector to prevent native memory leaks

@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
 import '../../index/controller/index_controller.dart';
+import '../../notifications/controller/notification_controller.dart';
 
 import '../../../api/app_preferences.dart';
 import '../../../core/utils/app_colors.dart';
@@ -300,23 +301,84 @@ class DashboardView extends GetView<DashboardController> {
 
         AppSpaces.hSpace8,
 
-        // Circular Glass Notification Button
-        IconButton(
-          style: IconButton.styleFrom(
-            backgroundColor: AppColors.white,
-            shape: const CircleBorder(),
-            shadowColor: AppColors.primary.withValues(alpha: 0.08),
-            elevation: 10,
-          ),
-          icon: Icon(
-            Icons.notifications_none_rounded,
-            color: AppColors.textColor,
-            size: 22.sp,
-          ),
-          onPressed: () {
-            HapticFeedback.lightImpact();
-            Get.toNamed(Routes.NOTIFICATIONS);
-          },
+        // Circular Glass Notification Button with Live Unread Badge
+        Stack(
+          clipBehavior: Clip.none,
+          children: [
+            IconButton(
+              style: IconButton.styleFrom(
+                backgroundColor: AppColors.white,
+                shape: const CircleBorder(),
+                shadowColor: AppColors.primary.withValues(alpha: 0.08),
+                elevation: 10,
+              ),
+              icon: Icon(
+                Icons.notifications_none_rounded,
+                color: AppColors.textColor,
+                size: 22.sp,
+              ),
+              onPressed: () {
+                HapticFeedback.lightImpact();
+                Get.toNamed(Routes.NOTIFICATIONS);
+              },
+            ),
+            GetBuilder<NotificationController>(
+              init: Get.isRegistered<NotificationController>()
+                  ? Get.find<NotificationController>()
+                  : null,
+              builder: (notifCtrl) {
+                return Obx(() {
+                  final count = Get.isRegistered<NotificationController>()
+                      ? Get.find<NotificationController>().unreadCount.value
+                      : 0;
+
+                  if (count <= 0) return const SizedBox.shrink();
+
+                  return Positioned(
+                    top: 4.h,
+                    right: 4.w,
+                    child: IgnorePointer(
+                      child: Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: count > 9 ? 4.w : 0,
+                        ),
+                        constraints: BoxConstraints(
+                          minWidth: 16.r,
+                          minHeight: 16.r,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.error,
+                          shape: count > 9 ? BoxShape.rectangle : BoxShape.circle,
+                          borderRadius: count > 9 ? BorderRadius.circular(10.r) : null,
+                          border: Border.all(
+                            color: AppColors.white,
+                            width: 1.5.w,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.error.withValues(alpha: 0.4),
+                              blurRadius: 4.r,
+                              offset: Offset(0, 1.h),
+                            ),
+                          ],
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          count > 99 ? '99+' : '$count',
+                          style: AppTextStyles.text10.copyWith(
+                            color: AppColors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 9.sp,
+                            height: 1.0,
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                });
+              },
+            ),
+          ],
         ),
 
         AppSpaces.hSpace8,

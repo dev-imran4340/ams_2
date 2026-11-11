@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../api/app_preferences.dart';
 import '../../../api/exception_handler.dart';
@@ -20,6 +23,7 @@ class LeaveController extends GetxController {
   final RxBool isLoading = false.obs;
   final RxBool isPreviewLoading = false.obs;
   final RxBool isSubmitting = false.obs;
+  final RxBool isCancelling = false.obs;
   final RxBool isLeaveModuleActive = true.obs;
   final RxBool isAccessRestricted = false.obs;
   final RxString accessRestrictedMessage = ''.obs;
@@ -41,6 +45,7 @@ class LeaveController extends GetxController {
   final RxString startPart = 'full'.obs; // 'full', 'first_half', 'second_half'
   final RxString endPart = 'full'.obs; // 'full', 'first_half', 'second_half'
   final Rxn<String> selectedAttachment = Rxn<String>();
+  final Rxn<String> selectedAttachmentName = Rxn<String>();
   final Rxn<LeavePreviewModel> previewData = Rxn<LeavePreviewModel>();
 
   // Text and Focus Controllers
@@ -317,16 +322,45 @@ class LeaveController extends GetxController {
     }
   }
 
-  /// Toggles simulated supporting document attachment
-  void toggleAttachment() {
+  /// Removes currently attached document
+  void removeAttachment() {
     HapticFeedback.selectionClick();
-    if (selectedAttachment.value != null) {
-      selectedAttachment.value = null;
-    } else {
-      selectedAttachment.value = 'Medical_Certificate_Proof.pdf';
-      CustomSnackbar.showSuccess(
-        message: 'Supporting document "Medical_Certificate_Proof.pdf" attached.',
-        title: 'Attachment Added',
+    selectedAttachment.value = null;
+    selectedAttachmentName.value = null;
+  }
+
+  /// Picks an image file or document from camera or gallery
+  Future<void> pickAttachmentImage(ImageSource source) async {
+    try {
+      HapticFeedback.selectionClick();
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(
+        source: source,
+        imageQuality: 85,
+        maxWidth: 1920,
+        maxHeight: 1920,
+      );
+
+      if (picked != null) {
+        final file = File(picked.path);
+        final bytes = await file.length();
+        if (bytes > 5 * 1024 * 1024) {
+          CustomSnackbar.showError(
+            message: 'Attachment size exceeds 5 MB limit.',
+          );
+          return;
+        }
+
+        selectedAttachment.value = picked.path;
+        selectedAttachmentName.value = picked.name;
+        CustomSnackbar.showSuccess(
+          message: '"${picked.name}" attached successfully.',
+          title: 'Attachment Added',
+        );
+      }
+    } catch (e) {
+      CustomSnackbar.showError(
+        message: 'Could not select attachment: $e',
       );
     }
   }
@@ -367,6 +401,7 @@ class LeaveController extends GetxController {
       );
 
       if (success) {
+        // Automatically close the Apply Leave bottom sheet
         if (Get.isBottomSheetOpen == true) {
           Get.back();
         }
@@ -374,6 +409,7 @@ class LeaveController extends GetxController {
         resetFormErrors();
         reasonController.clear();
         selectedAttachment.value = null;
+        selectedAttachmentName.value = null;
 
         _refreshMeBadge();
         await loadLeaveData();
@@ -396,7 +432,7 @@ class LeaveController extends GetxController {
   /// Cancels an existing leave application (POST /me/leave/requests/{id}/cancel)
   Future<void> cancelLeave(String id, String reason) async {
     try {
-      isLoading.value = true;
+      isCancelling.value = true;
       final success = await repo.cancelLeaveRequest(id, reason: reason);
       if (success) {
         CustomSnackbar.showSuccess(
@@ -411,7 +447,7 @@ class LeaveController extends GetxController {
         );
       }
     } finally {
-      isLoading.value = false;
+      isCancelling.value = false;
     }
   }
 

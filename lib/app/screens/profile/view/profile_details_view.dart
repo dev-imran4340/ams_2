@@ -6,12 +6,10 @@ import '../../../core/utils/app_colors.dart';
 import '../../../core/utils/app_spaces.dart';
 import '../../../core/utils/app_text_styles.dart';
 import '../../../core/widgets/custom_screen_header.dart';
-import '../../../core/widgets/custom_state_view.dart';
 import '../../../core/widgets/employee_ambient_header.dart';
 import '../../../core/widgets/network_boundary_wrapper.dart';
 import '../controller/profile_controller.dart';
 import 'components/profile_account_tab.dart';
-import 'components/profile_attendance_tab.dart';
 import 'components/profile_bank_tab.dart';
 import 'components/profile_documents_tab.dart';
 import 'components/profile_header_card.dart';
@@ -259,16 +257,9 @@ class _ProfileDetailsViewState extends State<ProfileDetailsView> {
         return const ProfilePersonalTab(key: ValueKey('tab_personal'));
       case 'job':
         return const ProfileJobTab(key: ValueKey('tab_job'));
-      case 'attendance':
-        return const ProfileAttendanceTab(key: ValueKey('tab_attendance'));
       case 'documents':
+      case 'files':
         return const ProfileDocumentsTab(key: ValueKey('tab_documents'));
-      case 'pay':
-        return CustomStateView.empty(
-          key: const ValueKey('tab_pay'),
-          title: 'No Pay Details',
-          message: 'Payroll details are not available for this profile.',
-        );
       case 'bank':
         return const ProfileBankTab(key: ValueKey('tab_bank'));
       case 'account':
@@ -276,7 +267,7 @@ class _ProfileDetailsViewState extends State<ProfileDetailsView> {
       case 'history':
         return const ProfileHistoryTab(key: ValueKey('tab_history'));
       default:
-        return const ProfileOverviewTab(key: ValueKey('tab_default'));
+        return const ProfileOverviewTab(key: ValueKey('tab_overview_fallback'));
     }
   }
 

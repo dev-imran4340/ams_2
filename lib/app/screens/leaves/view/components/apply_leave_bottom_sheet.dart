@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../../core/utils/app_colors.dart';
 import '../../../../core/utils/app_spaces.dart';
@@ -591,94 +592,136 @@ class ApplyLeaveBottomSheet extends GetView<LeaveController> {
 
                         Obx(() {
                           final file = controller.selectedAttachment.value;
+                          final displayName = controller.selectedAttachmentName.value ??
+                              (file?.split('/').last);
                           final isAttached = file != null;
 
-                          return InkWell(
-                            onTap: controller.toggleAttachment,
-                            borderRadius: BorderRadius.circular(12.r),
-                            child: Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 14.w,
-                                vertical: 10.h,
-                              ),
-                              decoration: BoxDecoration(
-                                color: isAttached
-                                    ? AppColors.secondary.withValues(alpha: 0.08)
-                                    : AppColors.inputFill,
-                                borderRadius: BorderRadius.circular(12.r),
-                                border: Border.all(
-                                  color: isAttached
-                                      ? AppColors.secondary
-                                      : AppColors.borderColor,
-                                  width: 1.w,
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 34.r,
-                                    height: 34.r,
-                                    decoration: BoxDecoration(
-                                      color: (isAttached
-                                              ? AppColors.secondary
-                                              : AppColors.subTextColor)
-                                          .withValues(alpha: 0.12),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: Icon(
-                                      isAttached
-                                          ? Icons.picture_as_pdf_rounded
-                                          : Icons.attach_file_rounded,
-                                      size: 16.sp,
-                                      color: isAttached
-                                          ? AppColors.secondary
-                                          : AppColors.subTextColor,
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (isAttached)
+                                Container(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 14.w,
+                                    vertical: 10.h,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.secondary.withValues(alpha: 0.08),
+                                    borderRadius: BorderRadius.circular(12.r),
+                                    border: Border.all(
+                                      color: AppColors.secondary,
+                                      width: 1.w,
                                     ),
                                   ),
-                                  AppSpaces.hSpace10,
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          isAttached
-                                              ? file
-                                              : 'Attach Medical Slip / PDF Document',
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 34.r,
+                                        height: 34.r,
+                                        decoration: BoxDecoration(
+                                          color: AppColors.secondary.withValues(alpha: 0.15),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: Icon(
+                                          displayName != null && displayName.toLowerCase().endsWith('.pdf')
+                                              ? Icons.picture_as_pdf_rounded
+                                              : Icons.image_rounded,
+                                          size: 18.sp,
+                                          color: AppColors.secondary,
+                                        ),
+                                      ),
+                                      AppSpaces.hSpace10,
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              displayName ?? 'Attached File',
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: AppTextStyles.text12.copyWith(
+                                                fontWeight: FontWeight.bold,
+                                                color: AppColors.secondary,
+                                              ),
+                                            ),
+                                            AppSpaces.vSpace2,
+                                            Text(
+                                              'Ready to upload (Max 5MB)',
+                                              style: AppTextStyles.text10.copyWith(
+                                                color: AppColors.subTextColor,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      IconButton(
+                                        onPressed: controller.removeAttachment,
+                                        icon: Icon(
+                                          Icons.cancel_rounded,
+                                          size: 20.sp,
+                                          color: AppColors.error,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              else
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: OutlinedButton.icon(
+                                        onPressed: () =>
+                                            controller.pickAttachmentImage(ImageSource.camera),
+                                        icon: Icon(
+                                          Icons.camera_alt_outlined,
+                                          size: 16.sp,
+                                          color: AppColors.secondary,
+                                        ),
+                                        label: Text(
+                                          'Camera Capture',
                                           style: AppTextStyles.text12.copyWith(
-                                            fontWeight: isAttached
-                                                ? FontWeight.bold
-                                                : FontWeight.w500,
-                                            color: isAttached
-                                                ? AppColors.secondary
-                                                : AppColors.textColor,
+                                            color: AppColors.textColor,
+                                            fontWeight: FontWeight.w600,
                                           ),
                                         ),
-                                        AppSpaces.vSpace2,
-                                        Text(
-                                          isAttached
-                                              ? 'Tap to remove attachment'
-                                              : 'PDF, PNG or JPG up to 5MB',
-                                          style: AppTextStyles.text10.copyWith(
-                                            color: AppColors.subTextColor,
+                                        style: OutlinedButton.styleFrom(
+                                          padding: EdgeInsets.symmetric(vertical: 12.h),
+                                          side: BorderSide(color: AppColors.borderColor),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(10.r),
                                           ),
                                         ),
-                                      ],
+                                      ),
                                     ),
-                                  ),
-                                  Icon(
-                                    isAttached
-                                        ? Icons.cancel_rounded
-                                        : Icons.add_circle_outline_rounded,
-                                    size: 18.sp,
-                                    color: isAttached
-                                        ? AppColors.error
-                                        : AppColors.subTextColor,
-                                  ),
-                                ],
-                              ),
-                            ),
+                                    AppSpaces.hSpace8,
+                                    Expanded(
+                                      child: OutlinedButton.icon(
+                                        onPressed: () =>
+                                            controller.pickAttachmentImage(ImageSource.gallery),
+                                        icon: Icon(
+                                          Icons.photo_library_outlined,
+                                          size: 16.sp,
+                                          color: AppColors.primary,
+                                        ),
+                                        label: Text(
+                                          'Pick from Gallery',
+                                          style: AppTextStyles.text12.copyWith(
+                                            color: AppColors.textColor,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        style: OutlinedButton.styleFrom(
+                                          padding: EdgeInsets.symmetric(vertical: 12.h),
+                                          side: BorderSide(color: AppColors.borderColor),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(10.r),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                            ],
                           );
                         }),
 

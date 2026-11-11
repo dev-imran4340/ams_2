@@ -22,14 +22,32 @@ class ProfileSectionTabsBar extends GetView<ProfileController> {
         return Icons.person_outline_rounded;
       case 'job':
         return Icons.work_outline_rounded;
+      case 'schedule':
+        return Icons.calendar_month_outlined;
       case 'attendance':
         return Icons.access_time_rounded;
+      case 'leave':
+        return Icons.beach_access_outlined;
       case 'documents':
-        return Icons.description_outlined;
+        return Icons.badge_outlined;
+      case 'files':
+        return Icons.folder_shared_outlined;
+      case 'pay':
+        return Icons.receipt_long_outlined;
+      case 'money':
+        return Icons.account_balance_wallet_outlined;
+      case 'performance':
+        return Icons.stars_rounded;
+      case 'onboarding':
+        return Icons.how_to_reg_outlined;
+      case 'assets':
+        return Icons.devices_outlined;
+      case 'training':
+        return Icons.school_outlined;
       case 'bank':
         return Icons.account_balance_outlined;
       case 'account':
-        return Icons.badge_outlined;
+        return Icons.security_rounded;
       case 'history':
         return Icons.history_rounded;
       default:
