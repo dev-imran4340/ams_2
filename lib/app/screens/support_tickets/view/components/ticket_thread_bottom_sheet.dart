@@ -116,7 +116,9 @@ class _TicketThreadBottomSheetState extends State<TicketThreadBottomSheet> {
                           borderRadius: BorderRadius.circular(6.r),
                         ),
                         child: Text(
-                          '#${ticket.number}',
+                          ticket.number.startsWith('#')
+                              ? ticket.number
+                              : '#${ticket.number}',
                           style: AppTextStyles.text12.copyWith(
                             color: AppColors.primary,
                             fontWeight: FontWeight.w700,
@@ -152,69 +154,126 @@ class _TicketThreadBottomSheetState extends State<TicketThreadBottomSheet> {
 
                       // Close / Reopen Action Button
                       if (ticket.isOpen)
-                        TextButton.icon(
-                          onPressed:
-                              widget.controller.isChangingStatus.value
-                                  ? null
-                                  : widget.controller.closeTicket,
-                          icon: Icon(
-                            Icons.check_circle_outline_rounded,
-                            size: 15.sp,
-                            color: AppColors.error,
-                          ),
-                          label: Text(
-                            'Close',
-                            style: AppTextStyles.text12.copyWith(
-                              color: AppColors.error,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          style: TextButton.styleFrom(
+                        InkWell(
+                          onTap: widget.controller.isChangingStatus.value
+                              ? null
+                              : () => _confirmCloseTicket(context),
+                          borderRadius: BorderRadius.circular(8.r),
+                          child: Container(
                             padding: EdgeInsets.symmetric(
-                              horizontal: 8.w,
-                              vertical: 4.h,
+                              horizontal: 10.w,
+                              vertical: 5.h,
                             ),
-                            minimumSize: Size.zero,
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            decoration: BoxDecoration(
+                              color: AppColors.error.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8.r),
+                              border: Border.all(
+                                color: AppColors.error.withValues(alpha: 0.35),
+                                width: 1.w,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (widget.controller.isChangingStatus.value) ...[
+                                  SizedBox(
+                                    width: 12.r,
+                                    height: 12.r,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 1.8.w,
+                                      color: AppColors.error,
+                                    ),
+                                  ),
+                                  AppSpaces.hSpace6,
+                                ] else ...[
+                                  Icon(
+                                    Icons.lock_outline_rounded,
+                                    size: 13.sp,
+                                    color: AppColors.error,
+                                  ),
+                                  AppSpaces.hSpace4,
+                                ],
+                                Text(
+                                  'Close Ticket',
+                                  style: AppTextStyles.text12.copyWith(
+                                    color: AppColors.error,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         )
                       else if (ticket.canReopen)
-                        TextButton.icon(
-                          onPressed:
-                              widget.controller.isChangingStatus.value
-                                  ? null
-                                  : widget.controller.reopenTicket,
-                          icon: Icon(
-                            Icons.refresh_rounded,
-                            size: 15.sp,
-                            color: AppColors.secondary,
-                          ),
-                          label: Text(
-                            'Reopen',
-                            style: AppTextStyles.text12.copyWith(
-                              color: AppColors.secondary,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          style: TextButton.styleFrom(
+                        InkWell(
+                          onTap: widget.controller.isChangingStatus.value
+                              ? null
+                              : widget.controller.reopenTicket,
+                          borderRadius: BorderRadius.circular(8.r),
+                          child: Container(
                             padding: EdgeInsets.symmetric(
-                              horizontal: 8.w,
-                              vertical: 4.h,
+                              horizontal: 10.w,
+                              vertical: 5.h,
                             ),
-                            minimumSize: Size.zero,
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            decoration: BoxDecoration(
+                              color: AppColors.secondary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8.r),
+                              border: Border.all(
+                                color: AppColors.secondary.withValues(alpha: 0.35),
+                                width: 1.w,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (widget.controller.isChangingStatus.value) ...[
+                                  SizedBox(
+                                    width: 12.r,
+                                    height: 12.r,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 1.8.w,
+                                      color: AppColors.secondary,
+                                    ),
+                                  ),
+                                  AppSpaces.hSpace6,
+                                ] else ...[
+                                  Icon(
+                                    Icons.refresh_rounded,
+                                    size: 13.sp,
+                                    color: AppColors.secondary,
+                                  ),
+                                  AppSpaces.hSpace4,
+                                ],
+                                Text(
+                                  'Reopen Ticket',
+                                  style: AppTextStyles.text12.copyWith(
+                                    color: AppColors.secondary,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
 
-                      IconButton(
-                        onPressed: () => Get.back(),
-                        icon: Icon(
-                          Icons.close_rounded,
-                          color: AppColors.subTextColor,
-                          size: 22.sp,
+                      AppSpaces.hSpace10,
+
+                      // Dismiss Bottom Sheet Button
+                      InkWell(
+                        onTap: () => Navigator.of(context).pop(),
+                        borderRadius: BorderRadius.circular(20.r),
+                        child: Container(
+                          padding: EdgeInsets.all(5.r),
+                          decoration: BoxDecoration(
+                            color: AppColors.borderColor.withValues(alpha: 0.4),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.close_rounded,
+                            color: AppColors.subTextColor,
+                            size: 18.sp,
+                          ),
                         ),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
                       ),
                     ],
                   ),
@@ -702,6 +761,102 @@ class _TicketThreadBottomSheetState extends State<TicketThreadBottomSheet> {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  void _confirmCloseTicket(BuildContext context) {
+    Get.dialog(
+      Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.r),
+        ),
+        backgroundColor: AppColors.cardBackground,
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(8.r),
+                    decoration: BoxDecoration(
+                      color: AppColors.error.withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.lock_outline_rounded,
+                      color: AppColors.error,
+                      size: 20.sp,
+                    ),
+                  ),
+                  AppSpaces.hSpace10,
+                  Expanded(
+                    child: Text(
+                      'Close Support Ticket?',
+                      style: AppTextStyles.text16.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textColor,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              AppSpaces.vSpace12,
+              Text(
+                'Are you sure you want to mark this ticket as resolved and closed? You can reopen it if you still need assistance.',
+                style: AppTextStyles.text12.copyWith(
+                  color: AppColors.subTextColor,
+                  height: 1.4,
+                ),
+              ),
+              AppSpaces.vSpace20,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Get.back(),
+                    child: Text(
+                      'Cancel',
+                      style: AppTextStyles.text12.copyWith(
+                        color: AppColors.subTextColor,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  AppSpaces.hSpace8,
+                  ElevatedButton(
+                    onPressed: () {
+                      Get.back();
+                      widget.controller.closeTicket();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.error,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8.r),
+                      ),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 14.w,
+                        vertical: 8.h,
+                      ),
+                    ),
+                    child: Text(
+                      'Yes, Close Ticket',
+                      style: AppTextStyles.text12.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

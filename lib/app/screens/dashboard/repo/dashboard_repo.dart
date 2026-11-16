@@ -160,10 +160,11 @@ class DashboardRepo {
           fields['face_match'] = faceMatch;
         }
         if (faceScore != null) {
-          fields['face_score'] = faceScore.toStringAsFixed(4);
+          final normalizedScore = faceScore > 1.0 ? (faceScore / 100.0) : faceScore;
+          fields['face_score'] = normalizedScore.clamp(0.0, 1.0).toStringAsFixed(4);
         }
         if (faceConsent != null) {
-          fields['face_consent'] = faceConsent ? 'true' : 'false';
+          fields['face_consent'] = faceConsent ? '1' : '0';
         }
 
         final multipartFile = await http.MultipartFile.fromPath(
@@ -201,7 +202,10 @@ class DashboardRepo {
         body['is_mocked'] = isMocked;
       }
       if (faceMatch != null) body['face_match'] = faceMatch;
-      if (faceScore != null) body['face_score'] = faceScore;
+      if (faceScore != null) {
+        final normalizedScore = faceScore > 1.0 ? (faceScore / 100.0) : faceScore;
+        body['face_score'] = normalizedScore.clamp(0.0, 1.0);
+      }
       if (faceConsent != null) body['face_consent'] = faceConsent;
 
       final response = await ApiClient.request(

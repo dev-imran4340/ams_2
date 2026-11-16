@@ -66,46 +66,54 @@ class LeaveRequestTile extends StatelessWidget {
               children: [
                 // Top Row: Category Icon + ID & Status Pill
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        // Status accent vertical pill
-                        Container(
-                          width: 3.5.w,
-                          height: 16.h,
-                          decoration: BoxDecoration(
-                            color: statusColor,
-                            borderRadius: BorderRadius.circular(2.r),
+                    Expanded(
+                      child: Row(
+                        children: [
+                          // Status accent vertical pill
+                          Container(
+                            width: 3.5.w,
+                            height: 16.h,
+                            decoration: BoxDecoration(
+                              color: statusColor,
+                              borderRadius: BorderRadius.circular(2.r),
+                            ),
                           ),
-                        ),
-                        AppSpaces.hSpace8,
-                        Text(
-                          '#${item.id}',
-                          style: AppTextStyles.text10.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.subTextColor,
+                          AppSpaces.hSpace8,
+                          Flexible(
+                            child: Text(
+                              item.leaveType,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTextStyles.text12.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textColor,
+                              ),
+                            ),
                           ),
-                        ),
-                        AppSpaces.hSpace6,
-                        Container(
-                          width: 4.r,
-                          height: 4.r,
-                          decoration: BoxDecoration(
-                            color: AppColors.borderColor,
-                            shape: BoxShape.circle,
+                          AppSpaces.hSpace6,
+                          Container(
+                            width: 4.r,
+                            height: 4.r,
+                            decoration: BoxDecoration(
+                              color: AppColors.borderColor,
+                              shape: BoxShape.circle,
+                            ),
                           ),
-                        ),
-                        AppSpaces.hSpace6,
-                        Text(
-                          item.leaveType,
-                          style: AppTextStyles.text12.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textColor,
+                          AppSpaces.hSpace6,
+                          Text(
+                            item.id.length > 8
+                                ? '#${item.id.substring(item.id.length - 8)}'
+                                : '#${item.id}',
+                            style: AppTextStyles.text10.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.subTextColor,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
+                    AppSpaces.hSpace8,
 
                     // Status Pill
                     Container(

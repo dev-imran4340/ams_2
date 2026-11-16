@@ -126,7 +126,8 @@ class BiometricOvalViewfinder extends GetView<FaceRecognitionController> {
                         // Live Camera Feed if Hardware Initialized, else ambient fallback
                         Positioned.fill(
                           child: controller.isCameraInitialized.value &&
-                                  controller.cameraController != null
+                                  controller.cameraController != null &&
+                                  controller.cameraController!.value.isInitialized
                               ? FittedBox(
                                   fit: BoxFit.cover,
                                   child: SizedBox(

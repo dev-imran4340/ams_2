@@ -33,7 +33,8 @@ class DashboardQuickActions extends StatelessWidget {
         ? Get.find<SessionMeController>()
         : null;
 
-    final bool hasAttendance = (session?.hasModule('attendance') ??
+    final bool hasAttendance =
+        (session?.hasModule('attendance') ??
             AppPreferences.hasModule('attendance')) &&
         (session?.hasPermission('attendance.view') ??
             AppPreferences.hasPermission('attendance.view'));
@@ -41,110 +42,129 @@ class DashboardQuickActions extends StatelessWidget {
     final bool hasLeave =
         session?.hasModule('leave') ?? AppPreferences.hasModule('leave');
 
-    final bool hasPayroll = (session?.hasModule('payroll') ??
+    final bool hasPayroll =
+        (session?.hasModule('payroll') ??
             AppPreferences.hasModule('payroll')) &&
         (session?.hasPermission('pay.view') ??
             AppPreferences.hasPermission('pay.view'));
 
-    final bool hasLoans = (session?.hasModule('loans_expenses') ??
+    final bool hasLoans =
+        (session?.hasModule('loans_expenses') ??
             AppPreferences.hasModule('loans_expenses')) &&
         (session?.hasPermission('money.view') ??
             AppPreferences.hasPermission('money.view'));
 
-    final bool hasSupport = session?.hasPermission('support.view') ??
+    final bool hasSupport =
+        session?.hasPermission('support.view') ??
         AppPreferences.hasPermission('support.view');
 
     // Dynamically build action tiles strictly adhering to Permission-Driven Access Invariant
     final actions = <_QuickActionItem>[];
 
     if (hasAttendance) {
-      actions.add(_QuickActionItem(
-        icon: Icons.insights_rounded,
-        title: 'Attendance\nSummary',
-        color: AppColors.secondary,
-        onTap: () {
-          HapticFeedback.lightImpact();
-          Get.toNamed(Routes.ATTENDANCE_SUMMARY);
-        },
-      ));
-      actions.add(_QuickActionItem(
-        icon: Icons.view_timeline_rounded,
-        title: 'Attendance\nHistory',
-        color: AppColors.primary,
-        onTap: () {
-          HapticFeedback.lightImpact();
-          Get.toNamed(Routes.ATTENDANCE_HISTORY);
-        },
-      ));
-      actions.add(_QuickActionItem(
-        icon: Icons.edit_calendar_rounded,
-        title: 'Attendance\nCorrection',
-        color: AppColors.warning,
-        onTap: () {
-          HapticFeedback.lightImpact();
-          Get.toNamed(Routes.CORRECTION);
-        },
-      ));
+      actions.add(
+        _QuickActionItem(
+          icon: Icons.insights_rounded,
+          title: 'Attendance\nSummary',
+          color: AppColors.secondary,
+          onTap: () {
+            HapticFeedback.lightImpact();
+            Get.toNamed(Routes.ATTENDANCE_SUMMARY);
+          },
+        ),
+      );
+      actions.add(
+        _QuickActionItem(
+          icon: Icons.view_timeline_rounded,
+          title: 'Attendance\nHistory',
+          color: AppColors.primary,
+          onTap: () {
+            HapticFeedback.lightImpact();
+            Get.toNamed(Routes.ATTENDANCE_HISTORY);
+          },
+        ),
+      );
+      actions.add(
+        _QuickActionItem(
+          icon: Icons.edit_calendar_rounded,
+          title: 'Attendance\nCorrection',
+          color: AppColors.warning,
+          onTap: () {
+            HapticFeedback.lightImpact();
+            Get.toNamed(Routes.CORRECTION);
+          },
+        ),
+      );
     }
 
     if (hasLeave) {
-      actions.add(_QuickActionItem(
-        icon: Icons.beach_access_rounded,
-        title: 'Leave\nRequests',
-        color: AppColors.secondary,
-        onTap: () {
-          HapticFeedback.lightImpact();
-          Get.toNamed(Routes.LEAVE);
-        },
-      ));
+      actions.add(
+        _QuickActionItem(
+          icon: Icons.beach_access_rounded,
+          title: 'Leave\nRequests',
+          color: AppColors.secondary,
+          onTap: () {
+            HapticFeedback.lightImpact();
+            Get.toNamed(Routes.LEAVE);
+          },
+        ),
+      );
     }
 
     if (hasPayroll) {
-      actions.add(_QuickActionItem(
-        icon: Icons.receipt_long_rounded,
-        title: 'Payslips &\nSalary',
-        color: AppColors.secondary,
-        onTap: () {
-          HapticFeedback.lightImpact();
-          Get.toNamed(Routes.PAYROLL);
-        },
-      ));
+      actions.add(
+        _QuickActionItem(
+          icon: Icons.receipt_long_rounded,
+          title: 'Payslips &\nSalary',
+          color: AppColors.secondary,
+          onTap: () {
+            HapticFeedback.lightImpact();
+            Get.toNamed(Routes.PAYROLL);
+          },
+        ),
+      );
     }
 
     if (hasLoans) {
-      actions.add(_QuickActionItem(
-        icon: Icons.account_balance_wallet_rounded,
-        title: 'Money\nRequests',
-        color: AppColors.warning,
-        onTap: () {
-          HapticFeedback.lightImpact();
-          Get.toNamed(Routes.LOANS);
-        },
-      ));
+      actions.add(
+        _QuickActionItem(
+          icon: Icons.account_balance_wallet_rounded,
+          title: 'Money\nRequests',
+          color: AppColors.warning,
+          onTap: () {
+            HapticFeedback.lightImpact();
+            Get.toNamed(Routes.LOANS);
+          },
+        ),
+      );
     }
 
     if (hasSupport) {
-      actions.add(_QuickActionItem(
-        icon: Icons.support_agent_rounded,
-        title: 'Helpdesk &\nSupport',
-        color: AppColors.primary,
-        onTap: () {
-          HapticFeedback.lightImpact();
-          Get.toNamed(Routes.SUPPORT_TICKETS);
-        },
-      ));
+      actions.add(
+        _QuickActionItem(
+          icon: Icons.support_agent_rounded,
+          title: 'Help &\nSupport',
+          color: AppColors.primary,
+          onTap: () {
+            HapticFeedback.lightImpact();
+            Get.toNamed(Routes.SUPPORT_TICKETS);
+          },
+        ),
+      );
     }
 
     // Core employee smart identity badge - always accessible
-    actions.add(_QuickActionItem(
-      icon: Icons.badge_outlined,
-      title: 'Digital\nID Card',
-      color: AppColors.primary,
-      onTap: () {
-        HapticFeedback.lightImpact();
-        Get.toNamed(Routes.EMPLOYEE_CARD);
-      },
-    ));
+    actions.add(
+      _QuickActionItem(
+        icon: Icons.badge_outlined,
+        title: 'Digital\nID Card',
+        color: AppColors.primary,
+        onTap: () {
+          HapticFeedback.lightImpact();
+          Get.toNamed(Routes.EMPLOYEE_CARD);
+        },
+      ),
+    );
 
     if (actions.isEmpty) {
       return const SizedBox.shrink();
@@ -178,10 +198,7 @@ class DashboardQuickActions extends StatelessWidget {
               padding: EdgeInsets.only(
                 right: idx < actions.length - 1 ? 10.w : 0,
               ),
-              child: SizedBox(
-                width: 82.w,
-                child: _buildActionTile(item),
-              ),
+              child: SizedBox(width: 82.w, child: _buildActionTile(item)),
             );
           }).toList(),
         ),

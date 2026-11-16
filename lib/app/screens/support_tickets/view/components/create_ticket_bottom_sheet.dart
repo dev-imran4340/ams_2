@@ -452,10 +452,15 @@ class _CreateTicketBottomSheetState extends State<CreateTicketBottomSheet> {
                         isLoading: widget.controller.isSubmitting.value,
                         onPressed: () async {
                           if (widget.controller.isSubmitting.value) return;
+                          final navigator = Navigator.of(context, rootNavigator: false);
                           final success =
                               await widget.controller.submitNewTicket();
                           if (success) {
-                            Get.back();
+                            if (mounted && navigator.canPop()) {
+                              navigator.pop();
+                            } else if (Get.isBottomSheetOpen == true) {
+                              Get.back();
+                            }
                           }
                         },
                       )),

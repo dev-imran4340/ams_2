@@ -35,48 +35,57 @@ class PayslipCard extends StatelessWidget {
         children: [
           // Top Header: Period, Finalized badge & Quick PDF Button
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Row(
-                children: [
-                  Container(
-                    padding: EdgeInsets.all(7.w),
-                    decoration: BoxDecoration(
-                      color: AppColors.secondary.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(8.r),
-                    ),
-                    child: Icon(
-                      Icons.receipt_long_rounded,
-                      size: 18.sp,
-                      color: AppColors.secondary,
-                    ),
-                  ),
-                  AppSpaces.hSpace8,
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        payslip.period.isNotEmpty
-                            ? payslip.period
-                            : 'Payslip',
-                        style: AppTextStyles.text14.copyWith(
-                          color: AppColors.textColor,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15.sp,
-                        ),
+              Expanded(
+                child: Row(
+                  children: [
+                    Container(
+                      padding: EdgeInsets.all(7.w),
+                      decoration: BoxDecoration(
+                        color: AppColors.secondary.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(8.r),
                       ),
-                      if (payslip.employer.isNotEmpty)
-                        Text(
-                          payslip.employer,
-                          style: AppTextStyles.text12.copyWith(
-                            color: AppColors.subTextColor,
-                            fontSize: 11.sp,
+                      child: Icon(
+                        Icons.receipt_long_rounded,
+                        size: 18.sp,
+                        color: AppColors.secondary,
+                      ),
+                    ),
+                    AppSpaces.hSpace8,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            payslip.period.isNotEmpty
+                                ? payslip.period
+                                : 'Payslip',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTextStyles.text14.copyWith(
+                              color: AppColors.textColor,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15.sp,
+                            ),
                           ),
-                        ),
-                    ],
-                  ),
-                ],
+                          if (payslip.employer.isNotEmpty)
+                            Text(
+                              payslip.employer,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTextStyles.text12.copyWith(
+                                color: AppColors.subTextColor,
+                                fontSize: 11.sp,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
+              AppSpaces.hSpace8,
               // PDF Download Action
               InkWell(
                 onTap: onDownloadPdf,

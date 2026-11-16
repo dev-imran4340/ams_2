@@ -17,7 +17,7 @@ class MockSupportTicketRepo extends SupportTicketRepo {
     return [
       SupportTicketItemModel(
         id: '01jb2x9k4m7q8r3t5v6w8y0z1a',
-        number: 1042,
+        number: '1042',
         subject: 'Fingerprint scanner not recognising thumb',
         status: finished ? 'Resolved' : 'Open',
         statusTone: finished ? 'emerald' : 'amber',
@@ -34,7 +34,7 @@ class MockSupportTicketRepo extends SupportTicketRepo {
   Future<SupportTicketDetailsModel?> fetchTicketDetails(String id) async {
     return SupportTicketDetailsModel(
       id: id,
-      number: 1042,
+      number: '1042',
       subject: 'Fingerprint scanner not recognising thumb',
       status: 'Open',
       statusValue: 'open',
@@ -64,7 +64,7 @@ class MockSupportTicketRepo extends SupportTicketRepo {
   Future<SupportTicketDetailsModel?> closeTicket(String ticketId) async {
     return SupportTicketDetailsModel(
       id: ticketId,
-      number: 1042,
+      number: '1042',
       subject: 'Fingerprint scanner not recognising thumb',
       status: 'Closed',
       statusValue: 'closed',
@@ -111,7 +111,7 @@ void main() {
       final ticket = SupportTicketItemModel.fromJson(json);
 
       expect(ticket.id, '01jb2x9k4m7q8r3t5v6w8y0z1a');
-      expect(ticket.number, 1042);
+      expect(ticket.number, '1042');
       expect(ticket.subject, 'Biometric verification failing');
       expect(ticket.statusTone, 'amber');
       expect(ticket.formattedCategory, 'Technical');
@@ -150,6 +150,7 @@ void main() {
       final details = SupportTicketDetailsModel.fromJson(json);
 
       expect(details.id, '01jb2x9k4m7q8r3t5v6w8y0z1a');
+      expect(details.number, '1042');
       expect(details.isResolved, isTrue);
       expect(details.canReopen, isTrue);
       expect(details.messages.length, 1);
@@ -176,15 +177,15 @@ void main() {
     test('Loads active tickets and switches filter', () async {
       await controller.loadTickets();
 
-      expect(controller.tickets.length, 1);
-      expect(controller.tickets.first.number, 1042);
-      expect(controller.tickets.first.status, 'Open');
+      expect(controller.currentTickets.length, 1);
+      expect(controller.currentTickets.first.number, '1042');
+      expect(controller.currentTickets.first.status, 'Open');
 
       // Switch to resolved/closed
       controller.setFilter(true);
       expect(controller.showFinished.value, isTrue);
       await controller.loadTickets();
-      expect(controller.tickets.first.status, 'Resolved');
+      expect(controller.currentTickets.first.status, 'Resolved');
     });
 
     test('Opens ticket thread and closes ticket', () async {

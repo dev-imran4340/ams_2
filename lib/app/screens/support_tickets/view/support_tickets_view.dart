@@ -45,7 +45,7 @@ class SupportTicketsView extends GetView<SupportTicketController> {
                       final isForbidden = controller.isForbidden.value;
 
                       return CustomScreenHeader(
-                        title: 'Helpdesk & Support',
+                        title: 'Help & Support',
                         subtitle:
                             'Submit inquiries, report issues & get assistance',
                         actions: (canRaise && !isForbidden)
@@ -91,8 +91,7 @@ class SupportTicketsView extends GetView<SupportTicketController> {
                       }
 
                       // Loading State
-                      if (controller.isLoading.value &&
-                          controller.tickets.isEmpty) {
+                      if (controller.isLoading.value) {
                         return Center(
                           child: CircularProgressIndicator(
                             color: AppColors.secondary,
@@ -100,8 +99,10 @@ class SupportTicketsView extends GetView<SupportTicketController> {
                         );
                       }
 
+                      final currentTickets = controller.currentTickets;
+
                       // Empty State
-                      if (controller.tickets.isEmpty) {
+                      if (currentTickets.isEmpty) {
                         return RefreshIndicator(
                           onRefresh: () =>
                               controller.loadTickets(isRefresh: true),
@@ -138,14 +139,14 @@ class SupportTicketsView extends GetView<SupportTicketController> {
                             horizontal: 12.w,
                             vertical: 4.h,
                           ),
-                          itemCount: controller.tickets.length,
+                          itemCount: currentTickets.length,
                           itemBuilder: (ctx, index) {
-                            final ticket = controller.tickets[index];
+                            final ticket = currentTickets[index];
                             return SupportTicketCard(
                               ticket: ticket,
                               onTap: () async {
-                                await controller.openTicketThread(ticket.id);
-                                if (context.mounted) {
+                                final opened = await controller.openTicketThread(ticket.id);
+                                if (opened && context.mounted) {
                                   TicketThreadBottomSheet.show(
                                     context,
                                     controller,
@@ -161,6 +162,53 @@ class SupportTicketsView extends GetView<SupportTicketController> {
                 ],
               ),
             ),
+
+            // Loading overlay for ticket thread fetching
+            Obx(() {
+              if (!controller.isLoadingThread.value) return const SizedBox.shrink();
+              return Container(
+                color: Colors.black.withValues(alpha: 0.35),
+                child: Center(
+                  child: Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 24.w,
+                      vertical: 18.h,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.cardBackground,
+                      borderRadius: BorderRadius.circular(16.r),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.15),
+                          blurRadius: 16.r,
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SizedBox(
+                          width: 20.r,
+                          height: 20.r,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.2,
+                            color: AppColors.secondary,
+                          ),
+                        ),
+                        AppSpaces.hSpace16,
+                        Text(
+                          'Opening Discussion...',
+                          style: AppTextStyles.text14.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }),
           ],
         ),
       ),

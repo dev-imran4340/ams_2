@@ -216,10 +216,10 @@ class AppDrawer extends StatelessWidget {
                           onTap: () => _navigateToRoute(Routes.ADD_EMPLOYEE),
                         ),
 
-                      // Card 10: Helpdesk & Support (Permission: support.view)
+                      // Card 10: Help & Support (Permission: support.view)
                       if (hasSupport)
                         DrawerModuleCard(
-                          title: 'Helpdesk & Support',
+                          title: 'Help & Support',
                           subtitle: 'Ticket inquiries, issues & assistance',
                           icon: Icons.support_agent_rounded,
                           accentTint: AppColors.secondary,

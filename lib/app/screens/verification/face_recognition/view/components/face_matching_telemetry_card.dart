@@ -7,7 +7,6 @@ import '../../../../../core/utils/app_spaces.dart';
 import '../../../../../core/utils/app_text_styles.dart';
 import '../../../../../core/widgets/custom_button.dart';
 import '../../controller/face_recognition_controller.dart';
-import '../../model/face_recognition_model.dart';
 
 class FaceMatchingTelemetryCard extends GetView<FaceRecognitionController> {
   const FaceMatchingTelemetryCard({super.key});
@@ -36,6 +35,49 @@ class FaceMatchingTelemetryCard extends GetView<FaceRecognitionController> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // 0. Consent Notice Capsule (when requires.face_saved == false per api.md Phase 10)
+          Obx(() {
+            final consentText = controller.punchRequires?.consentText;
+            if (controller.isPunchMode.value &&
+                controller.punchRequires?.faceSaved == false &&
+                consentText != null &&
+                consentText.isNotEmpty) {
+              return Container(
+                margin: EdgeInsets.only(bottom: 10.h),
+                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
+                decoration: BoxDecoration(
+                  color: AppColors.secondary.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12.r),
+                  border: Border.all(
+                    color: AppColors.secondary.withValues(alpha: 0.4),
+                    width: 1.w,
+                  ),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.shield_outlined,
+                      size: 16.sp,
+                      color: AppColors.secondary,
+                    ),
+                    AppSpaces.hSpace8,
+                    Expanded(
+                      child: Text(
+                        consentText,
+                        style: AppTextStyles.text10.copyWith(
+                          color: AppColors.white.withValues(alpha: 0.9),
+                          height: 1.3,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+            return const SizedBox.shrink();
+          }),
+
           // 1. Status Indicator Row
           Row(
             children: [
@@ -301,13 +343,13 @@ class FaceMatchingTelemetryCard extends GetView<FaceRecognitionController> {
             );
           }),
 
-          // 5. Action Buttons (Register Face vs Verify Face)
+          // 5. Action Status / Guidance
           Obx(() {
             final isSuccess = controller.isMatchSuccess.value;
             final isVerifying = controller.isVerifying.value;
             final isSaving = controller.isSavingReference.value;
             final hasRef = controller.hasReferenceFace.value;
-            final activeMode = controller.actionMode.value;
+            final isPunch = controller.isPunchMode.value;
 
             if (isSuccess) {
               return CustomButton(
@@ -317,86 +359,26 @@ class FaceMatchingTelemetryCard extends GetView<FaceRecognitionController> {
               );
             }
 
-            final isRegisterActive = activeMode == FaceActionMode.register;
-            final isVerifyActive = activeMode == FaceActionMode.verify;
+            // In punch mode: automated verification and punch submission
+            if (isPunch) {
+              return CustomButton(
+                text: isVerifying
+                    ? 'Verifying Biometric Face...'
+                    : (hasRef ? 'Align Face to Auto-Verify' : 'Align Face to Enroll'),
+                isGradient: true,
+                isLoading: isVerifying || isSaving,
+                onPressed: null,
+              );
+            }
 
-            return Row(
-              children: [
-                // Register Face Mode Button
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: isSaving || isVerifying
-                        ? null
-                        : () {
-                            controller.setMode(FaceActionMode.register);
-                          },
-                    icon: isSaving
-                        ? SizedBox(
-                            width: 13.r,
-                            height: 13.r,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2.w,
-                              valueColor: const AlwaysStoppedAnimation<Color>(
-                                AppColors.liteSecondary,
-                              ),
-                            ),
-                          )
-                        : Icon(
-                            hasRef
-                                ? Icons.bookmark_added_rounded
-                                : Icons.face_retouching_natural,
-                            size: 14.sp,
-                            color: isRegisterActive
-                                ? AppColors.white
-                                : AppColors.liteSecondary,
-                          ),
-                    label: Text(
-                      hasRef ? 'Re-Register' : 'Register Face',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.text12.copyWith(
-                        color: isRegisterActive
-                            ? AppColors.white
-                            : AppColors.liteSecondary,
-                        fontWeight: isRegisterActive
-                            ? FontWeight.bold
-                            : FontWeight.w500,
-                      ),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      padding: EdgeInsets.symmetric(vertical: 9.h),
-                      backgroundColor: isRegisterActive
-                          ? AppColors.secondary.withValues(alpha: 0.35)
-                          : Colors.transparent,
-                      side: BorderSide(
-                        color: isRegisterActive
-                            ? AppColors.secondary
-                            : AppColors.white.withValues(alpha: 0.18),
-                        width: isRegisterActive ? 1.5.w : 1.w,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10.r),
-                      ),
-                    ),
-                  ),
-                ),
-
-                AppSpaces.hSpace8,
-
-                // Verify Face Action Button
-                Expanded(
-                  child: CustomButton(
-                    text: 'Verify Face',
-                    isGradient: isVerifyActive,
-                    isLoading: isVerifying,
-                    onPressed: hasRef && !isSaving && !isVerifying
-                        ? () {
-                            controller.setMode(FaceActionMode.verify);
-                          }
-                        : null,
-                  ),
-                ),
-              ],
+            // Standalone mode: explicit Verify button with live feedback
+            return CustomButton(
+              text: 'Verify Biometric Face',
+              isGradient: true,
+              isLoading: isVerifying,
+              onPressed: hasRef && !isSaving && !isVerifying
+                  ? () => controller.verifyFaceMatch()
+                  : null,
             );
           }),
         ],

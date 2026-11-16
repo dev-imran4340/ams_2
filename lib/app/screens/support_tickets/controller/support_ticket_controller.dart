@@ -36,9 +36,16 @@ class SupportTicketController extends GetxController {
   // Filter: false = Active/Open Tickets, true = Finished/Resolved Tickets
   final showFinished = false.obs;
 
-  // Lists & Selected Thread
-  final tickets = <SupportTicketItemModel>[].obs;
+  // Dedicated ticket lists to prevent cross-tab stale item flicker
+  final activeTickets = <SupportTicketItemModel>[].obs;
+  final finishedTickets = <SupportTicketItemModel>[].obs;
+
+  // Active view getter for UI convenience
+  List<SupportTicketItemModel> get currentTickets =>
+      showFinished.value ? finishedTickets : activeTickets;
+
   final selectedTicket = Rxn<SupportTicketDetailsModel>();
+  final isLoadingThread = false.obs;
 
   // Text Controllers
   final subjectController = TextEditingController();
@@ -87,14 +94,19 @@ class SupportTicketController extends GetxController {
   Future<void> loadTickets({bool isRefresh = false}) async {
     if (!canView) return;
 
+    final targetFinished = showFinished.value;
     try {
       if (!isRefresh) isLoading.value = true;
       final results = await repo.fetchTickets(
-        finished: showFinished.value,
+        finished: targetFinished,
         page: 1,
         perPage: 25,
       );
-      tickets.assignAll(results);
+      if (targetFinished) {
+        finishedTickets.assignAll(results);
+      } else {
+        activeTickets.assignAll(results);
+      }
     } finally {
       isLoading.value = false;
     }
@@ -108,15 +120,18 @@ class SupportTicketController extends GetxController {
   }
 
   /// Loads full discussion thread and opens bottom sheet
-  Future<void> openTicketThread(String ticketId) async {
+  Future<bool> openTicketThread(String ticketId) async {
+    if (isLoadingThread.value) return false;
     try {
-      isLoading.value = true;
+      isLoadingThread.value = true;
       final details = await repo.fetchTicketDetails(ticketId);
       if (details != null) {
         selectedTicket.value = details;
+        return true;
       }
+      return false;
     } finally {
-      isLoading.value = false;
+      isLoadingThread.value = false;
     }
   }
 
@@ -163,6 +178,11 @@ class SupportTicketController extends GetxController {
         newTicketAttachments.clear();
         selectedCategory.value = 'technical';
         selectedPriority.value = 'normal';
+
+        // Auto close bottom sheet if open
+        if (Get.isBottomSheetOpen == true) {
+          Get.back();
+        }
 
         CustomSnackbar.showSuccess(
           message: 'Support ticket #${created.number} submitted successfully.',

@@ -36,7 +36,7 @@ class ProfileController extends GetxController {
   final RxString selectedSectionKey = 'overview'.obs;
 
   // Workplace Preferences & Security Observables
-  final RxBool twoFactorAuth = true.obs;
+  final RxBool twoFactorAuth = false.obs;
   final RxBool biometricPunch = true.obs;
   final RxBool shiftReminders = true.obs;
   final RxBool geofenceAutoCheck = true.obs;
@@ -48,6 +48,9 @@ class ProfileController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    // Initialize 2FA state from authenticated GET /me user payload
+    twoFactorAuth.value = AppPreferences.isTwoFactorEnabled;
+
     // Default: proactively fetch self profile
     loadProfile();
 
@@ -159,6 +162,8 @@ class ProfileController extends GetxController {
         biometricPunch.value = result.biometricEnabled;
         shiftReminders.value = result.remindersEnabled;
         geofenceAutoCheck.value = result.geofenceAutoCheck;
+        // Keep 2FA synchronized with authenticated user session
+        twoFactorAuth.value = AppPreferences.isTwoFactorEnabled;
       }
     } finally {
       isLoading.value = false;
@@ -229,6 +234,14 @@ class ProfileController extends GetxController {
     // Check if the section belongs to a dedicated full feature route
     switch (key.toLowerCase()) {
       case 'schedule':
+        if (isOther) {
+          final hasPerm = AppPreferences.hasPermission('attendance.view', 'department') ||
+              AppPreferences.hasPermission('attendance.view', 'company');
+          if (!hasPerm) {
+            selectedSectionKey.value = key;
+            return;
+          }
+        }
         Get.toNamed(Routes.SCHEDULE, arguments: isOther && currentTargetId != null ? {
           'employeeId': currentTargetId,
           'employeeName': currentTargetName,
@@ -236,6 +249,14 @@ class ProfileController extends GetxController {
         return;
 
       case 'attendance':
+        if (isOther) {
+          final hasPerm = AppPreferences.hasPermission('attendance.view', 'department') ||
+              AppPreferences.hasPermission('attendance.view', 'company');
+          if (!hasPerm) {
+            selectedSectionKey.value = key;
+            return;
+          }
+        }
         Get.toNamed(Routes.ATTENDANCE_HISTORY, arguments: isOther && currentTargetId != null ? {
           'employeeId': currentTargetId,
           'employeeName': currentTargetName,
@@ -243,39 +264,51 @@ class ProfileController extends GetxController {
         return;
 
       case 'leave':
-        if (isOther && currentTargetId != null) {
-          // If viewing another employee, navigate to department attendance/leave history
-          Get.toNamed(Routes.ATTENDANCE_HISTORY, arguments: {
-            'employeeId': currentTargetId,
-            'employeeName': currentTargetName,
-          });
+        if (isOther) {
+          final hasPerm = AppPreferences.hasPermission('leave.view', 'department') ||
+              AppPreferences.hasPermission('leave.view', 'company');
+          if (!hasPerm) {
+            selectedSectionKey.value = key;
+            return;
+          }
+          if (currentTargetId != null) {
+            Get.toNamed(Routes.ATTENDANCE_HISTORY, arguments: {
+              'employeeId': currentTargetId,
+              'employeeName': currentTargetName,
+            });
+            return;
+          }
         } else {
           Get.toNamed(Routes.LEAVE);
+          return;
         }
-        return;
+        break;
 
       case 'pay':
         if (!isOther) {
           Get.toNamed(Routes.PAYROLL);
           return;
         }
-        break;
+        // Viewing other employee: stay on tab to display clean friendly message
+        selectedSectionKey.value = key;
+        return;
 
       case 'money':
         if (!isOther) {
           Get.toNamed(Routes.LOANS);
           return;
         }
-        break;
-
-      case 'performance':
-        Get.toNamed(Routes.EVALUATION);
+        // Viewing other employee: stay on tab to display clean friendly message
+        selectedSectionKey.value = key;
         return;
 
+      case 'performance':
       case 'onboarding':
       case 'assets':
       case 'training':
-        Get.toNamed(Routes.TASKS);
+        // No live standalone backend API endpoint for these sections:
+        // Render user-friendly tab empty message with zero fallback dummy data
+        selectedSectionKey.value = key;
         return;
 
       case 'account':
@@ -378,15 +411,24 @@ class ProfileController extends GetxController {
   }
 
   /// Toggles Two-Factor Authentication (2FA)
+  /// Note: The backend manages 2FA setup/enforcement via the web portal & login challenge.
+  /// No mobile toggle endpoint exists in api.md. We inform the user and maintain server parity.
   void toggle2FA(bool val) {
     HapticFeedback.selectionClick();
-    twoFactorAuth.value = val;
-    CustomSnackbar.showSuccess(
-      title: 'Two-Factor Authentication',
-      message: val
-          ? '2FA security is now enabled for your account.'
-          : '2FA security has been disabled.',
-    );
+    final serverStatus = AppPreferences.isTwoFactorEnabled;
+
+    if (val != serverStatus) {
+      // Revert switch to reflect true server state from GET /me
+      twoFactorAuth.value = serverStatus;
+      CustomSnackbar.showInfo(
+        title: 'Two-Factor Authentication',
+        message: serverStatus
+            ? '2FA is currently active on your account. To reconfigure or disable authenticator keys, please use the web portal.'
+            : 'To enable Two-Factor Authentication (2FA) with an authenticator app, please configure it from the AMS web portal security settings.',
+      );
+    } else {
+      twoFactorAuth.value = val;
+    }
   }
 
   /// Toggles biometric quick authentication

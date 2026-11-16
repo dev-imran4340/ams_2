@@ -6,6 +6,7 @@ import '../../../core/utils/app_colors.dart';
 import '../../../core/utils/app_spaces.dart';
 import '../../../core/utils/app_text_styles.dart';
 import '../../../core/widgets/custom_screen_header.dart';
+import '../../../core/widgets/custom_state_view.dart';
 import '../../../core/widgets/employee_ambient_header.dart';
 import '../../../core/widgets/network_boundary_wrapper.dart';
 import '../controller/profile_controller.dart';
@@ -250,24 +251,110 @@ class _ProfileDetailsViewState extends State<ProfileDetailsView> {
 
   /// Builds the view corresponding to the active section tab
   Widget _buildSectionContent(String key) {
+    final isOther = controller.isViewingOtherEmployee.value;
+
     switch (key.toLowerCase()) {
       case 'overview':
         return const ProfileOverviewTab(key: ValueKey('tab_overview'));
+
       case 'personal':
         return const ProfilePersonalTab(key: ValueKey('tab_personal'));
+
       case 'job':
         return const ProfileJobTab(key: ValueKey('tab_job'));
+
       case 'documents':
       case 'files':
         return const ProfileDocumentsTab(key: ValueKey('tab_documents'));
+
       case 'bank':
         return const ProfileBankTab(key: ValueKey('tab_bank'));
+
       case 'account':
         return const ProfileAccountTab(key: ValueKey('tab_account'));
+
       case 'history':
         return const ProfileHistoryTab(key: ValueKey('tab_history'));
+
+      case 'schedule':
+        return CustomStateView.empty(
+          key: const ValueKey('tab_empty_schedule'),
+          title: 'Schedule Access Restricted',
+          message: isOther
+              ? 'You do not have department/company permission to audit this employee’s work schedule.'
+              : 'Your assigned shift rota and working hours are managed under Attendance.',
+        );
+
+      case 'attendance':
+        return CustomStateView.empty(
+          key: const ValueKey('tab_empty_attendance'),
+          title: 'Attendance Access Restricted',
+          message: isOther
+              ? 'You do not have department/company permission to view this employee’s timesheet logs.'
+              : 'Attendance punch logs and shifts can be viewed directly from Attendance History.',
+        );
+
+      case 'leave':
+        return CustomStateView.empty(
+          key: const ValueKey('tab_empty_leave'),
+          title: 'Leave Records Access',
+          message: isOther
+              ? 'You do not have permission to audit leave records for this employee.'
+              : 'Your leave balance and applications are managed in Leave Management.',
+        );
+
+      case 'pay':
+        return CustomStateView.empty(
+          key: const ValueKey('tab_empty_pay'),
+          title: 'Payroll Details',
+          message: isOther
+              ? 'Confidential: Salary and payslip records are strictly confidential and restricted to authorized payroll officers.'
+              : 'Access your salary structure and monthly payslips via Payroll & Payslips.',
+        );
+
+      case 'money':
+        return CustomStateView.empty(
+          key: const ValueKey('tab_empty_money'),
+          title: 'Loans & Money Requests',
+          message: isOther
+              ? 'Confidential: Employee loans, advance requests, and expense claims are private to the employee and finance department.'
+              : 'Submit and track staff loans, salary advances, and expenses via Money Requests.',
+        );
+
+      case 'performance':
+        return CustomStateView.empty(
+          key: const ValueKey('tab_empty_performance'),
+          title: 'Performance & Appraisals',
+          message: 'No active appraisal review or KPI criteria report is currently open for this profile cycle.',
+        );
+
+      case 'onboarding':
+        return CustomStateView.empty(
+          key: const ValueKey('tab_empty_onboarding'),
+          title: 'Joining & Leaving',
+          message: 'Onboarding checklist and formal joining documentation are finalized.',
+        );
+
+      case 'assets':
+        return CustomStateView.empty(
+          key: const ValueKey('tab_empty_assets'),
+          title: 'Company Assets',
+          message: 'No hardware assets or company equipment are currently assigned to this profile.',
+        );
+
+      case 'training':
+        return CustomStateView.empty(
+          key: const ValueKey('tab_empty_training'),
+          title: 'Training & Development',
+          message: 'No enrolled training programs or professional development courses found on record.',
+        );
+
       default:
-        return const ProfileOverviewTab(key: ValueKey('tab_overview_fallback'));
+        return CustomStateView.empty(
+          key: ValueKey('tab_empty_$key'),
+          title: 'No Data Available',
+          message: 'There are no active records for this profile section.',
+        );
     }
   }
 

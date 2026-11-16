@@ -10,7 +10,6 @@ import '../../../core/widgets/custom_state_view.dart';
 import '../../../core/widgets/employee_ambient_header.dart';
 import '../../../core/widgets/network_boundary_wrapper.dart';
 import '../controller/employee_card_controller.dart';
-import 'components/card_security_info_card.dart';
 import 'components/digital_id_card_widget.dart';
 
 class EmployeeCardView extends GetView<EmployeeCardController> {
@@ -34,9 +33,7 @@ class EmployeeCardView extends GetView<EmployeeCardController> {
                 onRefresh: controller.loadCardData,
                 color: AppColors.primary,
                 child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(
-                    parent: BouncingScrollPhysics(),
-                  ),
+                  physics:NeverScrollableScrollPhysics(),
                   padding: EdgeInsets.symmetric(
                     horizontal: 14.w,
                     vertical: 8.h,
@@ -100,13 +97,8 @@ class EmployeeCardView extends GetView<EmployeeCardController> {
                               );
                             }),
 
-                            AppSpaces.vSpace16,
-
-                            // Component 3: Security & Cryptographic Telemetry Card
-                            const CardSecurityInfoCard(),
-
                             // Bottom clearance
-                            SizedBox(height: 70.h),
+                            SizedBox(height: 30.h),
                           ],
                         );
                       }),

@@ -4,7 +4,7 @@ import '../../../core/utils/app_colors.dart';
 /// Support ticket list item from GET /api/v1/support/tickets
 class SupportTicketItemModel {
   final String id;
-  final int number;
+  final String number;
   final String subject;
   final String status;
   final String statusTone;
@@ -30,7 +30,7 @@ class SupportTicketItemModel {
   factory SupportTicketItemModel.fromJson(Map<String, dynamic> json) {
     return SupportTicketItemModel(
       id: json['id']?.toString() ?? '',
-      number: int.tryParse(json['number']?.toString() ?? '0') ?? 0,
+      number: json['number']?.toString() ?? '',
       subject: json['subject']?.toString() ?? '',
       status: json['status']?.toString() ?? 'Open',
       statusTone: json['status_tone']?.toString().toLowerCase().trim() ?? 'amber',
@@ -134,7 +134,7 @@ class SupportTicketItemModel {
 /// Detailed Support Ticket thread from GET /api/v1/support/tickets/{id}
 class SupportTicketDetailsModel {
   final String id;
-  final int number;
+  final String number;
   final String subject;
   final String status;
   final String statusValue; // open, waiting_on_customer, resolved, closed
@@ -165,7 +165,7 @@ class SupportTicketDetailsModel {
 
     return SupportTicketDetailsModel(
       id: json['id']?.toString() ?? '',
-      number: int.tryParse(json['number']?.toString() ?? '0') ?? 0,
+      number: json['number']?.toString() ?? '',
       subject: json['subject']?.toString() ?? '',
       status: json['status']?.toString() ?? 'Open',
       statusValue: json['status_value']?.toString().toLowerCase().trim() ?? 'open',

@@ -38,9 +38,11 @@ class _AttendanceSliderButtonState extends State<AttendanceSliderButton>
   }
 
   void _resetSlider() {
+    if (!mounted) return;
     _resetAnimation = Tween<double>(begin: _dragPosition, end: 0.0).animate(
       CurvedAnimation(parent: _animController, curve: Curves.easeOut),
     )..addListener(() {
+        if (!mounted) return;
         setState(() {
           _dragPosition = _resetAnimation.value;
         });

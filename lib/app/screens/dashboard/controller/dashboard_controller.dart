@@ -11,6 +11,7 @@ import '../model/dashboard_model.dart';
 import '../repo/dashboard_repo.dart';
 import '../view/components/selfie_punch_sheet.dart';
 import '../../main_shell/controller/session_me_controller.dart';
+import '../../verification/face_recognition/repo/face_recognition_repo.dart';
 
 class DashboardController extends GetxController {
   final DashboardRepo repo;
@@ -346,9 +347,25 @@ class DashboardController extends GetxController {
       final result = await repo.fetchDashboardData();
       dashboardData.value = result;
       _updateRunningShiftTimer();
+
+      // According to api.md Phase 10:
+      // When requires specifies face != 'off' and face_saved: true,
+      // proactively fetch and sync the enrolled face image via GET /me/face
+      final reqs = result?.todayAttendance.requires;
+      if (reqs != null && reqs.face != 'off' && reqs.faceSaved) {
+        unawaited(_syncServerFaceQuietly());
+      }
     } finally {
       isLoading.value = false;
     }
+  }
+
+  /// Quietly downloads enrolled face image from GET /me/face into local memory cache
+  Future<void> _syncServerFaceQuietly() async {
+    try {
+      final faceRepo = FaceRecognitionRepo();
+      await faceRepo.fetchAndSyncServerFace();
+    } catch (_) {}
   }
 
   /// Action method to trigger check-in / check-out based strictly on server state.allowed
@@ -389,7 +406,7 @@ class DashboardController extends GetxController {
 
     // 1. Requirement Check: AI Face Recognition Biometric
     if (requires != null && requires.face != 'off') {
-      final punchCompleted = await Get.toNamed(
+      final punchResult = await Get.toNamed(
         Routes.FACE_RECOGNITION,
         arguments: {
           'isPunchMode': true,
@@ -397,7 +414,50 @@ class DashboardController extends GetxController {
           'requires': requires,
         },
       );
-      if (punchCompleted == true) {
+
+      // If face was captured and returned back, perform punch directly on dashboard with loading
+      if (punchResult is Map && punchResult['photoFile'] is File) {
+        final File photoFile = punchResult['photoFile'] as File;
+        final bool faceConsent = punchResult['faceConsent'] == true;
+        final double faceScore = (punchResult['faceScore'] as num?)?.toDouble() ?? 100.0;
+        final String faceMatch = punchResult['faceMatch']?.toString() ?? 'matched';
+
+        try {
+          isPunching.value = true;
+          await HapticFeedback.mediumImpact();
+
+          final updatedAttendance = await repo.submitPunch(
+            kind: punchKind,
+            photoFile: photoFile,
+            faceConsent: faceConsent,
+            faceScore: faceScore,
+            faceMatch: faceMatch,
+          );
+
+          if (updatedAttendance != null) {
+            if (dashboardData.value != null) {
+              dashboardData.value = DashboardDataModel(
+                todayAttendance: updatedAttendance,
+                monthlySummary: dashboardData.value!.monthlySummary,
+              );
+            }
+            _updateRunningShiftTimer();
+
+            CustomSnackbar.showSuccess(
+              message: punchKind == 'in'
+                  ? 'Checked in successfully! Shift started.'
+                  : 'Checked out successfully! Shift logged.',
+            );
+          } else {
+            await loadDashboard();
+          }
+        } finally {
+          isPunching.value = false;
+        }
+        return;
+      }
+
+      if (punchResult == true) {
         await loadDashboard();
       }
       return;
@@ -473,7 +533,7 @@ class DashboardController extends GetxController {
 
     // 1. Requirement Check: AI Face Recognition Biometric
     if (requires != null && requires.face != 'off') {
-      final punchCompleted = await Get.toNamed(
+      final punchResult = await Get.toNamed(
         Routes.FACE_RECOGNITION,
         arguments: {
           'isPunchMode': true,
@@ -481,7 +541,50 @@ class DashboardController extends GetxController {
           'requires': requires,
         },
       );
-      if (punchCompleted == true) {
+
+      // If face was captured and returned back, perform punch directly on dashboard with loading
+      if (punchResult is Map && punchResult['photoFile'] is File) {
+        final File photoFile = punchResult['photoFile'] as File;
+        final bool faceConsent = punchResult['faceConsent'] == true;
+        final double faceScore = (punchResult['faceScore'] as num?)?.toDouble() ?? 100.0;
+        final String faceMatch = punchResult['faceMatch']?.toString() ?? 'matched';
+
+        try {
+          isBreakLoading.value = true;
+          await HapticFeedback.mediumImpact();
+
+          final updatedAttendance = await repo.submitPunch(
+            kind: punchKind,
+            photoFile: photoFile,
+            faceConsent: faceConsent,
+            faceScore: faceScore,
+            faceMatch: faceMatch,
+          );
+
+          if (updatedAttendance != null) {
+            if (dashboardData.value != null) {
+              dashboardData.value = DashboardDataModel(
+                todayAttendance: updatedAttendance,
+                monthlySummary: dashboardData.value!.monthlySummary,
+              );
+            }
+            _updateRunningShiftTimer();
+
+            CustomSnackbar.showSuccess(
+              message: punchKind == 'break_start'
+                  ? 'Break started.'
+                  : 'Break ended. Welcome back!',
+            );
+          } else {
+            await loadDashboard();
+          }
+        } finally {
+          isBreakLoading.value = false;
+        }
+        return;
+      }
+
+      if (punchResult == true) {
         await loadDashboard();
       }
       return;
