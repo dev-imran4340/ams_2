@@ -183,18 +183,20 @@ class FaceRecognitionController extends GetxController
   @override
   void onClose() {
     // Strict lifecycle disposal preventing memory leaks and hardware locks
+    isCameraInitialized.value = false;
     _stablePassTimer?.cancel();
     _progressTimer?.cancel();
     pulseAnimationController.dispose();
     progressAnimationController.dispose();
-    if (cameraController != null) {
+    final controllerToDispose = cameraController;
+    cameraController = null;
+    if (controllerToDispose != null) {
       try {
-        if (cameraController!.value.isStreamingImages) {
-          cameraController!.stopImageStream();
+        if (controllerToDispose.value.isStreamingImages) {
+          controllerToDispose.stopImageStream();
         }
-        cameraController?.dispose();
+        controllerToDispose.dispose();
       } catch (_) {}
-      cameraController = null;
     }
     repo.dispose();
     super.onClose();
@@ -887,6 +889,9 @@ class FaceRecognitionController extends GetxController
     if (_isExiting) return;
     _isExiting = true;
 
+    // Immediately notify UI that camera is inactive so CameraPreview unmounts before dispose
+    isCameraInitialized.value = false;
+
     _stablePassTimer?.cancel();
     _progressTimer?.cancel();
 
@@ -894,10 +899,11 @@ class FaceRecognitionController extends GetxController
       await _stopImageStream();
     } catch (_) {}
 
-    try {
-      await cameraController?.dispose();
-    } catch (_) {}
+    final controllerToDispose = cameraController;
     cameraController = null;
+    try {
+      await controllerToDispose?.dispose();
+    } catch (_) {}
 
     if (Get.isBottomSheetOpen == true) {
       Get.back();
