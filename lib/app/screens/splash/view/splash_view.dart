@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
@@ -14,119 +15,135 @@ class SplashView extends GetView<SplashController> {
 
   @override
   Widget build(BuildContext context) {
-    return NetworkBoundaryWrapper(
-      onRetry: controller.checkSessionAndRoute,
-      child: Scaffold(
-        backgroundColor: AppColors.primary,
-        body: Stack(
-          children: [
-            // 1. Ambient Background with Deep Multi-Stop Gradient
-            Container(
-              width: double.infinity,
-              height: double.infinity,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    AppColors.primary, // Deep Corporate Navy (#012B43)
-                    AppColors.accentNavy, // Slate Navy (#023E61)
-                    AppColors.primary,
-                    AppColors.deepNavyBase, // Ultra-dark executive base
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light, // Android: White icons
+        statusBarBrightness: Brightness.dark,      // iOS: White icons
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarIconBrightness: Brightness.light,
+      ),
+      child: NetworkBoundaryWrapper(
+        onRetry: controller.checkSessionAndRoute,
+        child: Scaffold(
+          backgroundColor: AppColors.primary,
+          body: Stack(
+            children: [
+              // 1. Ambient Background with Signature Multi-Stop Navy & Slate Gradient
+              Container(
+                width: double.infinity,
+                height: double.infinity,
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AppColors.accentNavy, // Slate Navy (#023E61)
+                      AppColors.primary,    // Deep Corporate Navy (#012B43)
+                      Color(0xFF001524),    // Ultra-rich dark executive base
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
                 ),
               ),
-            ),
 
-            // 2. Layered Translucent Decorative Floating Rings for Ambient Glow
-            Positioned(
-              top: -80.r,
-              right: -60.r,
-              child: Container(
-                width: 260.r,
-                height: 260.r,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.secondary.withValues(alpha: 0.08),
+              // 2. Layered Translucent Decorative Floating Rings for Ambient Glow
+              Positioned(
+                top: -80.r,
+                right: -60.r,
+                child: Container(
+                  width: 260.r,
+                  height: 260.r,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.secondary.withValues(alpha: 0.08),
+                    border: Border.all(
+                      color: AppColors.liteSecondary.withValues(alpha: 0.16),
+                      width: 1.5.w,
+                    ),
+                  ),
                 ),
               ),
-            ),
-            Positioned(
-              bottom: -100.r,
-              left: -80.r,
-              child: Container(
-                width: 280.r,
-                height: 280.r,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.liteSecondary.withValues(alpha: 0.05),
+              Positioned(
+                bottom: -100.r,
+                left: -80.r,
+                child: Container(
+                  width: 280.r,
+                  height: 280.r,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.liteSecondary.withValues(alpha: 0.05),
+                    border: Border.all(
+                      color: AppColors.secondary.withValues(alpha: 0.12),
+                      width: 1.2.w,
+                    ),
+                  ),
                 ),
               ),
-            ),
-            Positioned(
-              top: 220.h,
-              left: 40.w,
-              child: Container(
-                width: 140.r,
-                height: 140.r,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.white.withValues(alpha: 0.03),
+              Positioned(
+                top: 220.h,
+                left: 40.w,
+                child: Container(
+                  width: 140.r,
+                  height: 140.r,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.white.withValues(alpha: 0.03),
+                  ),
                 ),
               ),
-            ),
 
-            // 3. Center Animated Brand Emblem & Identity
-            const Center(child: _SplashBrandContent()),
+              // 3. Center Animated Brand Emblem & Identity
+              const Center(child: _SplashBrandContent()),
 
-            // 4. Bottom Telemetry & Softech Business Services Version Tag
-            Positioned(
-              bottom: 24.h,
-              left: 0,
-              right: 0,
-              child: SafeArea(
-                top: false,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Minimalist Sleek Linear Progress Micro-Indicator
-                    Obx(() {
-                      if (controller.isLoading.value) {
-                        return SizedBox(
-                          width: 44.w,
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(3.r),
-                            child: LinearProgressIndicator(
-                              minHeight: 2.5.h,
-                              backgroundColor: AppColors.white.withValues(
-                                alpha: 0.12,
-                              ),
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                AppColors.secondary,
+              // 4. Bottom Telemetry & Softech Business Services Version Tag
+              Positioned(
+                bottom: 24.h,
+                left: 0,
+                right: 0,
+                child: SafeArea(
+                  top: false,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Minimalist Sleek Linear Progress Micro-Indicator
+                      Obx(() {
+                        if (controller.isLoading.value) {
+                          return SizedBox(
+                            width: 44.w,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(3.r),
+                              child: LinearProgressIndicator(
+                                minHeight: 2.5.h,
+                                backgroundColor: AppColors.white.withValues(
+                                  alpha: 0.12,
+                                ),
+                                valueColor: const AlwaysStoppedAnimation<Color>(
+                                  AppColors.secondary,
+                                ),
                               ),
                             ),
-                          ),
-                        );
-                      }
-                      return const SizedBox.shrink();
-                    }),
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      }),
 
-                    AppSpaces.vSpace14,
+                      AppSpaces.vSpace14,
 
-                    // Version Tag
-                    Text(
-                      'v2.0.0 • Secured by Softech Business Services',
-                      style: AppTextStyles.text10.copyWith(
-                        letterSpacing: 0.8,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.white.withValues(alpha: 0.5),
+                      // Version Tag
+                      Text(
+                        'v2.0.0 • Secured by Softech Business Services',
+                        style: AppTextStyles.text10.copyWith(
+                          letterSpacing: 0.8,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.white.withValues(alpha: 0.5),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -189,21 +206,21 @@ class _SplashBrandContentState extends State<_SplashBrandContent>
               children: [
                 // Soft radial ambient teal glow behind brand logo
                 Container(
-                  width: 180.w,
-                  height: 60.h,
+                  width: 200.w,
+                  height: 70.h,
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(30.r),
+                    borderRadius: BorderRadius.circular(35.r),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.secondary.withValues(alpha: 0.22),
-                        blurRadius: 48.r,
-                        spreadRadius: 12.r,
+                        color: AppColors.secondary.withValues(alpha: 0.28),
+                        blurRadius: 54.r,
+                        spreadRadius: 16.r,
                       ),
                     ],
                   ),
                 ),
 
-                // Official High-Resolution Corporate White Logo
+                // Official High-Resolution Corporate White Logo with Teal Accent
                 Image.asset(
                   AppImages.whiteLogo,
                   width: 260.w,
@@ -218,10 +235,10 @@ class _SplashBrandContentState extends State<_SplashBrandContent>
             Container(
               padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 5.h),
               decoration: BoxDecoration(
-                color: AppColors.secondary.withValues(alpha: 0.12),
+                color: AppColors.secondary.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(20.r),
                 border: Border.all(
-                  color: AppColors.secondary.withValues(alpha: 0.25),
+                  color: AppColors.secondary.withValues(alpha: 0.35),
                   width: 0.8.w,
                 ),
               ),

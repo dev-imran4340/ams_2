@@ -80,6 +80,7 @@ class FaceCheckResult {
   final bool isScaleValid;
   final double scaleRatio;
   final bool isInsideOval;
+  final bool isMaskOrCovered;
   final String statusMessage;
 
   const FaceCheckResult({
@@ -97,6 +98,7 @@ class FaceCheckResult {
     required this.isScaleValid,
     this.scaleRatio = 0.0,
     this.isInsideOval = false,
+    this.isMaskOrCovered = false,
     required this.statusMessage,
   });
 
@@ -106,7 +108,8 @@ class FaceCheckResult {
       headStraight &&
       isCentered &&
       isScaleValid &&
-      isInsideOval;
+      isInsideOval &&
+      !isMaskOrCovered;
 
   factory FaceCheckResult.initial() {
     return const FaceCheckResult(

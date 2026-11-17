@@ -16,51 +16,56 @@ class FaceRecognitionView extends GetView<FaceRecognitionController> {
 
   @override
   Widget build(BuildContext context) {
-    return NetworkBoundaryWrapper(
-      child: Scaffold(
-        backgroundColor: AppColors.primary,
-        body: Stack(
-          children: [
-            // 1. Full-screen Camera Ambient Background
-            Positioned.fill(
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: RadialGradient(
-                    center: Alignment.center,
-                    radius: 1.2,
-                    colors: [
-                      AppColors.accentNavy,
-                      AppColors.primary,
-                    ],
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light, // Android: White icons
+        statusBarBrightness: Brightness.dark,      // iOS: White icons
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarIconBrightness: Brightness.light,
+      ),
+      child: NetworkBoundaryWrapper(
+        child: Scaffold(
+          backgroundColor: AppColors.primary,
+          body: Stack(
+            children: [
+              // 1. Full-screen Camera Ambient Background (Modern Multi-Tone Navy Gradient)
+              Positioned.fill(
+                child: Container(
+                  decoration: const BoxDecoration(
+                    gradient: RadialGradient(
+                      center: Alignment(0.0, -0.2),
+                      radius: 1.25,
+                      colors: [
+                        AppColors.accentNavy, // Slate Navy (0xFF023E61)
+                        AppColors.primary,    // Deep Corporate Navy (0xFF012B43)
+                        Color(0xFF001524),    // Executive Dark Base
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
 
-            // 2. Center Biometric Oval Viewfinder with Live Front Camera & Radar Rings
-            const Positioned.fill(
-              child: BiometricOvalViewfinder(),
-            ),
+              // 2. Center Biometric Oval Viewfinder with Live Front Camera & Radar Rings
+              const Positioned.fill(child: BiometricOvalViewfinder()),
 
-            // 3. Signature Curved Ambient Gradient Header (240.h) with Floating Rings
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: _buildCurvedAmbientHeader(context),
-            ),
-
-            // 4. Floating Bottom AI Telemetry & Progress Card
-            const Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: SafeArea(
-                top: false,
-                child: FaceMatchingTelemetryCard(),
+              // 3. Signature Curved Ambient Gradient Header (240.h) with Floating Rings
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: _buildCurvedAmbientHeader(context),
               ),
-            ),
-          ],
+
+              // 4. Floating Bottom AI Telemetry & Progress Card
+              const Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: SafeArea(top: false, child: FaceMatchingTelemetryCard()),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -83,8 +88,8 @@ class FaceRecognitionView extends GetView<FaceRecognitionController> {
           colors: [
             AppColors.primary,
             AppColors.primary.withValues(alpha: 0.95),
-            AppColors.accentNavy.withValues(alpha: 0.85),
-            AppColors.primary.withValues(alpha: 0.4),
+            AppColors.accentNavy.withValues(alpha: 0.70),
+            AppColors.primary.withValues(alpha: 0.25),
             Colors.transparent,
           ],
         ),
@@ -105,9 +110,9 @@ class FaceRecognitionView extends GetView<FaceRecognitionController> {
                 height: 150.r,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: AppColors.secondary.withValues(alpha: 0.05),
+                  color: AppColors.secondary.withValues(alpha: 0.08),
                   border: Border.all(
-                    color: AppColors.liteSecondary.withValues(alpha: 0.12),
+                    color: AppColors.liteSecondary.withValues(alpha: 0.18),
                     width: 1.5.w,
                   ),
                 ),
@@ -123,9 +128,9 @@ class FaceRecognitionView extends GetView<FaceRecognitionController> {
                 height: 120.r,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: AppColors.primary.withValues(alpha: 0.08),
+                  color: AppColors.secondary.withValues(alpha: 0.05),
                   border: Border.all(
-                    color: AppColors.secondary.withValues(alpha: 0.1),
+                    color: AppColors.secondary.withValues(alpha: 0.15),
                     width: 1.2.w,
                   ),
                 ),
@@ -148,7 +153,9 @@ class FaceRecognitionView extends GetView<FaceRecognitionController> {
                     child: InkWell(
                       onTap: () {
                         HapticFeedback.lightImpact();
-                        debugPrint('>>> [AI FACE] Back button tapped -> calling cleanupAndExit()');
+                        debugPrint(
+                          '>>> [AI FACE] Back button tapped -> calling cleanupAndExit()',
+                        );
                         controller.cleanupAndExit();
                       },
                       borderRadius: BorderRadius.circular(20.r),
@@ -156,7 +163,7 @@ class FaceRecognitionView extends GetView<FaceRecognitionController> {
                         width: 38.r,
                         height: 38.r,
                         decoration: BoxDecoration(
-                          color: AppColors.white.withValues(alpha: 0.14),
+                          color: AppColors.white.withValues(alpha: 0.12),
                           shape: BoxShape.circle,
                           border: Border.all(
                             color: AppColors.white.withValues(alpha: 0.28),
@@ -164,7 +171,7 @@ class FaceRecognitionView extends GetView<FaceRecognitionController> {
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: AppColors.primary.withValues(alpha: 0.2),
+                              color: AppColors.black.withValues(alpha: 0.25),
                               blurRadius: 8.r,
                             ),
                           ],
@@ -188,17 +195,17 @@ class FaceRecognitionView extends GetView<FaceRecognitionController> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Subtitle Capsule: Step 2 of 2 • Liveness Check
+                        // Subtitle Capsule
                         Container(
                           padding: EdgeInsets.symmetric(
                             horizontal: 10.w,
                             vertical: 4.h,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.success.withValues(alpha: 0.2),
+                            color: AppColors.secondary.withValues(alpha: 0.18),
                             borderRadius: BorderRadius.circular(16.r),
                             border: Border.all(
-                              color: AppColors.success.withValues(alpha: 0.45),
+                              color: AppColors.secondary.withValues(alpha: 0.45),
                               width: 1.w,
                             ),
                           ),
@@ -209,7 +216,7 @@ class FaceRecognitionView extends GetView<FaceRecognitionController> {
                                 width: 6.r,
                                 height: 6.r,
                                 decoration: const BoxDecoration(
-                                  color: AppColors.success,
+                                  color: AppColors.secondary,
                                   shape: BoxShape.circle,
                                 ),
                               ),
@@ -218,7 +225,7 @@ class FaceRecognitionView extends GetView<FaceRecognitionController> {
                                 () => Text(
                                   controller.isPunchMode.value
                                       ? 'Attendance Punch • Face Verification'
-                                      : 'AI Biometrics • Liveness Gate',
+                                      : 'Identity Verification',
                                   style: AppTextStyles.text10.copyWith(
                                     color: AppColors.liteSecondary,
                                     fontWeight: FontWeight.bold,
@@ -232,9 +239,9 @@ class FaceRecognitionView extends GetView<FaceRecognitionController> {
 
                         AppSpaces.vSpace6,
 
-                        // Title: Facial Biometric Match
+                        // Title: Face Verification
                         Text(
-                          'Facial Biometric Match',
+                          'Face Verification',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: AppTextStyles.text22.copyWith(

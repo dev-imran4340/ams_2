@@ -3,15 +3,21 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import '../../../api/app_preferences.dart';
+import '../../../core/utils/app_colors.dart';
+import '../../../core/utils/app_spaces.dart';
+import '../../../core/widgets/custom_button.dart';
 import '../../../core/widgets/custom_snackbar.dart';
+import '../../../core/widgets/custom_state_view.dart';
 import '../../../routes/app_routes.dart';
 import '../model/dashboard_model.dart';
 import '../repo/dashboard_repo.dart';
 import '../view/components/selfie_punch_sheet.dart';
 import '../../main_shell/controller/session_me_controller.dart';
 import '../../verification/face_recognition/repo/face_recognition_repo.dart';
+import '../../../services/location_service.dart';
 
 class DashboardController extends GetxController {
   final DashboardRepo repo;
@@ -349,10 +355,10 @@ class DashboardController extends GetxController {
       _updateRunningShiftTimer();
 
       // According to api.md Phase 10:
-      // When requires specifies face != 'off' and face_saved: true,
+      // When requires specifies face == 'match' and face_saved: true,
       // proactively fetch and sync the enrolled face image via GET /me/face
       final reqs = result?.todayAttendance.requires;
-      if (reqs != null && reqs.face != 'off' && reqs.faceSaved) {
+      if (reqs != null && reqs.face == 'match' && reqs.faceSaved) {
         unawaited(_syncServerFaceQuietly());
       }
     } finally {
@@ -404,8 +410,22 @@ class DashboardController extends GetxController {
 
     final requires = currentAttendance.requires;
 
-    // 1. Requirement Check: AI Face Recognition Biometric
-    if (requires != null && requires.face != 'off') {
+    // 0. Requirement Check: GPS Location Geofencing
+    LocationResult? locationResult;
+    if (requires?.position == true) {
+      try {
+        isPunching.value = true;
+        locationResult = await _acquireLocationIfRequired(requires);
+        if (locationResult == null) {
+          return;
+        }
+      } finally {
+        isPunching.value = false;
+      }
+    }
+
+    // 1. Requirement Check: AI Face Recognition Biometric (when face == 'match')
+    if (requires != null && requires.face == 'match') {
       final punchResult = await Get.toNamed(
         Routes.FACE_RECOGNITION,
         arguments: {
@@ -428,6 +448,10 @@ class DashboardController extends GetxController {
 
           final updatedAttendance = await repo.submitPunch(
             kind: punchKind,
+            latitude: locationResult?.latitude,
+            longitude: locationResult?.longitude,
+            accuracyMeters: locationResult?.accuracyMeters,
+            isMocked: locationResult?.isMocked ?? false,
             photoFile: photoFile,
             faceConsent: faceConsent,
             faceScore: faceScore,
@@ -463,9 +487,9 @@ class DashboardController extends GetxController {
       return;
     }
 
-    // 2. Requirement Check: Front Camera Selfie Photo Verification
+    // 2. Requirement Check: Front Camera Selfie Photo Verification (when photo == true or face == 'photo')
     File? selfiePhoto;
-    if (requires?.photo == true) {
+    if (requires?.photo == true || requires?.face == 'photo') {
       selfiePhoto = await _openSelfieCaptureModal(punchKind);
       if (selfiePhoto == null) {
         // User cancelled selfie capture
@@ -479,6 +503,10 @@ class DashboardController extends GetxController {
 
       final updatedAttendance = await repo.submitPunch(
         kind: punchKind,
+        latitude: locationResult?.latitude,
+        longitude: locationResult?.longitude,
+        accuracyMeters: locationResult?.accuracyMeters,
+        isMocked: locationResult?.isMocked ?? false,
         photoFile: selfiePhoto,
       );
 
@@ -531,8 +559,22 @@ class DashboardController extends GetxController {
 
     final requires = currentAttendance.requires;
 
-    // 1. Requirement Check: AI Face Recognition Biometric
-    if (requires != null && requires.face != 'off') {
+    // 0. Requirement Check: GPS Location Geofencing
+    LocationResult? locationResult;
+    if (requires?.position == true) {
+      try {
+        isBreakLoading.value = true;
+        locationResult = await _acquireLocationIfRequired(requires);
+        if (locationResult == null) {
+          return;
+        }
+      } finally {
+        isBreakLoading.value = false;
+      }
+    }
+
+    // 1. Requirement Check: AI Face Recognition Biometric (when face == 'match')
+    if (requires != null && requires.face == 'match') {
       final punchResult = await Get.toNamed(
         Routes.FACE_RECOGNITION,
         arguments: {
@@ -555,6 +597,10 @@ class DashboardController extends GetxController {
 
           final updatedAttendance = await repo.submitPunch(
             kind: punchKind,
+            latitude: locationResult?.latitude,
+            longitude: locationResult?.longitude,
+            accuracyMeters: locationResult?.accuracyMeters,
+            isMocked: locationResult?.isMocked ?? false,
             photoFile: photoFile,
             faceConsent: faceConsent,
             faceScore: faceScore,
@@ -590,9 +636,9 @@ class DashboardController extends GetxController {
       return;
     }
 
-    // 2. Requirement Check: Front Camera Selfie Photo Verification
+    // 2. Requirement Check: Front Camera Selfie Photo Verification (when photo == true or face == 'photo')
     File? selfiePhoto;
-    if (requires?.photo == true) {
+    if (requires?.photo == true || requires?.face == 'photo') {
       selfiePhoto = await _openSelfieCaptureModal(punchKind);
       if (selfiePhoto == null) {
         return;
@@ -605,6 +651,10 @@ class DashboardController extends GetxController {
 
       final updatedAttendance = await repo.submitPunch(
         kind: punchKind,
+        latitude: locationResult?.latitude,
+        longitude: locationResult?.longitude,
+        accuracyMeters: locationResult?.accuracyMeters,
+        isMocked: locationResult?.isMocked ?? false,
         photoFile: selfiePhoto,
       );
 
@@ -639,6 +689,141 @@ class DashboardController extends GetxController {
       backgroundColor: Colors.transparent,
       enableDrag: true,
     );
+  }
+
+  /// Acquires GPS coordinates if server policy requires position
+  Future<LocationResult?> _acquireLocationIfRequired(
+    AttendanceRequiresModel? requires,
+  ) async {
+    if (requires?.position != true) {
+      return null;
+    }
+
+    try {
+      final locService = LocationService();
+      final result = await locService.getCurrentLocation();
+
+      // Case 1: Device Location Services (GPS) are turned off -> Interactive Dialog with Direct Settings link
+      if (result.status == LocationResultStatus.serviceDisabled) {
+        final confirmed = await _showLocationDialog(
+          title: 'Enable Location Services',
+          message:
+              'Company policy requires GPS to record your attendance. Please turn on Location Services (GPS) on your device.',
+          buttonText: 'Open Settings',
+          icon: Icons.location_off_rounded,
+        );
+        if (confirmed) {
+          await locService.openLocationSettings();
+        }
+        return null;
+      }
+
+      // Case 2: Location permission is permanently denied -> Interactive Dialog with App Settings link
+      if (result.status == LocationResultStatus.permissionDeniedForever) {
+        final confirmed = await _showLocationDialog(
+          title: 'Location Permission Required',
+          message:
+              'Location access is permanently disabled for AMS 2. Please allow "While Using App" location permissions in App Settings.',
+          buttonText: 'App Settings',
+          icon: Icons.security_rounded,
+        );
+        if (confirmed) {
+          await locService.openAppSettings();
+        }
+        return null;
+      }
+
+      // Case 3: Permission denied by user on in-app prompt
+      if (result.status == LocationResultStatus.permissionDenied) {
+        CustomSnackbar.showError(
+          title: 'Permission Denied',
+          message:
+              'Location permission is required to verify your attendance within office geofence.',
+        );
+        return null;
+      }
+
+      // Case 4: Weak accuracy (> 150m), Mock location, or Timeout
+      if (!result.isSuccess) {
+        CustomSnackbar.showError(
+          title: 'Location Required',
+          message: result.errorMessage ??
+              'Your position is needed to punch. Allow location access and try again.',
+        );
+        return null;
+      }
+
+      return result;
+    } catch (e) {
+      CustomSnackbar.showError(
+        title: 'Location Error',
+        message: 'Failed to acquire device location: $e',
+      );
+      return null;
+    }
+  }
+
+  /// Interactive dialog guiding user to enable GPS or grant permissions with a single tap
+  Future<bool> _showLocationDialog({
+    required String title,
+    required String message,
+    required String buttonText,
+    required IconData icon,
+  }) async {
+    HapticFeedback.mediumImpact();
+    final result = await Get.dialog<bool>(
+      Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.r),
+        ),
+        backgroundColor: AppColors.cardBackground,
+        insetPadding: EdgeInsets.symmetric(horizontal: 24.w),
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 20.h),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CustomStateView(
+                icon: icon,
+                iconColor: AppColors.secondary,
+                iconBackgroundColor: AppColors.secondary.withValues(alpha: 0.12),
+                title: title,
+                message: message,
+                padding: EdgeInsets.zero,
+              ),
+              AppSpaces.vSpace20,
+              Row(
+                children: [
+                  Expanded(
+                    child: CustomButton(
+                      text: 'Cancel',
+                      isOutlined: true,
+                      borderColor: AppColors.borderColor,
+                      textColor: AppColors.subTextColor,
+                      height: 42.h,
+                      borderRadius: 12.r,
+                      onPressed: () => Get.back(result: false),
+                    ),
+                  ),
+                  AppSpaces.hSpace12,
+                  Expanded(
+                    child: CustomButton(
+                      text: buttonText,
+                      isGradient: true,
+                      height: 42.h,
+                      borderRadius: 12.r,
+                      onPressed: () => Get.back(result: true),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+      barrierDismissible: true,
+    );
+    return result == true;
   }
 
   @override

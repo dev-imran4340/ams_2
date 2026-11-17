@@ -9,6 +9,7 @@ import '../../../../core/utils/app_colors.dart';
 import '../../../../core/utils/app_spaces.dart';
 import '../../../../core/utils/app_text_styles.dart';
 import '../../../../core/widgets/custom_card.dart';
+import '../../../main_shell/controller/session_me_controller.dart';
 import '../../controller/profile_controller.dart';
 
 class ProfileHeaderCard extends GetView<ProfileController> {
@@ -53,6 +54,25 @@ class ProfileHeaderCard extends GetView<ProfileController> {
       // Quick Stats: Department & Service/Tenure
       final hasDept = department != null && department.trim().isNotEmpty;
       final hasTenure = tenure != null && tenure.trim().isNotEmpty;
+
+      // Company Info (Name & Code) strictly sourced from GET /me session
+      final sessionMe = Get.isRegistered<SessionMeController>()
+          ? Get.find<SessionMeController>()
+          : null;
+      final sessionCompany = sessionMe?.company.value;
+
+      final companyName = (isOther ? null : sessionCompany?.name) ??
+          (isOther ? null : AppPreferences.companyName) ??
+          p?.job?.legalEntity;
+
+      final companyCode = (isOther ? null : sessionCompany?.code) ??
+          (isOther ? null : AppPreferences.companyCode);
+
+      final hasCompanyName =
+          companyName != null && companyName.trim().isNotEmpty;
+      final hasCompanyCode =
+          companyCode != null && companyCode.trim().isNotEmpty;
+      final hasCompany = hasCompanyName || hasCompanyCode;
 
       return CustomCard(
         onTap: isClickable
@@ -217,6 +237,82 @@ class ProfileHeaderCard extends GetView<ProfileController> {
                 ),
               ],
             ),
+
+            // Company Info Capsule (Name & Company Code)
+            if (hasCompany) ...[
+              AppSpaces.vSpace10,
+              Container(
+                width: double.infinity,
+                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 7.h),
+                decoration: BoxDecoration(
+                  color: AppColors.secondary.withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(8.r),
+                  border: Border.all(
+                    color: AppColors.secondary.withValues(alpha: 0.18),
+                    width: 0.8.w,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.business_rounded,
+                      size: 14.sp,
+                      color: AppColors.secondary,
+                    ),
+                    AppSpaces.hSpace8,
+                    if (hasCompanyName)
+                      Expanded(
+                        child: Text(
+                          companyName.trim(),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTextStyles.text12.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textColor,
+                          ),
+                        ),
+                      ),
+                    if (hasCompanyCode) ...[
+                      if (hasCompanyName) AppSpaces.hSpace8,
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 6.w,
+                          vertical: 2.h,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(5.r),
+                          border: Border.all(
+                            color: AppColors.primary.withValues(alpha: 0.22),
+                            width: 0.6.w,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'CODE: ',
+                              style: AppTextStyles.text10.copyWith(
+                                fontWeight: FontWeight.w500,
+                                color: AppColors.subTextColor,
+                              ),
+                            ),
+                            Text(
+                              companyCode.trim(),
+                              style: AppTextStyles.text10.copyWith(
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.5,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
 
             if (hasDept || hasTenure) ...[
               AppSpaces.vSpace12,

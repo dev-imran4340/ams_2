@@ -152,12 +152,11 @@ class VerificationSuccessSheet extends GetView<FaceRecognitionController> {
                       Divider(color: AppColors.borderColor, height: 1.h),
                       AppSpaces.vSpace8,
 
-                      // Row 4: Biometric Match Confidence
+                      // Row 4: Biometric Verification
                       _buildCredentialRow(
                         icon: Icons.fingerprint_rounded,
-                        label: 'Biometric Match',
-                        value:
-                            '${controller.confidenceReadout.value.toStringAsFixed(1)}% • Liveness Passed',
+                        label: 'Biometric Status',
+                        value: 'Verified • Liveness Confirmed',
                         valueColor: AppColors.success,
                       ),
 

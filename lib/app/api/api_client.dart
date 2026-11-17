@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
+import '../services/network_connectivity_service.dart';
 import 'api_endpoints.dart';
 import 'app_preferences.dart';
 import 'exception_handler.dart';
@@ -13,21 +13,11 @@ enum HttpMethod { get, post, put, patch, delete }
 /// Enterprise-grade, centralized HTTP network engine for the entire AMS 2 suite.
 /// Strictly enforces the Layer Flow Policy: View -> Controller -> Repository -> ApiClient.
 class ApiClient {
-  static const Duration timeoutDuration = Duration(seconds: 30);
+  static const Duration timeoutDuration = Duration(seconds: 18);
 
-  /// Pre-flight Internet check with platform-safe exception fallback
+  /// Pre-flight Internet check verifying true packet flow (handles mobile data without package / captive wifi)
   static Future<bool> hasInternetConnection() async {
-    try {
-      final connectivityResults = await Connectivity().checkConnectivity();
-      if (connectivityResults.contains(ConnectivityResult.none) ||
-          connectivityResults.isEmpty) {
-        return false;
-      }
-      return true;
-    } catch (_) {
-      // In case of platform channel error, allow the request to attempt standard socket connection
-      return true;
-    }
+    return await NetworkConnectivityService.hasConnection();
   }
 
   /// Default headers with Auth Bearer token, device binding, and JSON content-type
@@ -205,6 +195,7 @@ class ApiClient {
       }
     } catch (e) {
       stopwatch.stop();
+      NetworkConnectivityService.invalidateCache();
       if (e is ApiException) rethrow;
       throw ExceptionHandler.handle(
         e,
@@ -319,6 +310,7 @@ class ApiClient {
       }
     } catch (e) {
       stopwatch.stop();
+      NetworkConnectivityService.invalidateCache();
       if (e is ApiException) rethrow;
       throw ExceptionHandler.handle(
         e,

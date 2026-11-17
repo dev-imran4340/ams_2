@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:ams_2/firebase_options.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
@@ -12,6 +13,19 @@ import 'app/routes/app_pages.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Strict Production Safety: Completely suppress all console logs and telemetry in Release mode
+  // if (kReleaseMode) {
+  //   debugPrint = (String? message, {int? wrapWidth}) {};
+  // }
+  // Get.config(
+  //   enableLog: kDebugMode,
+  //   logWriterCallback: (String text, {bool isError = false}) {
+  //     if (kDebugMode) {
+  //       debugPrint(text);
+  //     }
+  //   },
+  // );
 
   // Initialize GetStorage persistence
   await AppPreferences.init();
@@ -72,6 +86,12 @@ class MyApp extends StatelessWidget {
           child: GetMaterialApp(
             title: 'AMS 2',
             debugShowCheckedModeBanner: false,
+            enableLog: kDebugMode,
+            // logWriterCallback: (String text, {bool isError = false}) {
+            //   if (kDebugMode) {
+            //     debugPrint(text);
+            //   }
+            // },
             // theme: AppTheme.lightTheme,
             // darkTheme: AppTheme.darkTheme,
             // themeMode: themeController.isDarkMode.value

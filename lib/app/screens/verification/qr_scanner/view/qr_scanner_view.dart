@@ -17,56 +17,65 @@ class QRScannerView extends GetView<QRScanController> {
 
   @override
   Widget build(BuildContext context) {
-    return NetworkBoundaryWrapper(
-      child: Scaffold(
-        backgroundColor: AppColors.primary,
-        body: Stack(
-          children: [
-            // 1. Live Hardware Camera Preview with MobileScanner
-            Positioned.fill(
-              child: MobileScanner(
-                controller: controller.scannerController,
-                onDetect: controller.onBarcodeDetected,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error) {
-                  return _buildCameraFallbackView();
-                },
-              ),
-            ),
-
-            // 2. High-Tech Laser Reticle & Cinematic Cutout Viewfinder Overlay
-            const Positioned.fill(child: ScannerLaserOverlay()),
-
-            // 3. Signature Curved Ambient Gradient Header (240.h) with Floating Rings
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: _buildCurvedAmbientHeader(context),
-            ),
-
-            // 4. Floating Bottom Action Controls & Fast Testing Pill
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: SafeArea(
-                top: false,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Fast Simulator Demo Pill
-                    _buildDemoScanPill(),
-
-                    AppSpaces.vSpace8,
-
-                    // Bottom Floating Control Bar (Torch, Camera Flip, Manual Input)
-                    const ScannerControlBar(),
-                  ],
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light, // Android: White icons
+        statusBarBrightness: Brightness.dark,      // iOS: White icons
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarIconBrightness: Brightness.light,
+      ),
+      child: NetworkBoundaryWrapper(
+        child: Scaffold(
+          backgroundColor: AppColors.primary,
+          body: Stack(
+            children: [
+              // 1. Live Hardware Camera Preview with MobileScanner
+              Positioned.fill(
+                child: MobileScanner(
+                  controller: controller.scannerController,
+                  onDetect: controller.onBarcodeDetected,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error) {
+                    return _buildCameraFallbackView();
+                  },
                 ),
               ),
-            ),
-          ],
+
+              // 2. High-Tech Laser Reticle & Cinematic Cutout Viewfinder Overlay
+              const Positioned.fill(child: ScannerLaserOverlay()),
+
+              // 3. Signature Curved Ambient Gradient Header (240.h) with Floating Rings
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: _buildCurvedAmbientHeader(context),
+              ),
+
+              // 4. Floating Bottom Action Controls & Fast Testing Pill
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: SafeArea(
+                  top: false,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Fast Simulator Demo Pill
+                      _buildDemoScanPill(),
+
+                      AppSpaces.vSpace8,
+
+                      // Bottom Floating Control Bar (Torch, Camera Flip, Manual Input)
+                      const ScannerControlBar(),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

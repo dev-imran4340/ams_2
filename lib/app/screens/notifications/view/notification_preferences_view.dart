@@ -18,6 +18,13 @@ class NotificationPreferencesView extends GetView<NotificationController> {
 
   @override
   Widget build(BuildContext context) {
+    if (controller.preferences.value.categories.isEmpty &&
+        !controller.isLoadingPreferences.value) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        controller.loadPreferences();
+      });
+    }
+
     return NetworkBoundaryWrapper(
       onRetry: controller.loadPreferences,
       child: Scaffold(

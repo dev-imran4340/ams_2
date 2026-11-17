@@ -37,13 +37,24 @@ class AttendanceRequiresModel {
 
   factory AttendanceRequiresModel.fromJson(Map<String, dynamic> json) {
     return AttendanceRequiresModel(
-      position: json['position'] as bool? ?? false,
-      photo: json['photo'] as bool? ?? false,
-      face: json['face']?.toString() ?? 'off',
-      faceSaved: json['face_saved'] as bool? ?? false,
+      position: json['position'] == true ||
+          json['position'] == 1 ||
+          json['position'] == 'true',
+      photo: json['photo'] == true ||
+          json['photo'] == 1 ||
+          json['photo'] == 'true',
+      face: json['face']?.toString().toLowerCase() ?? 'off',
+      faceSaved: json['face_saved'] == true ||
+          json['face_saved'] == 1 ||
+          json['face_saved'] == 'true',
       consentText: json['consent_text']?.toString(),
     );
   }
+
+  bool get isPositionRequired => position;
+  bool get isPhotoRequired => photo || face == 'photo';
+  bool get isFaceMatchRequired => face == 'match';
+  bool get isFaceEnrollmentRequired => face == 'match' && !faceSaved;
 
   Map<String, dynamic> toJson() => {
         'position': position,
@@ -206,9 +217,9 @@ class TodayAttendanceModel {
   bool get canCheckOut => allowed.contains('out');
   bool get canStartBreak => allowed.contains('break_start');
   bool get canEndBreak => allowed.contains('break_end');
-  bool get isPositionRequired => requires?.position == true;
-  bool get isPhotoRequired => requires?.photo == true;
-  bool get isFaceRequired => requires != null && requires!.face != 'off';
+  bool get isPositionRequired => requires?.isPositionRequired ?? false;
+  bool get isPhotoRequired => requires?.isPhotoRequired ?? false;
+  bool get isFaceRequired => requires?.isFaceMatchRequired ?? false;
 
   String get plannedHoursFormatted {
     if (plannedMinutes <= 0) return '0h 00m';

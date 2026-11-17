@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
+import '../../../../api/app_preferences.dart';
 import '../../../../core/utils/app_colors.dart';
 import '../../../../core/utils/app_spaces.dart';
 import '../../../../core/utils/app_text_styles.dart';
@@ -52,23 +53,29 @@ class DrawerProfileHeader extends StatelessWidget {
 
       final String fullName = (user?.name != null && user!.name.isNotEmpty)
           ? user.name
-          : 'Maryam Malik';
+          : (AppPreferences.userName ?? '');
 
       final String email = (user?.email != null && user!.email.isNotEmpty)
           ? user.email
-          : 'maryam@example.com';
+          : (AppPreferences.userEmail ?? '');
 
       final String companyName =
           (company?.name != null && company!.name.isNotEmpty)
           ? company.name
-          : 'Kumash';
+          : (AppPreferences.companyName ?? '');
 
       final String companyCode =
           (company?.code != null && company!.code.isNotEmpty)
           ? company.code
-          : 'ZDTT3V';
+          : (AppPreferences.companyCode ?? '');
 
       final String initials = _extractInitials(fullName);
+      final bool hasCompanyInfo =
+          companyName.isNotEmpty || companyCode.isNotEmpty;
+      final String companyLabel = [
+        if (companyName.isNotEmpty) companyName,
+        if (companyCode.isNotEmpty) companyCode,
+      ].join(' • ');
 
       return Material(
         color: Colors.transparent,
@@ -193,48 +200,49 @@ class DrawerProfileHeader extends StatelessWidget {
                             ],
                           ),
 
-                          AppSpaces.vSpace4,
-
-                          // Company title & code capsule ("Kumash • ZDTT3V")
-                          Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 8.w,
-                              vertical: 3.h,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.white.withValues(alpha: 0.14),
-                              borderRadius: BorderRadius.circular(12.r),
-                              border: Border.all(
-                                color: AppColors.secondary.withValues(
-                                  alpha: 0.35,
-                                ),
-                                width: 1.w,
+                          if (hasCompanyInfo) ...[
+                            AppSpaces.vSpace4,
+                            // Company title & code capsule
+                            Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 8.w,
+                                vertical: 3.h,
                               ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.business_rounded,
-                                  size: 11.sp,
-                                  color: AppColors.liteSecondary,
+                              decoration: BoxDecoration(
+                                color: AppColors.white.withValues(alpha: 0.14),
+                                borderRadius: BorderRadius.circular(12.r),
+                                border: Border.all(
+                                  color: AppColors.secondary.withValues(
+                                    alpha: 0.35,
+                                  ),
+                                  width: 1.w,
                                 ),
-                                AppSpaces.hSpace4,
-                                Flexible(
-                                  child: Text(
-                                    '$companyName • $companyCode',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: AppTextStyles.text10.copyWith(
-                                      fontWeight: FontWeight.w600,
-                                      color: AppColors.white,
-                                      letterSpacing: 0.3,
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.business_rounded,
+                                    size: 11.sp,
+                                    color: AppColors.liteSecondary,
+                                  ),
+                                  AppSpaces.hSpace4,
+                                  Flexible(
+                                    child: Text(
+                                      companyLabel,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: AppTextStyles.text10.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.white,
+                                        letterSpacing: 0.3,
+                                      ),
                                     ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
-                          ),
+                          ],
                         ],
                       ),
                     ),

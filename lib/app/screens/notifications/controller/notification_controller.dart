@@ -47,7 +47,6 @@ class NotificationController extends GetxController {
     scrollController.addListener(_onScroll);
 
     loadNotifications();
-    loadPreferences();
   }
 
   @override

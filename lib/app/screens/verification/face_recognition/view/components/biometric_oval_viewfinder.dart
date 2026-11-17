@@ -18,12 +18,12 @@ class BiometricOvalViewfinder extends GetView<FaceRecognitionController> {
         final screenW = constraints.maxWidth;
         final screenH = constraints.maxHeight;
 
-        final ovalWidth = 240.w;
-        final ovalHeight = 310.h;
+        final ovalWidth = 250.w;
+        final ovalHeight = 300.h;
 
         // Centered in visible window below header
         final centerX = screenW / 2;
-        final centerY = screenH * 0.42;
+        final centerY = screenH * 0.36;
 
         final ovalRect = Rect.fromCenter(
           center: Offset(centerX, centerY),
@@ -33,12 +33,12 @@ class BiometricOvalViewfinder extends GetView<FaceRecognitionController> {
 
         return Stack(
           children: [
-            // 1. Dark Surround Mask with Oval Cutout
+            // 1. Cinematic Oval Cutout Mask (Deep Navy Vignette for High-Contrast Biometrics)
             Positioned.fill(
               child: CustomPaint(
                 painter: _OvalCutoutOverlayPainter(
                   ovalRect: ovalRect,
-                  overlayColor: AppColors.primary.withValues(alpha: 0.65),
+                  overlayColor: AppColors.primary.withValues(alpha: 0.55),
                 ),
               ),
             ),
@@ -68,7 +68,7 @@ class BiometricOvalViewfinder extends GetView<FaceRecognitionController> {
                         ),
                         border: Border.all(
                           color: AppColors.secondary.withValues(
-                            alpha: (0.35 * (1.15 - scale)).clamp(0.06, 0.4),
+                            alpha: (0.15 * (1.15 - scale)).clamp(0.06, 0.4),
                           ),
                           width: 1.5.w,
                         ),
@@ -110,7 +110,9 @@ class BiometricOvalViewfinder extends GetView<FaceRecognitionController> {
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: borderColor.withValues(alpha: isSuccess ? 0.5 : 0.25),
+                        color: borderColor.withValues(
+                          alpha: isSuccess ? 0.5 : 0.25,
+                        ),
                         blurRadius: isSuccess ? 24.r : 16.r,
                         spreadRadius: isSuccess ? 3.r : 1.r,
                       ),
@@ -125,17 +127,29 @@ class BiometricOvalViewfinder extends GetView<FaceRecognitionController> {
                       children: [
                         // Live Camera Feed if Hardware Initialized, else ambient fallback
                         Positioned.fill(
-                          child: controller.isCameraInitialized.value &&
+                          child:
+                              controller.isCameraInitialized.value &&
                                   controller.cameraController != null &&
-                                  controller.cameraController!.value.isInitialized
+                                  controller
+                                      .cameraController!
+                                      .value
+                                      .isInitialized
                               ? FittedBox(
                                   fit: BoxFit.cover,
                                   child: SizedBox(
-                                    width: controller.cameraController!.value
-                                        .previewSize?.height ??
+                                    width:
+                                        controller
+                                            .cameraController!
+                                            .value
+                                            .previewSize
+                                            ?.height ??
                                         ovalWidth,
-                                    height: controller.cameraController!.value
-                                        .previewSize?.width ??
+                                    height:
+                                        controller
+                                            .cameraController!
+                                            .value
+                                            .previewSize
+                                            ?.width ??
                                         ovalHeight,
                                     child: CameraPreview(
                                       controller.cameraController!,
@@ -155,8 +169,9 @@ class BiometricOvalViewfinder extends GetView<FaceRecognitionController> {
                                     child: Icon(
                                       Icons.face_retouching_natural_rounded,
                                       size: 72.sp,
-                                      color: AppColors.liteSecondary
-                                          .withValues(alpha: 0.35),
+                                      color: AppColors.liteSecondary.withValues(
+                                        alpha: 0.35,
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -181,8 +196,9 @@ class BiometricOvalViewfinder extends GetView<FaceRecognitionController> {
                               child: Container(
                                 padding: EdgeInsets.all(18.r),
                                 decoration: BoxDecoration(
-                                  color: AppColors.success
-                                      .withValues(alpha: 0.25),
+                                  color: AppColors.success.withValues(
+                                    alpha: 0.25,
+                                  ),
                                   shape: BoxShape.circle,
                                   border: Border.all(
                                     color: AppColors.success,
@@ -190,8 +206,9 @@ class BiometricOvalViewfinder extends GetView<FaceRecognitionController> {
                                   ),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: AppColors.success
-                                          .withValues(alpha: 0.5),
+                                      color: AppColors.success.withValues(
+                                        alpha: 0.5,
+                                      ),
                                       blurRadius: 24.r,
                                     ),
                                   ],
@@ -215,7 +232,7 @@ class BiometricOvalViewfinder extends GetView<FaceRecognitionController> {
             Positioned(
               left: 20.w,
               right: 20.w,
-              top: centerY + (ovalHeight / 2) + 14.h,
+              top: centerY + (ovalHeight / 2) + 20.h,
               child: Center(
                 child: Obx(() {
                   final isSuccess = controller.isMatchSuccess.value;
@@ -263,11 +280,7 @@ class BiometricOvalViewfinder extends GetView<FaceRecognitionController> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(
-                          pillIcon,
-                          size: 14.sp,
-                          color: pillColor,
-                        ),
+                        Icon(pillIcon, size: 14.sp, color: pillColor),
                         AppSpaces.hSpace8,
                         Flexible(
                           child: Text(

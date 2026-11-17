@@ -17,7 +17,7 @@ class FaceNetService {
   }
 
   FaceNetService._internal() {
-    threshold = 1.0; // Default threshold: match if distance <= 1.0 (from smart_attendance)
+    threshold = 0.88; // Strict threshold for MobileFaceNet to prevent false positives (Euclidean distance <= 0.88)
   }
 
   static const String modelAssetPath = 'assets/models/mobilefacenet.tflite';
@@ -201,6 +201,9 @@ class FaceNetService {
       return null;
     }
   }
+
+  /// Converts a live stream CameraImage to an imglib Image buffer
+  imglib.Image? convertCameraImageRaw(CameraImage image) => _convertCameraImage(image);
 
   imglib.Image? _convertCameraImage(CameraImage image) {
     try {

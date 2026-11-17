@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 
+import '../../services/network_connectivity_service.dart';
 import '../utils/app_colors.dart';
 import 'custom_state_view.dart';
 
@@ -59,23 +60,34 @@ class _NetworkBoundaryWrapperState extends State<NetworkBoundaryWrapper> {
   }
 
   Future<void> _checkInitialConnectivity() async {
-    final results = await Connectivity().checkConnectivity();
-    _updateConnectionStatus(results);
+    final connected = await NetworkConnectivityService.hasConnection();
     if (mounted) {
       setState(() {
+        _isConnected = connected;
         _isChecking = false;
       });
     }
   }
 
-  void _updateConnectionStatus(List<ConnectivityResult> results) {
-    final connected =
+  Future<void> _updateConnectionStatus(List<ConnectivityResult> results) async {
+    final hasHardware =
         !results.contains(ConnectivityResult.none) && results.isNotEmpty;
-    if (mounted && _isConnected != connected) {
+    if (!hasHardware) {
+      if (mounted && _isConnected != false) {
+        setState(() {
+          _isConnected = false;
+        });
+      }
+      return;
+    }
+
+    // Hardware interface is active (Wi-Fi or Mobile Data) -> Verify real packet transmission
+    final hasRealInternet = await NetworkConnectivityService.hasConnection();
+    if (mounted && _isConnected != hasRealInternet) {
       setState(() {
-        _isConnected = connected;
+        _isConnected = hasRealInternet;
       });
-      if (connected && widget.onRetry != null) {
+      if (hasRealInternet && widget.onRetry != null) {
         // Seamlessly refresh when internet returns
         widget.onRetry!();
       }
@@ -104,9 +116,14 @@ class _NetworkBoundaryWrapperState extends State<NetworkBoundaryWrapper> {
             message: widget.offlineMessage,
             buttonText: 'Try Again',
             onRetry: () async {
-              final results = await Connectivity().checkConnectivity();
-              _updateConnectionStatus(results);
-              if (widget.onRetry != null) {
+              NetworkConnectivityService.invalidateCache();
+              final isOnline = await NetworkConnectivityService.hasConnection();
+              if (mounted) {
+                setState(() {
+                  _isConnected = isOnline;
+                });
+              }
+              if (isOnline && widget.onRetry != null) {
                 await widget.onRetry!();
               }
             },

@@ -59,29 +59,58 @@ class AppDrawer extends StatelessWidget {
                 physics: const BouncingScrollPhysics(),
                 padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 16.h),
                 child: Obx(() {
-                  // Module & Permission visibility strictly driven by sessionController
+                  // Module, Permission & Dynamic Menu checks strictly driven by sessionController
                   final bool hasAttendance =
                       sessionController.hasModule('attendance') &&
-                      sessionController.hasPermission('attendance.view');
-                  final bool hasDevices = sessionController.hasModule('devices');
-                  final bool hasLeave = sessionController.hasModule('leave');
+                      sessionController.hasPermission('attendance.view') &&
+                      sessionController.hasMenuItem('attendance');
+
+                  final bool hasSchedule =
+                      sessionController.hasModule('attendance') &&
+                      (sessionController.hasPermission('schedules.view') ||
+                          sessionController.hasPermission('attendance.view')) &&
+                      sessionController.hasMenuItem('schedule');
+
+                  final bool hasLeave = sessionController.hasModule('leave') &&
+                      sessionController.hasPermission('leave.view') &&
+                      sessionController.hasMenuItem('leave');
+
                   final bool hasPayroll =
                       sessionController.hasModule('payroll') &&
-                      sessionController.hasPermission('pay.view');
+                      sessionController.hasPermission('pay.view') &&
+                      sessionController.hasMenuItem('payslips');
+
                   final bool hasLoans =
                       sessionController.hasModule('loans_expenses') &&
-                      sessionController.hasPermission('money.view');
-                  final bool hasPerformance = sessionController.hasModule(
-                    'performance',
-                  );
-                  final bool hasDocuments = sessionController.hasModule(
-                    'documents',
-                  );
+                      sessionController.hasPermission('money.view') &&
+                      sessionController.hasMenuItem('money');
+
+                  final bool hasPerformance =
+                      sessionController.hasModule('performance') &&
+                      sessionController.hasPermission('performance.view') &&
+                      sessionController.hasMenuItem('performance');
+
+                  final bool hasDocuments =
+                      sessionController.hasModule('documents') &&
+                      sessionController.hasPermission('documents.view') &&
+                      (sessionController.hasMenuItem('documents') ||
+                          sessionController.hasMenuItem('news'));
+                  final int docBadges = sessionController.getBadge('documents');
+
+                  final bool hasTasks =
+                      sessionController.hasModule('onboarding') &&
+                      sessionController.hasMenuItem('tasks');
+                  final int taskBadges = sessionController.getBadge('tasks');
+
+                  // Staff Onboarding is strictly for Manager/HR/Admin with department or company scope
                   final bool hasOnboarding =
                       sessionController.hasModule('onboarding') &&
-                      sessionController.hasPermission('employees.view');
+                      (sessionController.hasPermission('employees.view', 'department') ||
+                          sessionController.hasPermission('employees.view', 'company'));
+
                   final bool hasSupport =
-                      sessionController.hasPermission('support.view');
+                      sessionController.hasPermission('support.view') &&
+                      sessionController.hasMenuItem('support');
 
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -128,9 +157,8 @@ class AppDrawer extends StatelessWidget {
                               _navigateToRoute(Routes.ATTENDANCE_HISTORY),
                         ),
 
-                      // Card 2b: Work Schedule & Rota (Module: attendance & Permission: attendance.view)
-                      if (hasAttendance &&
-                          sessionController.hasPermission('attendance.view'))
+                      // Card 2b: Work Schedule & Rota (Module: attendance & Permission: schedules.view / attendance.view)
+                      if (hasSchedule)
                         DrawerModuleCard(
                           title: 'Work Schedule & Rota',
                           subtitle: 'Assigned shift pattern & holidays roster',
@@ -139,18 +167,7 @@ class AppDrawer extends StatelessWidget {
                           onTap: () => _navigateToRoute(Routes.SCHEDULE),
                         ),
 
-                      // Card 3: AI Face Recognition (Module: devices)
-                      if (hasDevices)
-                        DrawerModuleCard(
-                          title: 'AI Face Recognition',
-                          subtitle: 'Biometric verification, liveness & match',
-                          icon: Icons.face_retouching_natural,
-                          accentTint: AppColors.secondary,
-                          onTap: () =>
-                              _navigateToRoute(Routes.FACE_RECOGNITION),
-                        ),
-
-                      // Card 4: Leave Management (Module: leave)
+                      // Card 3: Leave Management (Module: leave)
                       if (hasLeave)
                         DrawerModuleCard(
                           title: 'Leave Management',
@@ -160,7 +177,7 @@ class AppDrawer extends StatelessWidget {
                           onTap: () => _navigateToRoute(Routes.LEAVE),
                         ),
 
-                      // Card 5: Payroll & Payslips (Module: payroll)
+                      // Card 4: Payroll & Payslips (Module: payroll)
                       if (hasPayroll)
                         DrawerModuleCard(
                           title: 'Payroll & Payslips',
@@ -170,7 +187,7 @@ class AppDrawer extends StatelessWidget {
                           onTap: () => _navigateToRoute(Routes.PAYROLL),
                         ),
 
-                      // Card 6: Money Requests (Module: loans_expenses)
+                      // Card 5: Money Requests (Module: loans_expenses)
                       if (hasLoans)
                         DrawerModuleCard(
                           title: 'Money Requests',
@@ -180,24 +197,25 @@ class AppDrawer extends StatelessWidget {
                           onTap: () => _navigateToRoute(Routes.LOANS),
                         ),
 
-                      // Card 7: Performance & KPIs (Module: performance)
+                      // Card 6: Performance & KPIs (Module: performance)
                       if (hasPerformance)
                         DrawerModuleCard(
                           title: 'Performance & KPIs',
                           subtitle:
                               'Reviews, KPI criteria & manager appraisals',
                           icon: Icons.trending_up_rounded,
-                          accentTint: const Color(0xFF64748B), // Slate accent
+                          accentTint: AppColors.accentNavy,
                           onTap: () => _navigateToRoute(Routes.EVALUATION),
                         ),
 
-                      // Card 8: Company Policies (Module: documents)
+                      // Card 7: Company Policies (Module: documents)
                       if (hasDocuments)
                         DrawerModuleCard(
                           title: 'Company Policies',
                           subtitle: 'Handbooks, notices & legal documents',
                           icon: Icons.menu_book_outlined,
-                          accentTint: AppColors.info, // Blue accent
+                          accentTint: AppColors.info,
+                          badgeCount: docBadges,
                           onTap: () {
                             Get.back();
                             CustomSnackbar.showInfo(
@@ -206,13 +224,24 @@ class AppDrawer extends StatelessWidget {
                           },
                         ),
 
-                      // Card 9: Staff Onboarding (Module: onboarding && permission: employees.view)
+                      // Card 8: Daily Tasks (Module: onboarding)
+                      if (hasTasks)
+                        DrawerModuleCard(
+                          title: 'Daily Tasks',
+                          subtitle: 'Assigned tasks, duties & checklists',
+                          icon: Icons.check_circle_outline_rounded,
+                          accentTint: AppColors.secondary,
+                          badgeCount: taskBadges,
+                          onTap: () => _navigateToRoute(Routes.TASKS),
+                        ),
+
+                      // Card 9: Staff Onboarding (Manager/HR with department/company scope)
                       if (hasOnboarding)
                         DrawerModuleCard(
                           title: 'Staff Onboarding',
                           subtitle: 'Register new staff & capture AI face',
                           icon: Icons.person_add_alt_1_outlined,
-                          accentTint: const Color(0xFF8B5CF6), // Purple accent
+                          accentTint: AppColors.primary,
                           onTap: () => _navigateToRoute(Routes.ADD_EMPLOYEE),
                         ),
 
@@ -223,8 +252,7 @@ class AppDrawer extends StatelessWidget {
                           subtitle: 'Ticket inquiries, issues & assistance',
                           icon: Icons.support_agent_rounded,
                           accentTint: AppColors.secondary,
-                          onTap: () =>
-                              _navigateToRoute(Routes.SUPPORT_TICKETS),
+                          onTap: () => _navigateToRoute(Routes.SUPPORT_TICKETS),
                         ),
 
                       AppSpaces.vSpace8,

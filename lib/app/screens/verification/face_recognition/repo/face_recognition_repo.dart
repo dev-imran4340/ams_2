@@ -24,7 +24,7 @@ class FaceRecognitionRepo {
   final String _tag = 'FaceRecognitionRepo / FaceScreen';
   static const String referenceFileName = 'enrolled_reference_face.jpg';
   static const String referenceEmbeddingFileName = 'enrolled_face_embedding.json';
-  static const double defaultMatchThreshold = 0.50; // Calibrated for facial landmark geometry
+  static const double defaultMatchThreshold = 0.65; // Calibrated for facial landmark geometry & MobileFaceNet cosine similarity
   double matchThreshold = defaultMatchThreshold;
   static const int targetFaceSize = 112;
   static const double cropPaddingRatio = 0.0; // 0% padding: Strictly face only (zero background)
@@ -928,6 +928,47 @@ class FaceRecognitionRepo {
     return targetFile;
   }
 
+  /// Converts an in-memory live stream CameraImage to an upright JPEG file silently
+  /// eliminating AVFoundation hardware shutter sound and stream-pausing artifacts.
+  Future<File?> convertCameraImageToUprightJpegFile(
+    CameraImage image, {
+    required int sensorOrientation,
+    required bool isFrontCamera,
+  }) async {
+    try {
+      final img.Image? base = faceNet.convertCameraImageRaw(image);
+      if (base == null) return null;
+
+      img.Image oriented = base;
+      if (Platform.isIOS) {
+        if (sensorOrientation == 270) {
+          oriented = img.copyRotate(base, angle: -90);
+        } else if (sensorOrientation == 90) {
+          oriented = img.copyRotate(base, angle: 90);
+        } else if (sensorOrientation == 180) {
+          oriented = img.copyRotate(base, angle: 180);
+        }
+
+        if (isFrontCamera) {
+          oriented = img.copyFlip(oriented, direction: img.FlipDirection.horizontal);
+        }
+      } else {
+        if (isFrontCamera) {
+          oriented = img.copyFlip(base, direction: img.FlipDirection.horizontal);
+        }
+      }
+
+      final jpgBytes = img.encodeJpg(oriented, quality: 85);
+      final tempDir = await getTemporaryDirectory();
+      final file = File('${tempDir.path}/live_face_${DateTime.now().microsecondsSinceEpoch}.jpg');
+      await file.writeAsBytes(jpgBytes, flush: true);
+      return file;
+    } catch (e) {
+      debugPrint('>>> [AI FACE] convertCameraImageToUprightJpegFile error: $e');
+      return null;
+    }
+  }
+
   /// Instant live matching directly from in-memory cropped 112x112 live frame
   FaceComparisonReport compareLiveCroppedFace({
     required List<double> refVector,
@@ -1219,7 +1260,7 @@ class FaceRecognitionRepo {
           fields['latitude'] = latitude.toString();
           fields['longitude'] = longitude.toString();
           fields['accuracy_m'] = '10';
-          fields['is_mocked'] = 'false';
+          fields['is_mocked'] = '0';
         }
 
         final file = await http.MultipartFile.fromPath('photo', photoFile.path);

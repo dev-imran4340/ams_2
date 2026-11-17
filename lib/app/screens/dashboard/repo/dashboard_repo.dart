@@ -154,7 +154,7 @@ class DashboardRepo {
           fields['latitude'] = latitude.toString();
           fields['longitude'] = longitude.toString();
           fields['accuracy_m'] = (accuracyMeters ?? 10).toString();
-          fields['is_mocked'] = isMocked ? 'true' : 'false';
+          fields['is_mocked'] = isMocked ? '1' : '0';
         }
         if (faceMatch != null) {
           fields['face_match'] = faceMatch;

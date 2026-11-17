@@ -87,17 +87,38 @@ class ExceptionHandler {
   }) {
     ApiException apiException;
 
-    if (error is SocketException) {
+    final errorText = error?.toString().toLowerCase() ?? '';
+    final isSocketOrNetwork = error is SocketException ||
+        errorText.contains('network is unreachable') ||
+        errorText.contains('failed host lookup') ||
+        errorText.contains('no address associated') ||
+        errorText.contains('no internet') ||
+        errorText.contains('connection refused') ||
+        errorText.contains('connection reset') ||
+        errorText.contains('connection closed') ||
+        errorText.contains('connection abort') ||
+        errorText.contains('software caused connection abort');
+
+    final isTimeout = error is TimeoutException ||
+        errorText.contains('timed out') ||
+        errorText.contains('timeout');
+
+    final isClientEx = error is http.ClientException ||
+        errorText.contains('clientexception');
+
+    if (error is ApiException) {
+      apiException = error;
+    } else if (isSocketOrNetwork) {
       apiException = ApiException(
-        message: 'No internet connection. Please verify your network and retry.',
+        message: 'No internet connection. Please check your Wi-Fi or mobile data.',
         errorCode: 'NO_INTERNET',
       );
-    } else if (error is TimeoutException) {
+    } else if (isTimeout) {
       apiException = ApiException(
-        message: 'Request timed out. The server took too long to respond.',
+        message: 'Request timed out. Please check your internet connection.',
         errorCode: 'TIMEOUT',
       );
-    } else if (error is http.ClientException) {
+    } else if (isClientEx) {
       apiException = ApiException(
         message: 'Network connection was interrupted. Please check your signal and retry.',
         errorCode: 'NETWORK_ERROR',

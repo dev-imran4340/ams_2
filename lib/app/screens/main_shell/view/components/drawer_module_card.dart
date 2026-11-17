@@ -12,6 +12,7 @@ class DrawerModuleCard extends StatelessWidget {
   final IconData icon;
   final Color accentTint;
   final VoidCallback onTap;
+  final int badgeCount;
 
   const DrawerModuleCard({
     super.key,
@@ -20,6 +21,7 @@ class DrawerModuleCard extends StatelessWidget {
     required this.icon,
     required this.accentTint,
     required this.onTap,
+    this.badgeCount = 0,
   });
 
   @override
@@ -97,6 +99,27 @@ class DrawerModuleCard extends StatelessWidget {
                         ],
                       ),
                     ),
+
+                    if (badgeCount > 0) ...[
+                      AppSpaces.hSpace8,
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 7.w,
+                          vertical: 2.h,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.error,
+                          borderRadius: BorderRadius.circular(10.r),
+                        ),
+                        child: Text(
+                          badgeCount > 99 ? '99+' : '$badgeCount',
+                          style: AppTextStyles.text10.copyWith(
+                            color: AppColors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
 
                     AppSpaces.hSpace8,
 

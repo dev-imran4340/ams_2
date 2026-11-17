@@ -18,6 +18,8 @@ class SessionMeController extends GetxController {
   final Rxn<MeCompany> company = Rxn<MeCompany>();
   final RxList<String> modules = <String>[].obs;
   final RxMap<String, dynamic> permissions = <String, dynamic>{}.obs;
+  final RxList<MeMenuItem> menu = <MeMenuItem>[].obs;
+  final RxMap<String, int> badges = <String, int>{}.obs;
 
   final RxBool isLoading = false.obs;
   final RxBool isLoggingOut = false.obs;
@@ -39,30 +41,36 @@ class SessionMeController extends GetxController {
         company.value = model.company;
         modules.assignAll(model.modules);
         permissions.assignAll(model.permissions);
+        menu.assignAll(model.menu);
+        badges.assignAll(model.badges);
         return;
       } catch (_) {}
     }
 
     // Direct fallback from individual cached session values in AppPreferences
-    final uName = AppPreferences.userName ?? 'Maryam Malik';
-    final uEmail = AppPreferences.userEmail ?? 'maryam@example.com';
-    final uId = AppPreferences.userId ?? 'EMP-1024';
-    final cName = AppPreferences.companyName ?? 'Kumash';
-    final cCode = AppPreferences.companyCode ?? 'ZDTT3V';
-    final cId = AppPreferences.companyId ?? 'comp-1';
+    final uName = AppPreferences.userName ?? '';
+    final uEmail = AppPreferences.userEmail ?? '';
+    final uId = AppPreferences.userId ?? '';
+    final cName = AppPreferences.companyName ?? '';
+    final cCode = AppPreferences.companyCode ?? '';
+    final cId = AppPreferences.companyId ?? '';
 
-    user.value = MeUser(
-      id: uId,
-      name: uName,
-      email: uEmail,
-      twoFactorEnabled: AppPreferences.isTwoFactorEnabled,
-    );
+    if (uName.isNotEmpty || uId.isNotEmpty) {
+      user.value = MeUser(
+        id: uId,
+        name: uName,
+        email: uEmail,
+        twoFactorEnabled: AppPreferences.isTwoFactorEnabled,
+      );
+    }
 
-    company.value = MeCompany(
-      id: cId,
-      name: cName,
-      code: cCode,
-    );
+    if (cName.isNotEmpty || cCode.isNotEmpty || cId.isNotEmpty) {
+      company.value = MeCompany(
+        id: cId,
+        name: cName,
+        code: cCode,
+      );
+    }
 
     final cachedMods = AppPreferences.modules;
     if (cachedMods != null && cachedMods.isNotEmpty) {
@@ -87,6 +95,23 @@ class SessionMeController extends GetxController {
     if (cachedPerms != null) {
       permissions.assignAll(Map<String, dynamic>.from(cachedPerms));
     }
+
+    final cachedMenu = AppPreferences.menu;
+    if (cachedMenu != null && cachedMenu.isNotEmpty) {
+      menu.assignAll(
+        cachedMenu
+            .whereType<Map>()
+            .map((e) => MeMenuItem.fromJson(Map<String, dynamic>.from(e)))
+            .toList(),
+      );
+    }
+
+    final cachedBadges = AppPreferences.badges;
+    if (cachedBadges != null) {
+      badges.assignAll(
+        cachedBadges.map((k, v) => MapEntry(k, int.tryParse(v.toString()) ?? 0)),
+      );
+    }
   }
 
   /// Refreshes live identity, modules and permissions from server GET /api/v1/me
@@ -100,6 +125,8 @@ class SessionMeController extends GetxController {
         company.value = result.company;
         modules.assignAll(result.modules);
         permissions.assignAll(result.permissions);
+        menu.assignAll(result.menu);
+        badges.assignAll(result.badges);
 
         // Ensure Dashboard telemetry loads if not already loaded
         if (Get.isRegistered<DashboardController>()) {
@@ -127,6 +154,16 @@ class SessionMeController extends GetxController {
   bool hasPermission(String permKey, [String? scope]) {
     return AppPreferences.hasPermission(permKey, scope);
   }
+
+  /// Checks whether a menu key is enabled in server's dynamic menu.
+  /// If menu is empty (offline or legacy), returns true so safe fallback applies.
+  bool hasMenuItem(String key) {
+    if (menu.isEmpty) return true;
+    return menu.any((item) => item.key == key);
+  }
+
+  /// Returns badge count for a module/menu key (e.g. documents: 2, tasks: 5)
+  int getBadge(String key) => badges[key] ?? 0;
 
   /// Performs secure session termination: dispatches POST /auth/logout API,
   /// purges local storage, dismisses dialogs, closes all routes, and redirects to Login.
