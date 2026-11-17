@@ -828,11 +828,11 @@ class FaceRecognitionController extends GetxController
 
           await cleanupAndExit(result: resultPayload);
           return;
-        } else {
-          await Future.delayed(const Duration(milliseconds: 500));
-          if (!isClosed && !_isExiting) {
-            openSuccessModal();
-          }
+        }
+
+        await Future.delayed(const Duration(milliseconds: 500));
+        if (!isClosed && !_isExiting) {
+          openSuccessModal();
         }
       } else {
         isMatchSuccess.value = false;

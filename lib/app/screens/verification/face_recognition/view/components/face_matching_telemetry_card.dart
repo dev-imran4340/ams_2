@@ -351,16 +351,16 @@ class FaceMatchingTelemetryCard extends GetView<FaceRecognitionController> {
             final hasRef = controller.hasReferenceFace.value;
             final isPunch = controller.isPunchMode.value;
 
-            if (isSuccess) {
-              return CustomButton(
-                text: 'Done • Proceed',
-                isGradient: true,
-                onPressed: () async => await controller.proceedToDashboard(),
-              );
-            }
-
-            // In punch mode: automated verification and punch submission
+            // In punch mode: Auto verification and instant return (Never show Done / Proceed button)
             if (isPunch) {
+              if (isSuccess) {
+                return CustomButton(
+                  text: 'Verified • Returning to Dashboard...',
+                  isGradient: true,
+                  isLoading: true,
+                  onPressed: null,
+                );
+              }
               return CustomButton(
                 text: isVerifying
                     ? 'Verifying Biometric Face...'
@@ -368,6 +368,14 @@ class FaceMatchingTelemetryCard extends GetView<FaceRecognitionController> {
                 isGradient: true,
                 isLoading: isVerifying || isSaving,
                 onPressed: null,
+              );
+            }
+
+            if (isSuccess) {
+              return CustomButton(
+                text: 'Done • Proceed',
+                isGradient: true,
+                onPressed: () async => await controller.proceedToDashboard(),
               );
             }
 
