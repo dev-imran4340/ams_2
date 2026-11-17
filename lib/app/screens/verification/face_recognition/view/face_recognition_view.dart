@@ -17,14 +17,7 @@ class FaceRecognitionView extends GetView<FaceRecognitionController> {
   @override
   Widget build(BuildContext context) {
     return NetworkBoundaryWrapper(
-      child: PopScope(
-        canPop: false,
-        onPopInvokedWithResult: (didPop, _) {
-          if (didPop) return;
-          debugPrint('>>> [AI FACE] PopScope invoked -> calling cleanupAndExit()');
-          controller.cleanupAndExit();
-        },
-        child: Scaffold(
+      child: Scaffold(
         backgroundColor: AppColors.primary,
         body: Stack(
           children: [
@@ -69,7 +62,6 @@ class FaceRecognitionView extends GetView<FaceRecognitionController> {
             ),
           ],
         ),
-      ),
       ),
     );
   }

@@ -842,11 +842,14 @@ class FaceRecognitionController extends GetxController
             'NOT MATCH • Similarity ${score.toStringAsFixed(1)}% below ${(repo.matchThreshold * 100).toStringAsFixed(0)}%';
         HapticFeedback.mediumImpact();
 
-        CustomSnackbar.showError(
-          title: 'Biometric NOT MATCH',
-          message:
-              'Score (${score.toStringAsFixed(1)}%) is below ${(repo.matchThreshold * 100).toStringAsFixed(0)}% threshold. Please retry.',
-        );
+        // In punch mode: Never show blocking snackbar overlay that traps Get.back()
+        if (!isPunchMode.value) {
+          CustomSnackbar.showError(
+            title: 'Biometric NOT MATCH',
+            message:
+                'Score (${score.toStringAsFixed(1)}%) is below ${(repo.matchThreshold * 100).toStringAsFixed(0)}% threshold. Please retry.',
+          );
+        }
 
         await _ensureImageStreamRunning();
 
@@ -899,10 +902,16 @@ class FaceRecognitionController extends GetxController
     // 1. Pop the route immediately so UI transitions back without waiting on hardware teardown
     try {
       debugPrint('>>> [AI FACE] Popping route with result: $result');
-      if (Get.isDialogOpen == true || Get.isBottomSheetOpen == true) {
-        Get.back();
+      // Close snackbar if open
+      if (Get.isSnackbarOpen) {
+        Get.closeCurrentSnackbar();
       }
-      Get.back(result: result);
+      // Use standard Navigator pop which directly targets the active modal route
+      if (Get.context != null && Navigator.canPop(Get.context!)) {
+        Navigator.pop(Get.context!, result);
+      } else {
+        Get.back(result: result);
+      }
     } catch (e) {
       debugPrint('>>> [AI FACE] Route pop exception: $e');
     }
