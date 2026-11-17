@@ -486,7 +486,11 @@ class FaceRecognitionController extends GetxController
     final face = faces.first;
     final box = face.boundingBox;
 
-    // Check 2: Eyes check completely bypassed (user requested zero eye closing/blinking required)
+    // Check 2: Eyes Open Check (Must be awake and eyes open, but no blinking required)
+    final double leftEyeProb = face.leftEyeOpenProbability ?? 1.0;
+    final double rightEyeProb = face.rightEyeOpenProbability ?? 1.0;
+    // Both eyes must be open (threshold: >= 0.40). Closed eyes rejected.
+    final bool eyesOpen = (leftEyeProb >= 0.40) && (rightEyeProb >= 0.40);
 
     // Check 3: Head orientation check (Yaw within 35 deg, Roll within 25 deg per Smart Attendance)
     final double yaw = face.headEulerAngleY ?? 0.0;
@@ -544,11 +548,13 @@ class FaceRecognitionController extends GetxController
         fitsVertically &&
         isPointInOval(fMidX, fMidY);
 
-    debugPrint('>>> [AI FACE CHECKS] 1Face: true | HeadStraight: $headStraight (yaw: ${yaw.toStringAsFixed(1)}, roll: ${roll.toStringAsFixed(1)}) | Centered: $isCentered (offX: ${offsetX.toStringAsFixed(2)}, offY: ${offsetY.toStringAsFixed(2)}) | Scale: $isScaleValid (${scaleRatio.toStringAsFixed(2)}) | InsideOval: $isInsideOval');
+    debugPrint('>>> [AI FACE CHECKS] 1Face: true | EyesOpen: $eyesOpen (L: ${leftEyeProb.toStringAsFixed(2)}, R: ${rightEyeProb.toStringAsFixed(2)}) | HeadStraight: $headStraight (yaw: ${yaw.toStringAsFixed(1)}, roll: ${roll.toStringAsFixed(1)}) | Centered: $isCentered (offX: ${offsetX.toStringAsFixed(2)}, offY: ${offsetY.toStringAsFixed(2)}) | Scale: $isScaleValid (${scaleRatio.toStringAsFixed(2)}) | InsideOval: $isInsideOval');
 
     // Determine descriptive feedback message in priority order
     String feedback = 'Hold steady — scanning…';
-    if (!headStraight) {
+    if (!eyesOpen) {
+      feedback = 'Please open your eyes to scan';
+    } else if (!headStraight) {
       feedback = 'Keep head straight and face the camera';
     } else if (scaleRatio < 0.15) {
       feedback = 'Move closer to camera';
@@ -561,9 +567,9 @@ class FaceRecognitionController extends GetxController
     final result = FaceCheckResult(
       hasExactlyOneFace: true,
       faceCount: 1,
-      eyesOpen: true,
-      leftEyeProbability: 1.0,
-      rightEyeProbability: 1.0,
+      eyesOpen: eyesOpen,
+      leftEyeProbability: leftEyeProb,
+      rightEyeProbability: rightEyeProb,
       headStraight: headStraight,
       headEulerAngleY: yaw,
       headEulerAngleZ: roll,
