@@ -810,12 +810,6 @@ class FaceRecognitionController extends GetxController
         HapticFeedback.heavyImpact();
         pulseAnimationController.stop();
 
-        CustomSnackbar.showSuccess(
-          title: 'Biometric MATCH',
-          message:
-              'Identity confirmed with ${score.toStringAsFixed(1)}% similarity (Threshold: ${(repo.matchThreshold * 100).toStringAsFixed(0)}%).',
-        );
-
         if (isPunchMode.value) {
           debugPrint('>>> [AI FACE] MATCH SUCCESS in Punch Mode. Returning immediately to Dashboard with captured photo.');
           // In punch mode: Immediately pop face recognition screen and hand over to dashboard
@@ -829,6 +823,12 @@ class FaceRecognitionController extends GetxController
           await cleanupAndExit(result: resultPayload);
           return;
         }
+
+        CustomSnackbar.showSuccess(
+          title: 'Biometric MATCH',
+          message:
+              'Identity confirmed with ${score.toStringAsFixed(1)}% similarity (Threshold: ${(repo.matchThreshold * 100).toStringAsFixed(0)}%).',
+        );
 
         await Future.delayed(const Duration(milliseconds: 500));
         if (!isClosed && !_isExiting) {
@@ -895,6 +895,14 @@ class FaceRecognitionController extends GetxController
     _stablePassTimer?.cancel();
     _progressTimer?.cancel();
 
+    // 1. Pop the route immediately so UI transitions back without waiting on hardware teardown
+    if (Get.key.currentState?.canPop() ?? false) {
+      Get.back(result: result);
+    } else {
+      Navigator.of(Get.context!).pop(result);
+    }
+
+    // 2. Perform camera hardware release in the background
     try {
       await _stopImageStream();
     } catch (_) {}
@@ -904,16 +912,6 @@ class FaceRecognitionController extends GetxController
     try {
       await controllerToDispose?.dispose();
     } catch (_) {}
-
-    if (Get.isBottomSheetOpen == true) {
-      Get.back();
-    }
-
-    if (Get.isSnackbarOpen == true) {
-      Get.closeCurrentSnackbar();
-    }
-
-    Get.back(result: result);
   }
 
   /// Navigates to the Dashboard cleanly preserving app state
