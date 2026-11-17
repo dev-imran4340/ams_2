@@ -886,6 +886,7 @@ class FaceRecognitionController extends GetxController
 
   /// Gracefully tears down hardware camera stream, dismisses modals, and returns to Dashboard
   Future<void> cleanupAndExit({dynamic result}) async {
+    debugPrint('>>> [AI FACE] cleanupAndExit() triggered. _isExiting: $_isExiting, result: $result');
     if (_isExiting) return;
     _isExiting = true;
 
@@ -896,10 +897,14 @@ class FaceRecognitionController extends GetxController
     _progressTimer?.cancel();
 
     // 1. Pop the route immediately so UI transitions back without waiting on hardware teardown
-    if (Get.key.currentState?.canPop() ?? false) {
+    try {
+      debugPrint('>>> [AI FACE] Popping route with result: $result');
+      if (Get.isDialogOpen == true || Get.isBottomSheetOpen == true) {
+        Get.back();
+      }
       Get.back(result: result);
-    } else {
-      Navigator.of(Get.context!).pop(result);
+    } catch (e) {
+      debugPrint('>>> [AI FACE] Route pop exception: $e');
     }
 
     // 2. Perform camera hardware release in the background

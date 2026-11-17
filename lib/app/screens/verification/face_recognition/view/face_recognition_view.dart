@@ -19,9 +19,10 @@ class FaceRecognitionView extends GetView<FaceRecognitionController> {
     return NetworkBoundaryWrapper(
       child: PopScope(
         canPop: false,
-        onPopInvokedWithResult: (didPop, _) async {
+        onPopInvokedWithResult: (didPop, _) {
           if (didPop) return;
-          await controller.cleanupAndExit();
+          debugPrint('>>> [AI FACE] PopScope invoked -> calling cleanupAndExit()');
+          controller.cleanupAndExit();
         },
         child: Scaffold(
         backgroundColor: AppColors.primary,
@@ -153,9 +154,10 @@ class FaceRecognitionView extends GetView<FaceRecognitionController> {
                   Material(
                     color: Colors.transparent,
                     child: InkWell(
-                      onTap: () async {
+                      onTap: () {
                         HapticFeedback.lightImpact();
-                        await controller.cleanupAndExit();
+                        debugPrint('>>> [AI FACE] Back button tapped -> calling cleanupAndExit()');
+                        controller.cleanupAndExit();
                       },
                       borderRadius: BorderRadius.circular(20.r),
                       child: Container(
