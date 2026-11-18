@@ -1,6 +1,6 @@
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 
-/// How strict liveness is before face capture (Ported from smart_attendance)
+/// How strict liveness is before face capture
 enum FaceLivenessProfile {
   verification,
   enrollment,

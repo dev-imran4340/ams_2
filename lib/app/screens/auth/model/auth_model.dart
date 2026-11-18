@@ -7,6 +7,7 @@ class UserModel {
   final String? department;
   final String? avatarUrl;
   final String? accountType; // 'organization' or 'individual'
+  final bool mustChangePassword;
 
   UserModel({
     this.id,
@@ -17,6 +18,7 @@ class UserModel {
     this.department,
     this.avatarUrl,
     this.accountType,
+    this.mustChangePassword = false,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -29,6 +31,7 @@ class UserModel {
       department: json['department']?.toString(),
       avatarUrl: json['avatar_url']?.toString(),
       accountType: json['account_type']?.toString() ?? 'organization',
+      mustChangePassword: json['must_change_password'] == true,
     );
   }
 
@@ -42,6 +45,7 @@ class UserModel {
       'department': department,
       'avatar_url': avatarUrl,
       'account_type': accountType,
+      'must_change_password': mustChangePassword,
     };
   }
 }

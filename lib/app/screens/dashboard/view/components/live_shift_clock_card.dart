@@ -364,7 +364,10 @@ class LiveShiftClockCard extends GetView<DashboardController> {
       final outTime = (isCheckedOut && today?.checkOutTime != '--:--')
           ? today?.checkOutTime
           : today?.latestCheckOutTime;
-      statusSubtitle = 'Ended at $outTime';
+      final otStr = (today?.overtime != null && today?.overtime != '0:00')
+          ? ' • Overtime: ${today?.overtime}'
+          : '';
+      statusSubtitle = 'Ended at $outTime$otStr';
     } else {
       activeTimerColor = AppColors.subTextColor;
       statusSubtitle = 'Target: ${today?.plannedHoursFormatted ?? "7h 00m"}';
@@ -563,12 +566,18 @@ class LiveShiftClockCard extends GetView<DashboardController> {
           onTap: () {
             HapticFeedback.lightImpact();
             if (!isPermittedByServer) {
-              final refusalMsg = isOnBreak
-                  ? (today?.refusals['break_end']?.message ??
-                      'Ending break is not allowed right now.')
-                  : (today?.refusals['break_start']?.message ??
-                      'Taking a break is not allowed right now.');
-              CustomSnackbar.showInfo(message: refusalMsg);
+              if (isCheckedIn && !isOnBreak) {
+                CustomSnackbar.showInfo(
+                  message: 'Breaks are not permitted during overtime hours. Please swipe to check out to pause.',
+                );
+              } else {
+                final refusalMsg = isOnBreak
+                    ? (today?.refusals['break_end']?.message ??
+                        'Ending break is not allowed right now.')
+                    : (today?.refusals['break_start']?.message ??
+                        'Taking a break is not allowed right now.');
+                CustomSnackbar.showInfo(message: refusalMsg);
+              }
               return;
             }
             if (!isCheckedIn && !isOnBreak) {

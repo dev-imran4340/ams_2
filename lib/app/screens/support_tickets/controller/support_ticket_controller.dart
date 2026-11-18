@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:open_filex/open_filex.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../api/app_preferences.dart';
 import '../../../core/widgets/custom_snackbar.dart';
@@ -24,6 +25,18 @@ class SupportTicketController extends GetxController {
 
   bool get canView => AppPreferences.hasPermission('support.view');
   bool get canRaise => AppPreferences.hasPermission('support.raise');
+
+  // Main Section Tab: 0 = Support Tickets, 1 = Training Videos
+  final selectedMainTab = 0.obs;
+
+  // Training Videos
+  final trainingVideos = <TrainingVideoModel>[].obs;
+  final isLoadingVideos = false.obs;
+
+  // Fetched Completion Flags (Prevents redundant API spam on empty lists)
+  final hasLoadedActiveTickets = false.obs;
+  final hasLoadedFinishedTickets = false.obs;
+  final hasLoadedTrainingVideos = false.obs;
 
   // Loading States
   final isLoading = false.obs;
@@ -78,16 +91,74 @@ class SupportTicketController extends GetxController {
     super.onClose();
   }
 
-  /// Initial Permission-Driven Gate
+  /// Initial Permission-Driven Gate:
+  /// Strictly loads ONLY the active tab to prevent unnecessary parallel API calls
   void checkPermissionsAndLoad() {
     if (!canView) {
       isForbidden.value = true;
       forbiddenMessage.value =
           'You do not have permission to view support tickets. Please contact your organization administrator.';
+      selectedMainTab.value = 1; // Default to Training Videos if tickets are restricted
+      loadTrainingVideos(); // Load ONLY training videos
       return;
     }
     isForbidden.value = false;
-    loadTickets();
+    selectedMainTab.value = 0;
+    loadTickets(); // Load ONLY active tickets for Tab 0
+  }
+
+  /// Switch main view between Support Tickets and Training Videos
+  /// Lazy loads only when the tab has not been fetched yet
+  void setMainTab(int index) {
+    if (selectedMainTab.value == index) return;
+    selectedMainTab.value = index;
+
+    if (index == 0) {
+      final alreadyLoaded = showFinished.value
+          ? hasLoadedFinishedTickets.value
+          : hasLoadedActiveTickets.value;
+      if (!alreadyLoaded && !isLoading.value) {
+        loadTickets();
+      }
+    } else if (index == 1) {
+      if (!hasLoadedTrainingVideos.value && !isLoadingVideos.value) {
+        loadTrainingVideos();
+      }
+    }
+  }
+
+  /// Loads AMS Training Videos (GET /support/training-videos)
+  Future<void> loadTrainingVideos({bool isRefresh = false}) async {
+    try {
+      isLoadingVideos.value = true;
+      final results = await repo.fetchTrainingVideos();
+      trainingVideos.assignAll(results);
+      hasLoadedTrainingVideos.value = true;
+    } finally {
+      isLoadingVideos.value = false;
+    }
+  }
+
+  /// Opens video in YouTube app or external browser
+  Future<void> openTrainingVideo(TrainingVideoModel video) async {
+    final url = video.watchUrl.isNotEmpty ? video.watchUrl : video.embedUrl;
+    if (url.isEmpty) return;
+    try {
+      final uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        CustomSnackbar.showError(
+          title: 'Playback Error',
+          message: 'Unable to open video URL.',
+        );
+      }
+    } catch (e) {
+      CustomSnackbar.showError(
+        title: 'Playback Error',
+        message: 'Could not open video: $e',
+      );
+    }
   }
 
   /// Loads tickets list with active/finished filter
@@ -96,7 +167,7 @@ class SupportTicketController extends GetxController {
 
     final targetFinished = showFinished.value;
     try {
-      if (!isRefresh) isLoading.value = true;
+      isLoading.value = true;
       final results = await repo.fetchTickets(
         finished: targetFinished,
         page: 1,
@@ -104,8 +175,10 @@ class SupportTicketController extends GetxController {
       );
       if (targetFinished) {
         finishedTickets.assignAll(results);
+        hasLoadedFinishedTickets.value = true;
       } else {
         activeTickets.assignAll(results);
+        hasLoadedActiveTickets.value = true;
       }
     } finally {
       isLoading.value = false;
@@ -113,10 +186,17 @@ class SupportTicketController extends GetxController {
   }
 
   /// Switch filter between Active and Finished tickets
+  /// Uses cached results if already fetched without re-firing API
   void setFilter(bool finished) {
     if (showFinished.value == finished) return;
     showFinished.value = finished;
-    loadTickets();
+
+    final alreadyLoaded = finished
+        ? hasLoadedFinishedTickets.value
+        : hasLoadedActiveTickets.value;
+    if (!alreadyLoaded && !isLoading.value) {
+      loadTickets();
+    }
   }
 
   /// Loads full discussion thread and opens bottom sheet

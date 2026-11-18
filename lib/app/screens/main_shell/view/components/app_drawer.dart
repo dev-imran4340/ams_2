@@ -5,7 +5,6 @@ import 'package:get/get.dart';
 import '../../../../core/utils/app_colors.dart';
 import '../../../../core/utils/app_spaces.dart';
 import '../../../../core/utils/app_text_styles.dart';
-import '../../../../core/widgets/custom_snackbar.dart';
 import '../../../../routes/app_routes.dart';
 import '../../../index/controller/index_controller.dart';
 import '../../controller/session_me_controller.dart';
@@ -93,9 +92,13 @@ class AppDrawer extends StatelessWidget {
                   final bool hasDocuments =
                       sessionController.hasModule('documents') &&
                       sessionController.hasPermission('documents.view') &&
-                      (sessionController.hasMenuItem('documents') ||
-                          sessionController.hasMenuItem('news'));
+                      sessionController.hasMenuItem('documents');
                   final int docBadges = sessionController.getBadge('documents');
+
+                  final bool hasNews =
+                      sessionController.hasModule('documents') &&
+                      sessionController.hasPermission('documents.view') &&
+                      sessionController.hasMenuItem('news');
 
                   final bool hasTasks =
                       sessionController.hasModule('onboarding') &&
@@ -109,8 +112,8 @@ class AppDrawer extends StatelessWidget {
                           sessionController.hasPermission('employees.view', 'company'));
 
                   final bool hasSupport =
-                      sessionController.hasPermission('support.view') &&
-                      sessionController.hasMenuItem('support');
+                      sessionController.hasMenuItem('support') ||
+                      sessionController.hasPermission('support.view');
 
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -197,31 +200,35 @@ class AppDrawer extends StatelessWidget {
                           onTap: () => _navigateToRoute(Routes.LOANS),
                         ),
 
-                      // Card 6: Performance & KPIs (Module: performance)
+                      // Card 6: Evaluation (Module: performance)
                       if (hasPerformance)
                         DrawerModuleCard(
-                          title: 'Performance & KPIs',
-                          subtitle:
-                              'Reviews, KPI criteria & manager appraisals',
+                          title: 'Evaluation',
+                          subtitle: 'Performance reviews & evaluations',
                           icon: Icons.trending_up_rounded,
                           accentTint: AppColors.accentNavy,
                           onTap: () => _navigateToRoute(Routes.EVALUATION),
                         ),
 
-                      // Card 7: Company Policies (Module: documents)
+                      // Card 7: Documents & Policies (Module: documents)
                       if (hasDocuments)
                         DrawerModuleCard(
-                          title: 'Company Policies',
+                          title: 'Documents & Letters',
                           subtitle: 'Handbooks, notices & legal documents',
                           icon: Icons.menu_book_outlined,
                           accentTint: AppColors.info,
                           badgeCount: docBadges,
-                          onTap: () {
-                            Get.back();
-                            CustomSnackbar.showInfo(
-                              message: 'Company policies and letters are up to date.',
-                            );
-                          },
+                          onTap: () => _navigateToRoute(Routes.DOCUMENTS),
+                        ),
+
+                      // Card 7b: News & Events (Module: documents, menu: news)
+                      if (hasNews)
+                        DrawerModuleCard(
+                          title: 'News & Events',
+                          subtitle: 'Announcements, events & milestones',
+                          icon: Icons.campaign_outlined,
+                          accentTint: AppColors.secondary,
+                          onTap: () => _navigateToRoute(Routes.NEWS),
                         ),
 
                       // Card 8: Daily Tasks (Module: onboarding)

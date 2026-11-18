@@ -14,6 +14,7 @@ abstract class Routes {
   static const FACE_RECOGNITION = '/face_recognition';
   static const TASKS = '/tasks';
   static const EVALUATION = '/evaluation';
+  static const EVALUATION_DETAILS = '/evaluation-details';
   static const EMPLOYEE_CARD = '/employee-card';
   static const ORG_HUB = '/org-hub';
   static const ORG_MODE_SELECTION = '/org-mode-selection';
@@ -36,6 +37,10 @@ abstract class Routes {
   static const PAYROLL = '/payroll';
   static const LOANS = '/loans';
   static const SUPPORT_TICKETS = '/support-tickets';
+  static const DOCUMENTS = '/documents';
+  static const POLICY_DETAILS = '/policy-details';
+  static const NEWS = '/news';
+  static const ANNOUNCEMENT_DETAILS = '/announcement-details';
 }
 
 

@@ -436,6 +436,8 @@ class SalaryStructureModel {
   final String currency;
   final bool socialSecurityEnrolled;
   final String? reason;
+  final String? changeKind;
+  final String? changeKindLabel;
   final List<SalaryLineModel> lines;
 
   SalaryStructureModel({
@@ -448,6 +450,8 @@ class SalaryStructureModel {
     required this.currency,
     required this.socialSecurityEnrolled,
     this.reason,
+    this.changeKind,
+    this.changeKindLabel,
     required this.lines,
   });
 
@@ -462,6 +466,8 @@ class SalaryStructureModel {
       currency: json['currency']?.toString() ?? 'PKR',
       socialSecurityEnrolled: json['social_security_enrolled'] == true,
       reason: json['reason']?.toString(),
+      changeKind: json['change_kind']?.toString(),
+      changeKindLabel: json['change_kind_label']?.toString(),
       lines: (json['lines'] as List<dynamic>?)
               ?.map((e) => SalaryLineModel.fromJson(e))
               .toList() ??
@@ -479,6 +485,8 @@ class SalaryStructureModel {
         'currency': currency,
         'social_security_enrolled': socialSecurityEnrolled,
         'reason': reason,
+        'change_kind': changeKind,
+        'change_kind_label': changeKindLabel,
         'lines': lines.map((e) => e.toJson()).toList(),
       };
 }

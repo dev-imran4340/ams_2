@@ -130,6 +130,7 @@ class DashboardRepo {
   /// Supports JSON and Multipart (when photoFile is attached for selfie verification)
   Future<TodayAttendanceModel?> submitPunch({
     required String kind,
+    String? breakType,
     double? latitude,
     double? longitude,
     int? accuracyMeters,
@@ -149,6 +150,10 @@ class DashboardRepo {
           'kind': kind,
           'idempotency_key': idempotencyKey,
         };
+
+        if (breakType != null && breakType.isNotEmpty) {
+          fields['break_type'] = breakType;
+        }
 
         if (latitude != null && longitude != null) {
           fields['latitude'] = latitude.toString();
@@ -194,6 +199,10 @@ class DashboardRepo {
         'kind': kind,
         'idempotency_key': idempotencyKey,
       };
+
+      if (breakType != null && breakType.isNotEmpty) {
+        body['break_type'] = breakType;
+      }
 
       if (latitude != null && longitude != null) {
         body['latitude'] = latitude;

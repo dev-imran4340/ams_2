@@ -439,7 +439,7 @@ class FaceRecognitionController extends GetxController
 
   int _frameCounter = 0;
 
-  /// Evaluates each camera frame using Google ML Kit (Ported directly from smart_attendance)
+  /// Evaluates each camera frame using Google ML Kit
   Future<void> _processCameraFrame(CameraImage image) async {
     if (isProcessingFrame.value || isClosed) return;
     _frameCounter++;
@@ -483,7 +483,7 @@ class FaceRecognitionController extends GetxController
     }
   }
 
-  /// Converts CameraImage into ML Kit InputImage format using smart_attendance conversion
+  /// Converts CameraImage into ML Kit InputImage format
   InputImage? _inputImageFromCameraImage(CameraImage image) {
     if (activeCamera == null) return null;
 
@@ -533,36 +533,15 @@ class FaceRecognitionController extends GetxController
     final face = faces.first;
     final box = face.boundingBox;
 
-    // Check 2: Mask / Covered Face Check (via ML Kit facial landmarks)
-    final bool hasNose = face.landmarks[FaceLandmarkType.noseBase] != null;
-    final bool hasBottomMouth =
-        face.landmarks[FaceLandmarkType.bottomMouth] != null;
-    final bool hasLeftMouth =
-        face.landmarks[FaceLandmarkType.leftMouth] != null;
-    final bool hasRightMouth =
-        face.landmarks[FaceLandmarkType.rightMouth] != null;
-    final bool isFaceCovered =
-        !hasNose && !hasBottomMouth && !hasLeftMouth && !hasRightMouth;
+    // Check 2: Eyes Open Check (Must be awake and eyes clearly open, threshold >= 0.55)
+    final double leftEyeProb = face.leftEyeOpenProbability ?? 1.0;
+    final double rightEyeProb = face.rightEyeOpenProbability ?? 1.0;
+    final bool eyesOpen = (leftEyeProb >= 0.55) && (rightEyeProb >= 0.55);
 
-    // Check 3: Dark Glasses / Eyes Open Check
-    final double? rawLeftEye = face.leftEyeOpenProbability;
-    final double? rawRightEye = face.rightEyeOpenProbability;
-    final bool hasLeftEyeLandmark =
-        face.landmarks[FaceLandmarkType.leftEye] != null;
-    final bool hasRightEyeLandmark =
-        face.landmarks[FaceLandmarkType.rightEye] != null;
-    final double leftEyeProb = rawLeftEye ?? (hasLeftEyeLandmark ? 0.75 : 0.0);
-    final double rightEyeProb =
-        rawRightEye ?? (hasRightEyeLandmark ? 0.75 : 0.0);
-    final bool eyesOpen = (leftEyeProb >= 0.40) && (rightEyeProb >= 0.40);
-    final bool darkGlasses = !hasLeftEyeLandmark ||
-        !hasRightEyeLandmark ||
-        (rawLeftEye == null && rawRightEye == null);
-
-    // Check 4: Head orientation (Yaw <= 20 deg, Roll <= 15 deg — facing camera directly)
+    // Check 3: Head orientation check (Yaw within 22 deg, Roll within 16 deg - facing camera straight)
     final double yaw = face.headEulerAngleY ?? 0.0;
     final double roll = face.headEulerAngleZ ?? 0.0;
-    final bool headStraight = yaw.abs() <= 20.0 && roll.abs() <= 15.0;
+    final bool headStraight = yaw.abs() <= 22.0 && roll.abs() <= 16.0;
 
     // In portrait orientation, camera sensor portrait dimensions:
     final double camW = math.min(frameWidth, frameHeight);
@@ -570,7 +549,7 @@ class FaceRecognitionController extends GetxController
     final bool isFront =
         activeCamera?.lensDirection == CameraLensDirection.front;
 
-    // Check 5: Centering with front-camera mirroring (Strict within +/- 0.28)
+    // Check 4: Centering with front-camera mirroring (Strict within +/- 0.24)
     final double camFaceCenterX = box.left + (box.width / 2.0);
     final double camFaceCenterY = box.top + (box.height / 2.0);
     final double previewCenterX =
@@ -579,15 +558,15 @@ class FaceRecognitionController extends GetxController
 
     final double offsetX = (previewCenterX - (camW / 2.0)) / camW;
     final double offsetY = (previewCenterY - (camH / 2.0)) / camH;
-    final bool isCentered = offsetX.abs() <= 0.28 && offsetY.abs() <= 0.28;
+    final bool isCentered = offsetX.abs() <= 0.24 && offsetY.abs() <= 0.24;
 
-    // Check 6: Proportional distance / scale (28% to 65% of portrait width — neither too far nor too close)
+    // Check 5: Proportional distance / scale (25% to 75% of portrait width - optimal face distance)
     final double scaleRatio = box.width / camW;
-    final bool isScaleValid = scaleRatio >= 0.28 && scaleRatio <= 0.65;
+    final bool isScaleValid = scaleRatio >= 0.25 && scaleRatio <= 0.75;
 
-    // Check 7: Full face fits inside the biometric viewfinder
-    final double ovalW = 240.w;
-    final double ovalH = 310.h;
+    // Check 6: Full face fits inside the biometric viewfinder
+    final double ovalW = 250.w;
+    final double ovalH = 300.h;
     final double ovalA = ovalW / 2.0;
     final double ovalB = ovalH / 2.0;
 
@@ -610,38 +589,36 @@ class FaceRecognitionController extends GetxController
     bool isPointInOval(double px, double py) {
       final double dx = (px - ovalA) / ovalA;
       final double dy = (py - ovalB) / ovalB;
-      return (dx * dx + dy * dy) <= 1.15; // Strict oval boundary
+      return (dx * dx + dy * dy) <= 1.20; // Strict oval boundary
     }
 
-    final bool fitsHorizontally = fLeft >= -30.w && fRight <= (ovalW + 30.w);
-    final bool fitsVertically = fTop >= -30.h && fBottom <= (ovalH + 30.h);
+    final bool fitsHorizontally = fLeft >= -20.w && fRight <= (ovalW + 20.w);
+    final bool fitsVertically = fTop >= -20.h && fBottom <= (ovalH + 20.h);
     final bool isInsideOval = fitsHorizontally &&
         fitsVertically &&
         isPointInOval(fMidX, fMidY);
 
     debugPrint(
-        '>>> [AI FACE CHECKS] 1Face: true | EyesOpen: $eyesOpen (L: ${leftEyeProb.toStringAsFixed(2)}, R: ${rightEyeProb.toStringAsFixed(2)}) | DarkGlasses: $darkGlasses | Mask: $isFaceCovered | HeadStraight: $headStraight (yaw: ${yaw.toStringAsFixed(1)}, roll: ${roll.toStringAsFixed(1)}) | Centered: $isCentered (offX: ${offsetX.toStringAsFixed(2)}, offY: ${offsetY.toStringAsFixed(2)}) | Scale: $isScaleValid (${scaleRatio.toStringAsFixed(2)}) | InsideOval: $isInsideOval');
+        '>>> [AI FACE CHECKS] 1Face: true | EyesOpen: $eyesOpen (L: ${leftEyeProb.toStringAsFixed(2)}, R: ${rightEyeProb.toStringAsFixed(2)}) | HeadStraight: $headStraight (yaw: ${yaw.toStringAsFixed(1)}, roll: ${roll.toStringAsFixed(1)}) | Centered: $isCentered (offX: ${offsetX.toStringAsFixed(2)}, offY: ${offsetY.toStringAsFixed(2)}) | Scale: $isScaleValid (${scaleRatio.toStringAsFixed(2)}) | InsideOval: $isInsideOval');
 
     // Determine descriptive feedback message in priority order
     String feedback = 'Hold steady — scanning…';
-    if (isFaceCovered) {
-      feedback = 'Please remove mask or uncover your face';
-    } else if (!eyesOpen || darkGlasses) {
-      feedback = 'Please remove dark glasses and open eyes';
+    if (!eyesOpen) {
+      feedback = 'Please open your eyes to scan';
     } else if (!headStraight) {
       feedback = 'Keep head straight and face the camera';
-    } else if (scaleRatio < 0.28) {
+    } else if (scaleRatio < 0.25) {
       feedback = 'Move closer to camera';
-    } else if (scaleRatio > 0.65) {
+    } else if (scaleRatio > 0.75) {
       feedback = 'Move slightly back';
     } else if (!isInsideOval || !isCentered) {
-      feedback = 'Position your face inside the oval';
+      feedback = 'Position your face in the oval';
     }
 
     final result = FaceCheckResult(
       hasExactlyOneFace: true,
       faceCount: 1,
-      eyesOpen: eyesOpen && !darkGlasses,
+      eyesOpen: eyesOpen,
       leftEyeProbability: leftEyeProb,
       rightEyeProbability: rightEyeProb,
       headStraight: headStraight,
@@ -653,7 +630,6 @@ class FaceRecognitionController extends GetxController
       isScaleValid: isScaleValid,
       scaleRatio: scaleRatio,
       isInsideOval: isInsideOval,
-      isMaskOrCovered: isFaceCovered,
       statusMessage: feedback,
     );
 
@@ -668,7 +644,7 @@ class FaceRecognitionController extends GetxController
         matchProgress.value = 0.0;
         return;
       }
-      // Require 5 consecutive steady frames (~150ms) to ensure stability before capturing photo
+      // Require 5 consecutive steady frames (~170ms) to ensure solid stability before capturing photo
       _consecutivePassFrames++;
       matchProgress.value = (_consecutivePassFrames / 5.0).clamp(0.0, 1.0);
 
@@ -757,9 +733,21 @@ class FaceRecognitionController extends GetxController
           '>>> [AI FACE] Face captured successfully with face: ${detectedFace.boundingBox}');
 
       // Save as reference face template locally
+      List<double>? directEnrollVector;
+      if (_lastFrame != null) {
+        if (!repo.faceNet.isModelLoaded) {
+          await repo.faceNet.loadModel();
+        }
+        directEnrollVector = repo.faceNet.extractEmbeddingFromCameraImage(
+          _lastFrame!,
+          detectedFace,
+        );
+      }
+
       await repo.saveReferenceFace(
         capturedFile,
         detectedFace: detectedFace,
+        enrolledVectorDirect: directEnrollVector,
       );
 
       // If in Punch Mode:
@@ -902,10 +890,24 @@ class FaceRecognitionController extends GetxController
         return;
       }
 
+      // Extract direct live vector embedding if stream frame is available
+      List<double>? directLiveVector;
+      if (_lastFrame != null && _lastDetectedFace != null) {
+        if (!repo.faceNet.isModelLoaded) {
+          await repo.faceNet.loadModel();
+        }
+        directLiveVector = repo.faceNet.extractEmbeddingFromCameraImage(
+          _lastFrame!,
+          _lastDetectedFace!,
+        );
+      }
+
       // Compare decoded live selfie face directly with server reference face
       report = await repo.compareFaces(
         referenceFile: refFile,
         liveSelfieFile: selfieFile,
+        liveDetectedFace: _lastDetectedFace,
+        liveVectorDirect: directLiveVector,
       );
 
       comparisonReport.value = report;

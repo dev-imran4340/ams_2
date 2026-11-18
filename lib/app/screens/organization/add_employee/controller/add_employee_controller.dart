@@ -24,7 +24,7 @@ class AddEmployeeController extends GetxController {
   final RxInt activeStep = 0.obs; // Compatible with step indicator wizard
   final Rxn<AddEmployeeLookupModel> lookups = Rxn<AddEmployeeLookupModel>();
 
-  // Country & City Observables (matching smart_attendance employee registration)
+  // Country & City Observables
   final RxList<CountryModel> countries = <CountryModel>[].obs;
   final Rx<CountryModel?> selectedCountry = Rx<CountryModel?>(null);
   final RxString selectedDialCode = '+92'.obs;
@@ -77,7 +77,7 @@ class AddEmployeeController extends GetxController {
   final TextEditingController relationshipController = TextEditingController();
   final TextEditingController joiningDateController = TextEditingController();
 
-  // Aliases matching smart_attendance field naming convention
+  // Form field controller aliases
   TextEditingController get emergencyMobController => emergencyPhoneController;
   TextEditingController get emergencyContactNameController => emergencyNameController;
 
@@ -144,7 +144,7 @@ class AddEmployeeController extends GetxController {
     }
   }
 
-  /// Photo selection via Camera or Gallery (matching smart_attendance)
+  /// Photo selection via Camera or Gallery
   Future<void> pickPhoto(ImageSource source) async {
     try {
       final picker = ImagePicker();
@@ -256,7 +256,7 @@ class AddEmployeeController extends GetxController {
     }
   }
 
-  /// Submits employee registration form (matching smart_attendance logic + AMS 2 safety)
+  /// Submits employee registration form
   Future<void> submitEmployeeRegistration() async {
     final name = nameController.text.trim();
     final email = emailController.text.trim();

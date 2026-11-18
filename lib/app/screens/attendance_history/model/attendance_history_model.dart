@@ -196,6 +196,8 @@ class AttendanceHistoryDayModel {
   final int lateMinutes;
   final int earlyOutMinutes;
   final int shortMinutes;
+  final bool latePenalised;
+  final bool earlyOutPenalised;
   final int overtimeMinutes;
   final String overtime;
   final String? overtimeStatus;
@@ -229,6 +231,8 @@ class AttendanceHistoryDayModel {
     this.lateMinutes = 0,
     this.earlyOutMinutes = 0,
     this.shortMinutes = 0,
+    this.latePenalised = false,
+    this.earlyOutPenalised = false,
     this.overtimeMinutes = 0,
     this.overtime = '0:00',
     this.overtimeStatus,
@@ -409,6 +413,8 @@ class AttendanceHistoryDayModel {
       lateMinutes: (json['late_minutes'] as num?)?.toInt() ?? 0,
       earlyOutMinutes: (json['early_out_minutes'] as num?)?.toInt() ?? 0,
       shortMinutes: (json['short_minutes'] as num?)?.toInt() ?? 0,
+      latePenalised: json['late_penalised'] == true,
+      earlyOutPenalised: json['early_out_penalised'] == true,
       overtimeMinutes: (json['overtime_minutes'] as num?)?.toInt() ?? 0,
       overtime: json['overtime']?.toString() ?? '0:00',
       overtimeStatus: json['overtime_status']?.toString(),

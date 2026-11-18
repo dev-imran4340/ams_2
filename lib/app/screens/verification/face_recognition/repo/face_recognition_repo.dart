@@ -24,7 +24,7 @@ class FaceRecognitionRepo {
   final String _tag = 'FaceRecognitionRepo / FaceScreen';
   static const String referenceFileName = 'enrolled_reference_face.jpg';
   static const String referenceEmbeddingFileName = 'enrolled_face_embedding.json';
-  static const double defaultMatchThreshold = 0.65; // Calibrated for facial landmark geometry & MobileFaceNet cosine similarity
+  static const double defaultMatchThreshold = 0.50; // Calibrated for facial landmark geometry & MobileFaceNet cosine similarity
   double matchThreshold = defaultMatchThreshold;
   static const int targetFaceSize = 112;
   static const double cropPaddingRatio = 0.0; // 0% padding: Strictly face only (zero background)
@@ -48,21 +48,48 @@ class FaceRecognitionRepo {
   FaceDetector? _detector;
   FaceDetector? _accurateDetector;
 
-  /// Robust multi-pass face detector ported from smart_attendance for small, compressed, or blurry profile photos
+  /// Robust multi-pass face detector for profile and captured photos
   Future<List<Face>> detectProfilePhotoFaces(Uint8List rawBytes) async {
-    // Pass 1: Try high-accuracy detector directly on upright original image
+    // Pass 1: Try primary fast detector on orientation-normalized image
+    final tempDir = await getTemporaryDirectory();
+    final tempFile = File(
+      '${tempDir.path}/mlkit_face_${DateTime.now().millisecondsSinceEpoch}.jpg',
+    );
+
+    Uint8List bytesForMl = rawBytes;
     try {
-      final tempDir = await getTemporaryDirectory();
-      final tempFile = File('${tempDir.path}/temp_profile_detect_1.jpg');
-      await tempFile.writeAsBytes(rawBytes, flush: true);
-      final faces = await accurateDetector.processImage(InputImage.fromFile(tempFile));
-      try { await tempFile.delete(); } catch (_) {}
-      if (faces.isNotEmpty) {
-        debugPrint('>>> [AI FACE] Face detected on Pass 1 (accurate original)');
-        return faces;
+      final decoded = img.decodeImage(rawBytes);
+      if (decoded != null) {
+        final upright = img.bakeOrientation(decoded);
+        bytesForMl = img.encodeJpg(upright, quality: 92);
       }
     } catch (e) {
-      debugPrint('>>> [AI FACE] Pass 1 error: $e');
+      debugPrint('>>> [AI FACE] detectProfilePhotoFaces decode/bakeOrientation: $e');
+    }
+
+    try {
+      await tempFile.writeAsBytes(bytesForMl, flush: true);
+      final inputImage = InputImage.fromFilePath(tempFile.absolute.path);
+
+      // Try fast detector first
+      final fastFaces = await detector.processImage(inputImage);
+      if (fastFaces.isNotEmpty) {
+        debugPrint('>>> [AI FACE] Face detected on Pass 1 (fast detector, ${fastFaces.length} faces)');
+        return fastFaces;
+      }
+
+      // Try accurate detector second
+      final accurateFaces = await accurateDetector.processImage(inputImage);
+      if (accurateFaces.isNotEmpty) {
+        debugPrint('>>> [AI FACE] Face detected on Pass 1 (accurate detector, ${accurateFaces.length} faces)');
+        return accurateFaces;
+      }
+    } catch (e) {
+      debugPrint('>>> [AI FACE] Pass 1 detection error: $e');
+    } finally {
+      try {
+        if (tempFile.existsSync()) await tempFile.delete();
+      } catch (_) {}
     }
 
     // Pass 2: Upscale image (Smart Attendance iOS upscale fix for small/compressed thumbnails)
@@ -79,25 +106,22 @@ class FaceRecognitionRepo {
             height: (upright.height * scale).round(),
             interpolation: img.Interpolation.linear,
           );
-          final tempDir = await getTemporaryDirectory();
-          final tempFile = File('${tempDir.path}/temp_profile_detect_2_upscale.jpg');
-          await tempFile.writeAsBytes(img.encodeJpg(enlarged, quality: 95), flush: true);
-          final faces = await accurateDetector.processImage(InputImage.fromFile(tempFile));
-          try { await tempFile.delete(); } catch (_) {}
+          final upFile = File('${tempDir.path}/temp_profile_detect_2_upscale.jpg');
+          await upFile.writeAsBytes(img.encodeJpg(enlarged, quality: 95), flush: true);
+          final faces = await detector.processImage(InputImage.fromFilePath(upFile.absolute.path));
+          try { await upFile.delete(); } catch (_) {}
           if (faces.isNotEmpty) {
             debugPrint('>>> [AI FACE] Face detected on Pass 2 (upscaled ${enlarged.width}x${enlarged.height})');
-            // Rescale bounding box back to original coordinates
             final scaleBack = 1.0 / scale;
-            final origFaces = faces.map((f) {
+            return faces.map((f) {
               final b = f.boundingBox;
-              final scaledBox = Rect.fromLTRB(
-                b.left * scaleBack,
-                b.top * scaleBack,
-                b.right * scaleBack,
-                b.bottom * scaleBack,
-              );
               return Face(
-                boundingBox: scaledBox,
+                boundingBox: Rect.fromLTRB(
+                  b.left * scaleBack,
+                  b.top * scaleBack,
+                  b.right * scaleBack,
+                  b.bottom * scaleBack,
+                ),
                 landmarks: f.landmarks,
                 contours: f.contours,
                 headEulerAngleX: f.headEulerAngleX,
@@ -109,7 +133,6 @@ class FaceRecognitionRepo {
                 trackingId: f.trackingId,
               );
             }).toList();
-            return origFaces;
           }
         }
       }
@@ -117,7 +140,7 @@ class FaceRecognitionRepo {
       debugPrint('>>> [AI FACE] Pass 2 upscale error: $e');
     }
 
-    // Pass 3: Multi-rotation pass (0, 90, 180, 270 degrees)
+    // Pass 3: Multi-rotation pass (90, 270, 180 degrees)
     try {
       final decoded = img.decodeImage(rawBytes);
       if (decoded != null) {
@@ -125,11 +148,10 @@ class FaceRecognitionRepo {
         final angles = [90, 270, 180];
         for (final angle in angles) {
           final rotated = img.copyRotate(upright, angle: angle);
-          final tempDir = await getTemporaryDirectory();
-          final tempFile = File('${tempDir.path}/temp_profile_detect_3_rot$angle.jpg');
-          await tempFile.writeAsBytes(img.encodeJpg(rotated, quality: 92), flush: true);
-          final faces = await accurateDetector.processImage(InputImage.fromFile(tempFile));
-          try { await tempFile.delete(); } catch (_) {}
+          final rotFile = File('${tempDir.path}/temp_profile_detect_3_rot$angle.jpg');
+          await rotFile.writeAsBytes(img.encodeJpg(rotated, quality: 92), flush: true);
+          final faces = await detector.processImage(InputImage.fromFilePath(rotFile.absolute.path));
+          try { await rotFile.delete(); } catch (_) {}
           if (faces.isNotEmpty) {
             debugPrint('>>> [AI FACE] Face detected on Pass 3 (rotation $angle deg)');
             return faces;
@@ -141,7 +163,6 @@ class FaceRecognitionRepo {
     }
 
     // Pass 4: Fallback synthetic face rectangle centered in upper-middle of photo
-    // Server photos from HR are portrait photos where person's face occupies 45% width, 55% height
     final decoded = img.decodeImage(rawBytes);
     final w = decoded?.width ?? 288;
     final h = decoded?.height ?? 352;
@@ -167,9 +188,9 @@ class FaceRecognitionRepo {
         enableLandmarks: true,
         enableContours: false,
         enableClassification: true,
-        enableTracking: false,
+        enableTracking: true,
         performanceMode: FaceDetectorMode.fast,
-        minFaceSize: 0.15,
+        minFaceSize: 0.10,
       ),
     );
     return _detector!;
@@ -180,11 +201,11 @@ class FaceRecognitionRepo {
     _accurateDetector ??= FaceDetector(
       options: FaceDetectorOptions(
         enableLandmarks: true,
-        enableContours: true,
-        enableClassification: true,
+        enableContours: false,
+        enableClassification: false,
         enableTracking: false,
         performanceMode: FaceDetectorMode.accurate,
-        minFaceSize: 0.10,
+        minFaceSize: 0.05,
       ),
     );
     return _accurateDetector!;
@@ -689,7 +710,11 @@ class FaceRecognitionRepo {
   /// Saves the captured live selfie as the enrolled reference face:
   /// Crops ONLY the face bounding box with safe padding (zero background),
   /// resizes to 112x112 px, extracts the 192-dimensional vector, and stores both.
-  Future<File> saveReferenceFace(File sourceImage, {Face? detectedFace}) async {
+  Future<File> saveReferenceFace(
+    File sourceImage, {
+    Face? detectedFace,
+    List<double>? enrolledVectorDirect,
+  }) async {
     final targetPath = await getReferenceFacePath();
     final targetFile = File(targetPath);
 
@@ -732,26 +757,32 @@ class FaceRecognitionRepo {
 
     // 5. Extract normalized 192-dimensional facial embedding vector
     List<double> vector192;
-    try {
-      if (!faceNet.isModelLoaded) {
-        await faceNet.loadModel();
-      }
-      if (faceNet.isModelLoaded && face != null) {
-        vector192 = faceNet.extractEmbeddingFromUint8List(bytes, face);
-        faceNet.setReferenceEmbedding(vector192);
-        debugPrint('>>> [AI FaceNet] MobileFaceNet 192-dim embedding generated successfully.');
-      } else {
+    if (enrolledVectorDirect != null && enrolledVectorDirect.length == 192) {
+      vector192 = List<double>.from(enrolledVectorDirect);
+      faceNet.setReferenceEmbedding(vector192);
+      debugPrint('>>> [AI FaceNet] Enrolled directly using live stream vector embedding.');
+    } else {
+      try {
+        if (!faceNet.isModelLoaded) {
+          await faceNet.loadModel();
+        }
+        if (faceNet.isModelLoaded && face != null) {
+          vector192 = faceNet.extractEmbeddingFromUint8List(bytes, face);
+          faceNet.setReferenceEmbedding(vector192);
+          debugPrint('>>> [AI FaceNet] MobileFaceNet 192-dim embedding generated successfully.');
+        } else {
+          vector192 = extract192DimEmbedding(
+            croppedFace112: croppedFace,
+            detectedFace: face,
+          );
+        }
+      } catch (e) {
+        debugPrint('>>> [AI FaceNet] MobileFaceNet fallback to geometric: $e');
         vector192 = extract192DimEmbedding(
           croppedFace112: croppedFace,
           detectedFace: face,
         );
       }
-    } catch (e) {
-      debugPrint('>>> [AI FaceNet] MobileFaceNet fallback to geometric: $e');
-      vector192 = extract192DimEmbedding(
-        croppedFace112: croppedFace,
-        detectedFace: face,
-      );
     }
 
     // 6. Serialize and save to AppPreferences (Central storage authority)
@@ -953,9 +984,9 @@ class FaceRecognitionRepo {
           oriented = img.copyFlip(oriented, direction: img.FlipDirection.horizontal);
         }
       } else {
-        if (isFrontCamera) {
-          oriented = img.copyFlip(base, direction: img.FlipDirection.horizontal);
-        }
+        // Android: base is already rotated upright by -90 deg in _convertCameraImage
+        // Do NOT mirror/flip so bounding boxes from ML Kit align directly with image coordinates
+        oriented = base;
       }
 
       final jpgBytes = img.encodeJpg(oriented, quality: 85);
@@ -1052,6 +1083,8 @@ class FaceRecognitionRepo {
   Future<FaceComparisonReport> compareFaces({
     required File referenceFile,
     required File liveSelfieFile,
+    Face? liveDetectedFace,
+    List<double>? liveVectorDirect,
   }) async {
     try {
       // 0. Ensure FaceNet is loaded
@@ -1099,46 +1132,53 @@ class FaceRecognitionRepo {
         }
       }
 
-      // 2. Process Live Selfie: Detect face & Crop to 112x112 (Dropping all background)
-      final liveBytes = await liveSelfieFile.readAsBytes();
-      final liveFaces = await detectProfilePhotoFaces(liveBytes);
+      // 2. Process Live Selfie: Use direct vector if available, or extract from live image
+      List<double>? liveVector = (liveVectorDirect != null && liveVectorDirect.length == 192)
+          ? liveVectorDirect
+          : null;
 
-      if (liveFaces.isEmpty) {
-        debugPrint('>>> [AI FACE] No face detected in live captured selfie');
-        return FaceComparisonReport(
-          matched: false,
-          score: 0.0,
-          statusLog: 'FAILED',
-          message: 'No face detected in live capture. Please center your face inside the frame.',
-          timestamp: DateTime.now(),
-        );
-      }
-      List<double>? liveVector;
+      if (liveVector == null) {
+        final liveBytes = await liveSelfieFile.readAsBytes();
+        final List<Face> liveFaces = liveDetectedFace != null
+            ? [liveDetectedFace]
+            : await detectProfilePhotoFaces(liveBytes);
 
-      if (faceNet.isModelLoaded) {
-        try {
-          liveVector = faceNet.extractEmbeddingFromUint8List(liveBytes, liveFaces.first);
-        } catch (_) {}
-      }
+        if (liveFaces.isEmpty) {
+          debugPrint('>>> [AI FACE] No face detected in live captured selfie');
+          return FaceComparisonReport(
+            matched: false,
+            score: 0.0,
+            statusLog: 'FAILED',
+            message: 'No face detected in live capture. Please center your face inside the frame.',
+            timestamp: DateTime.now(),
+          );
+        }
 
-      if (liveVector == null || liveVector.length != 192) {
-        img.Image? liveDecoded = img.decodeImage(liveBytes);
-        if (liveDecoded != null) liveDecoded = img.bakeOrientation(liveDecoded);
+        if (faceNet.isModelLoaded) {
+          try {
+            liveVector = faceNet.extractEmbeddingFromUint8List(liveBytes, liveFaces.first);
+          } catch (_) {}
+        }
 
-        final croppedLive = cropFaceFromImage(
-          sourceImage: liveDecoded ?? img.Image(width: targetFaceSize, height: targetFaceSize),
-          boundingBox: liveFaces.first.boundingBox,
-          detectedFace: liveFaces.first,
-        );
+        if (liveVector == null || liveVector.length != 192) {
+          img.Image? liveDecoded = img.decodeImage(liveBytes);
+          if (liveDecoded != null) liveDecoded = img.bakeOrientation(liveDecoded);
 
-        liveVector = extract192DimEmbedding(
-          croppedFace112: croppedLive,
-          detectedFace: liveFaces.first,
-        );
+          final croppedLive = cropFaceFromImage(
+            sourceImage: liveDecoded ?? img.Image(width: targetFaceSize, height: targetFaceSize),
+            boundingBox: liveFaces.first.boundingBox,
+            detectedFace: liveFaces.first,
+          );
+
+          liveVector = extract192DimEmbedding(
+            croppedFace112: croppedLive,
+            detectedFace: liveFaces.first,
+          );
+        }
       }
 
       // 3. Dual Matching Engine:
-      // First check FaceNet Euclidean Distance (smart_attendance logic: distance <= 1.0)
+      // First check FaceNet Euclidean Distance (calibrated distance <= 1.0)
       bool isMatch = false;
       double score = 0.0;
       if (faceNet.isModelLoaded) {

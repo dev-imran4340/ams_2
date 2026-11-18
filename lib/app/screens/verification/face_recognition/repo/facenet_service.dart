@@ -7,7 +7,7 @@ import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:image/image.dart' as imglib;
 import 'package:tflite_flutter/tflite_flutter.dart';
 
-/// FaceNet MobileFaceNet Service ported directly from smart_attendance
+/// FaceNet MobileFaceNet Service
 /// Generates 192-dimensional embeddings via TFLite and matches using Euclidean distance.
 class FaceNetService {
   static final FaceNetService _instance = FaceNetService._internal();
@@ -17,7 +17,7 @@ class FaceNetService {
   }
 
   FaceNetService._internal() {
-    threshold = 0.88; // Strict threshold for MobileFaceNet to prevent false positives (Euclidean distance <= 0.88)
+    threshold = 1.0; // Calibrated MobileFaceNet threshold (distance <= 1.0)
   }
 
   static const String modelAssetPath = 'assets/models/mobilefacenet.tflite';

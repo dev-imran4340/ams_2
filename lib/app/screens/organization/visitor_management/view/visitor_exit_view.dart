@@ -273,7 +273,7 @@ class VisitorExitView extends GetView<VisitorController> {
     );
   }
 
-  /// Step Indicator matching smart_attendance Select -> Verify -> Exit
+  /// Step Indicator Select -> Verify -> Exit
   Widget _buildStepIndicator(Color exitAccent) {
     return Obx(() {
       final hasSelection = controller.selectedVisitor.value != null;

@@ -99,6 +99,9 @@ Buttons: Primary buttons hamesha CustomButton(isGradient: true) honge (Corporate
 
 Error & Empty States: Ad-hoc inline columns banaye bina centralized CustomStateView.error(...) aur CustomStateView.empty(...) use karein.
 
+Mandatory Centering for Empty & Error States (Strict Invariant):
+CustomStateView.empty(...) aur CustomStateView.error(...) ko hamesha screen ya content container ke exact vertical aur horizontal center mein (`Center(child: ...)`, ya scrollable views mein `SliverFillRemaining(hasScrollBody: false, child: Center(child: ...))` ya `LayoutBuilder(builder: (c, constraints) => SingleChildScrollView(physics: AlwaysScrollableScrollPhysics(), child: ConstrainedBox(constraints: BoxConstraints(minHeight: constraints.maxHeight), child: Center(child: ...))))`) render karna lazmi hai. UI mein kabhi bhi empty ya error state ko top-aligned ya un-centered na chhodein.
+
 Root Screen Container: UI root ko NetworkBoundaryWrapper se wrap karein.
 
 5. Asynchronous Loading & Double-Tap Prevention
@@ -114,6 +117,8 @@ try {
 
 
 Jab isLoading.value == true ho, tamam interactive buttons disable hone chahiye taake duplicate API requests trigger na hon. Dialogs mein PopScope(canPop: !isLoading.value) lazmi ho.
+
+Mandatory Visual Loading Feedback: Jab bhi screen khulay, tab/filter change ho, ya user 'Refresh' action/button tap kare, UI par `isLoading.value == true` hote hi proper spinning progress indicator (`CircularProgressIndicator(color: AppColors.secondary)`) render hona lazmi hai taake user ko clear feedback mil sake ke request chal rahi hai. Loading state ko kisi flag se suppress karna strictly forbidden hai.
 
 PART 2: STRICT API & BACKEND INTEGRATION RULES
 
@@ -245,3 +250,5 @@ Jab bhi Agent koi naya code generate ya modify kare, wo in 7 checks ko verify ka
 [ ] API Tagging Check: Kya Repository call mein mandatory tag: '... -> ...' pass hua hai?
 
 [ ] Zero Dummy / Fallback Check: Kya live API call fail hone par dummy fallback data inject karne ke bajaye clean null / CustomStateView handle kiya gaya hai?
+
+[ ] Centered Empty & Error State Check: Kya empty aur error state widget screen ke exact vertical & horizontal center mein render ho raha hai?

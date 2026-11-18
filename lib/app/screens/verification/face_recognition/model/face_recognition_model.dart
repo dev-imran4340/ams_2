@@ -108,8 +108,7 @@ class FaceCheckResult {
       headStraight &&
       isCentered &&
       isScaleValid &&
-      isInsideOval &&
-      !isMaskOrCovered;
+      isInsideOval;
 
   factory FaceCheckResult.initial() {
     return const FaceCheckResult(

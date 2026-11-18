@@ -105,6 +105,8 @@ class AttendanceSummaryDataModel {
   final AttendanceSummaryMetricCountModel late;
   final AttendanceSummaryMetricCountModel earlyOut;
   final int shortMinutes;
+  final int shortCoveredMinutes;
+  final int totalCountedMinutes;
   final int missingCheckOuts;
   final AttendanceSummaryOvertimeModel overtime;
   final List<dynamic> penalties;
@@ -118,6 +120,8 @@ class AttendanceSummaryDataModel {
     required this.late,
     required this.earlyOut,
     required this.shortMinutes,
+    this.shortCoveredMinutes = 0,
+    this.totalCountedMinutes = 0,
     required this.missingCheckOuts,
     required this.overtime,
     this.penalties = const [],
@@ -141,6 +145,8 @@ class AttendanceSummaryDataModel {
   String get workedHoursFormatted => formatMinutes(workedMinutes);
   String get countedHoursFormatted => formatMinutes(countedMinutes);
   String get shortHoursFormatted => formatMinutes(shortMinutes);
+  String get shortCoveredHoursFormatted => formatMinutes(shortCoveredMinutes);
+  String get totalCountedHoursFormatted => formatMinutes(totalCountedMinutes);
   String get lateHoursFormatted => formatMinutes(late.minutes);
   String get earlyOutHoursFormatted => formatMinutes(earlyOut.minutes);
   String get approvedOvertimeFormatted => formatMinutes(overtime.approvedMinutes);
@@ -169,6 +175,8 @@ class AttendanceSummaryDataModel {
       late: AttendanceSummaryMetricCountModel.fromJson(lateMap),
       earlyOut: AttendanceSummaryMetricCountModel.fromJson(earlyOutMap),
       shortMinutes: json['short_minutes'] as int? ?? 0,
+      shortCoveredMinutes: json['short_covered_minutes'] as int? ?? 0,
+      totalCountedMinutes: json['total_counted_minutes'] as int? ?? 0,
       missingCheckOuts: json['missing_check_outs'] as int? ?? 0,
       overtime: AttendanceSummaryOvertimeModel.fromJson(overtimeMap),
       penalties: json['penalties'] is List ? json['penalties'] as List : const [],
@@ -184,6 +192,8 @@ class AttendanceSummaryDataModel {
         'late': late.toJson(),
         'early_out': earlyOut.toJson(),
         'short_minutes': shortMinutes,
+        'short_covered_minutes': shortCoveredMinutes,
+        'total_counted_minutes': totalCountedMinutes,
         'missing_check_outs': missingCheckOuts,
         'overtime': overtime.toJson(),
         'penalties': penalties,

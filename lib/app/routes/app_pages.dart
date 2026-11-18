@@ -57,6 +57,7 @@ import '../screens/tasks/controller/task_controller.dart';
 import '../screens/tasks/repo/task_repo.dart';
 
 import '../screens/evaluation/view/evaluation_view.dart';
+import '../screens/evaluation/view/evaluation_details_view.dart';
 import '../screens/evaluation/controller/evaluation_controller.dart';
 import '../screens/evaluation/repo/evaluation_repo.dart';
 
@@ -120,6 +121,16 @@ import '../screens/loans/repo/money_request_repo.dart';
 import '../screens/support_tickets/view/support_tickets_view.dart';
 import '../screens/support_tickets/controller/support_ticket_controller.dart';
 import '../screens/support_tickets/repo/support_ticket_repo.dart';
+
+import '../screens/documents/view/documents_view.dart';
+import '../screens/documents/view/policy_details_view.dart';
+import '../screens/documents/controller/document_controller.dart';
+import '../screens/documents/repo/document_repo.dart';
+
+import '../screens/news/view/news_view.dart';
+import '../screens/news/view/announcement_details_view.dart';
+import '../screens/news/controller/news_controller.dart';
+import '../screens/news/repo/news_repo.dart';
 
 class AppPages {
   // Initial Entry Route
@@ -316,6 +327,20 @@ class AppPages {
     GetPage(
       name: Routes.EVALUATION,
       page: () => const EvaluationView(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => EvaluationRepo(), fenix: true);
+        Get.lazyPut(
+          () => EvaluationController(repo: Get.find()),
+          fenix: true,
+        );
+      }),
+    ),
+
+    // 10b. Employee Evaluation Details Screen
+    GetPage(
+      name: Routes.EVALUATION_DETAILS,
+      page: () => const EvaluationDetailsView(),
+      transition: Transition.rightToLeftWithFade,
       binding: BindingsBuilder(() {
         Get.lazyPut(() => EvaluationRepo(), fenix: true);
         Get.lazyPut(
@@ -613,6 +638,63 @@ class AppPages {
         Get.lazyPut(() => SupportTicketRepo(), fenix: true);
         Get.lazyPut(
           () => SupportTicketController(repo: Get.find()),
+          fenix: true,
+        );
+      }),
+    ),
+
+    // 30. Documents, Policies & Letters Screen (Phase 17 Live Engine)
+    GetPage(
+      name: Routes.DOCUMENTS,
+      page: () => const DocumentsView(),
+      transition: Transition.cupertino,
+      transitionDuration: const Duration(milliseconds: 250),
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => DocumentRepo(), fenix: true);
+        Get.lazyPut(
+          () => DocumentController(repo: Get.find()),
+          fenix: true,
+        );
+      }),
+    ),
+
+    // 31. Policy Details Screen
+    GetPage(
+      name: Routes.POLICY_DETAILS,
+      page: () => const PolicyDetailsView(),
+      transition: Transition.cupertino,
+      transitionDuration: const Duration(milliseconds: 250),
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => DocumentRepo(), fenix: true);
+        Get.lazyPut(
+          () => DocumentController(repo: Get.find()),
+          fenix: true,
+        );
+      }),
+    ),
+
+    // 32. News, Events & Milestones Screen (Phase 17 Pillar 2)
+    GetPage(
+      name: Routes.NEWS,
+      page: () => const NewsView(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => NewsRepo(), fenix: true);
+        Get.lazyPut(
+          () => NewsController(repo: Get.find()),
+          fenix: true,
+        );
+      }),
+    ),
+
+    // 33. Announcement Details Screen
+    GetPage(
+      name: Routes.ANNOUNCEMENT_DETAILS,
+      page: () => const AnnouncementDetailsView(),
+      transition: Transition.rightToLeftWithFade,
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => NewsRepo(), fenix: true);
+        Get.lazyPut(
+          () => NewsController(repo: Get.find()),
           fenix: true,
         );
       }),

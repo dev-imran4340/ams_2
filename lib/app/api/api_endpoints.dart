@@ -70,12 +70,46 @@ class ApiEndpoints {
   static String meMoneyRequestDetails(String id) => '/me/money-requests/$id';
   static String meMoneyRequestCancel(String id) => '/me/money-requests/$id/cancel';
 
-  // 11. Support Tickets & Helpdesk (Phase 10 Live Engine)
+  // 11. Support Tickets, Helpdesk & Training Videos (Phase 10 Live Engine)
+  static const String supportTrainingVideos = '/support/training-videos';
   static const String supportTickets = '/support/tickets';
   static String supportTicketDetails(String id) => '/support/tickets/$id';
   static String supportTicketReplies(String id) => '/support/tickets/$id/replies';
   static String supportTicketClose(String id) => '/support/tickets/$id/close';
   static String supportTicketReopen(String id) => '/support/tickets/$id/reopen';
   static String supportTicketFile(String id, String fileId) => '/support/tickets/$id/files/$fileId';
+
+  // 12. Performance Reviews & Appraisals (Phase 16 Live Engine)
+  static const String performanceReviews = '/performance/reviews';
+  static String performanceReviewDetails(String id) => '/performance/reviews/$id';
+  static String performanceReviewAnswers(String id) => '/performance/reviews/$id/answers';
+  static String performanceReviewSubmit(String id) => '/performance/reviews/$id/submit';
+  static String performanceReviewGoals(String id) => '/performance/reviews/$id/goals';
+  static String performanceReviewPeers(String id) => '/performance/reviews/$id/peers';
+  static String performanceReviewDecline(String id) => '/performance/reviews/$id/decline';
+  static String performanceReviewAcknowledge(String id) => '/performance/reviews/$id/acknowledge';
+
+  // 13. Documents, Company Policies & Letters (Phase 17 Live Engine)
+  static const String meDocuments = '/me/documents';
+  static String meDocumentFile(String id) => '/me/documents/files/$id';
+  static const String companyDocuments = '/company-documents';
+  static String companyDocumentDetails(String id) => '/company-documents/$id';
+  static String companyDocumentAcknowledge(String id) => '/company-documents/$id/acknowledge';
+  static String companyDocumentVersionFile(String id, int version) => '/company-documents/$id/versions/$version/file';
+  static String letterDetails(String id) => '/letters/$id';
+  static String letterPdf(String id) => '/letters/$id/pdf';
+  static const String meLetterRequests = '/me/letter-requests';
+
+  // 14. News, Announcements, Events & Milestones (Phase 17 Pillar 2)
+  static const String announcements = '/announcements';
+  static String announcementDetails(String id) => '/announcements/$id';
+  static String events({String? from, String? to}) {
+    final query = <String>[];
+    if (from != null && from.isNotEmpty) query.add('from=$from');
+    if (to != null && to.isNotEmpty) query.add('to=$to');
+    return query.isEmpty ? '/events' : '/events?${query.join('&')}';
+  }
+  static const String peopleMilestones = '/people/milestones';
+  static const String meBirthdaySharing = '/me/birthday-sharing';
 }
 

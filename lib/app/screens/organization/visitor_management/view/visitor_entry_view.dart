@@ -265,7 +265,7 @@ class VisitorEntryView extends GetView<VisitorController> {
     );
   }
 
-  /// Step Indicator matching smart_attendance Photo -> Details -> Submit
+  /// Step Indicator Photo -> Details -> Submit
   Widget _buildStepIndicator() {
     return Obx(() {
       final photoDone = controller.hasCapturedPhoto;

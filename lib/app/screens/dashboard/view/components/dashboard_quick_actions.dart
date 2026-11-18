@@ -55,8 +55,9 @@ class DashboardQuickActions extends StatelessWidget {
             AppPreferences.hasPermission('money.view'));
 
     final bool hasSupport =
-        session?.hasPermission('support.view') ??
-        AppPreferences.hasPermission('support.view');
+        (session?.hasMenuItem('support') ?? false) ||
+        (session?.hasPermission('support.view') ??
+            AppPreferences.hasPermission('support.view'));
 
     // Dynamically build action tiles strictly adhering to Permission-Driven Access Invariant
     final actions = <_QuickActionItem>[];

@@ -3,12 +3,14 @@ class MeUser {
   final String name;
   final String email;
   final bool twoFactorEnabled;
+  final bool mustChangePassword;
 
   const MeUser({
     required this.id,
     required this.name,
     required this.email,
     required this.twoFactorEnabled,
+    this.mustChangePassword = false,
   });
 
   factory MeUser.fromJson(Map<String, dynamic> json) {
@@ -17,6 +19,7 @@ class MeUser {
       name: json['name']?.toString() ?? '',
       email: json['email']?.toString() ?? '',
       twoFactorEnabled: json['two_factor_enabled'] == true,
+      mustChangePassword: json['must_change_password'] == true,
     );
   }
 
@@ -26,6 +29,7 @@ class MeUser {
       'name': name,
       'email': email,
       'two_factor_enabled': twoFactorEnabled,
+      'must_change_password': mustChangePassword,
     };
   }
 }

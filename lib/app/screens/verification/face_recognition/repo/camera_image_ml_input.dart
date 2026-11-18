@@ -28,6 +28,19 @@ InputImage? inputImageFromCameraImage(
     );
   }
 
+  // Android: Direct NV21 single-plane stream
+  if (image.planes.length == 1) {
+    return InputImage.fromBytes(
+      bytes: image.planes[0].bytes,
+      metadata: InputImageMetadata(
+        size: Size(image.width.toDouble(), image.height.toDouble()),
+        rotation: rotation,
+        format: InputImageFormat.nv21,
+        bytesPerRow: image.planes[0].bytesPerRow,
+      ),
+    );
+  }
+
   if (image.planes.length < 3) return null;
 
   final nv21 = convertYuv420ToNv21(image);

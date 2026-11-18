@@ -278,3 +278,46 @@ class SupportAttachmentModel {
     return '$sizeKb KB';
   }
 }
+
+/// AMS Training Video model from GET /api/v1/support/training-videos
+class TrainingVideoModel {
+  final String id;
+  final String title;
+  final String description;
+  final String youtubeId;
+  final String embedUrl;
+  final String watchUrl;
+  final String thumbnailUrl;
+
+  const TrainingVideoModel({
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.youtubeId,
+    required this.embedUrl,
+    required this.watchUrl,
+    required this.thumbnailUrl,
+  });
+
+  factory TrainingVideoModel.fromJson(Map<String, dynamic> json) {
+    return TrainingVideoModel(
+      id: json['id']?.toString() ?? '',
+      title: json['title']?.toString() ?? '',
+      description: json['description']?.toString() ?? '',
+      youtubeId: json['youtube_id']?.toString() ?? '',
+      embedUrl: json['embed_url']?.toString() ?? '',
+      watchUrl: json['watch_url']?.toString() ?? '',
+      thumbnailUrl: json['thumbnail_url']?.toString() ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'title': title,
+        'description': description,
+        'youtube_id': youtubeId,
+        'embed_url': embedUrl,
+        'watch_url': watchUrl,
+        'thumbnail_url': thumbnailUrl,
+      };
+}

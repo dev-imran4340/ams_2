@@ -151,6 +151,11 @@ class LeaveBalanceModel {
   double get remainingRatio =>
       totalQuota > 0 ? (remainingCount / totalQuota).clamp(0.0, 1.0) : 0.0;
 
+  /// Step-by-step entitlement calculation explanation from server (one step per line \n)
+  String? get workingCalculationText => textMap['working']?.toString();
+  bool get hasWorkingCalculation =>
+      workingCalculationText != null && workingCalculationText!.trim().isNotEmpty;
+
   /// Resolved brand accent color strictly from AppColors tokens
   Color get accentColor {
     if (typeModel != null) {

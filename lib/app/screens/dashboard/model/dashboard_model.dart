@@ -20,6 +20,47 @@ class AttendanceRefusalModel {
   Map<String, dynamic> toJson() => {'code': code, 'message': message};
 }
 
+/// Represents the punch result returned by POST /me/attendance/punches
+class AttendancePunchModel {
+  final String id;
+  final String time;
+  final String role; // 'check_in', 'check_out', 'break_start', 'break_end', 'ignored'
+  final String? ignoredReason; // 'repeat', 'between_first_and_last'
+  final String? reasonLabel; // Reason text explaining why punch was not counted or ignored
+  final String source;
+
+  const AttendancePunchModel({
+    required this.id,
+    required this.time,
+    required this.role,
+    this.ignoredReason,
+    this.reasonLabel,
+    this.source = 'mobile_app',
+  });
+
+  bool get isIgnored => role.toLowerCase() == 'ignored';
+
+  factory AttendancePunchModel.fromJson(Map<String, dynamic> json) {
+    return AttendancePunchModel(
+      id: json['id']?.toString() ?? '',
+      time: json['time']?.toString() ?? '',
+      role: json['role']?.toString() ?? '',
+      ignoredReason: json['ignored_reason']?.toString(),
+      reasonLabel: json['reason_label']?.toString(),
+      source: json['source']?.toString() ?? 'mobile_app',
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'time': time,
+        'role': role,
+        if (ignoredReason != null) 'ignored_reason': ignoredReason,
+        if (reasonLabel != null) 'reason_label': reasonLabel,
+        'source': source,
+      };
+}
+
 class AttendanceRequiresModel {
   final bool position;
   final bool photo;
@@ -167,6 +208,9 @@ class TodayAttendanceModel {
   final int lateMinutes;
   final int earlyOutMinutes;
   final int shortMinutes;
+  final bool latePenalised;
+  final bool earlyOutPenalised;
+  final AttendancePunchModel? punch;
   final String? dayId;
   final String? dateLabel;
 
@@ -205,6 +249,9 @@ class TodayAttendanceModel {
     this.lateMinutes = 0,
     this.earlyOutMinutes = 0,
     this.shortMinutes = 0,
+    this.latePenalised = false,
+    this.earlyOutPenalised = false,
+    this.punch,
     this.dayId,
     this.dateLabel,
     this.flags = const [],
@@ -213,10 +260,11 @@ class TodayAttendanceModel {
     this.breakSince,
   });
 
-  bool get canCheckIn => allowed.contains('in');
-  bool get canCheckOut => allowed.contains('out');
-  bool get canStartBreak => allowed.contains('break_start');
-  bool get canEndBreak => allowed.contains('break_end');
+  bool get canCheckIn => !isCheckedIn && allowed.contains('in');
+  bool get canCheckOut =>
+      allowed.contains('out') || (isCheckedIn && allowed.contains('in'));
+  bool get canStartBreak => usesBreaks && allowed.contains('break_start');
+  bool get canEndBreak => usesBreaks && allowed.contains('break_end');
   bool get isPositionRequired => requires?.isPositionRequired ?? false;
   bool get isPhotoRequired => requires?.isPhotoRequired ?? false;
   bool get isFaceRequired => requires?.isFaceMatchRequired ?? false;
@@ -254,7 +302,8 @@ class TodayAttendanceModel {
       if (s.kind.toLowerCase() == 'work' &&
           s.ends != null &&
           s.ends!.isNotEmpty &&
-          s.ends != '--:--') {
+          s.ends != '--:--' &&
+          (isCheckedIn ? (s.ends != s.starts) : true)) {
         return s.ends;
       }
     }
@@ -365,16 +414,74 @@ class TodayAttendanceModel {
     final shiftMap = day != null && day['shift'] is Map
         ? Map<String, dynamic>.from(day['shift'] as Map)
         : null;
+    final punchMap = json['punch'] is Map
+        ? Map<String, dynamic>.from(json['punch'] as Map)
+        : null;
 
-    final isCheckedIn = state['checked_in'] as bool? ?? false;
-    final isOnBreak = state['on_break'] as bool? ?? false;
+    final rawStateCheckedIn = state['checked_in'] as bool? ?? false;
+    final rawStateOnBreak = state['on_break'] as bool? ?? false;
     final since = state['since']?.toString();
+
+    final lastOut = day?['last_out']?.toString();
+    final firstIn = day?['first_in']?.toString();
+    final dayStatus = day?['status']?.toString().toLowerCase();
+    final punchRole = punchMap?['role']?.toString().toLowerCase();
+
+    // Resolve active ongoing break:
+    // 1. rawStateOnBreak is true, OR
+    // 2. punch.role == 'break_start', OR
+    // 3. day.breaks has an open break (ends is null, empty, or '--:--')
+    final dayBreaks = day?['breaks'];
+    bool isBreakActive = rawStateOnBreak;
+    if (!isBreakActive && punchRole == 'break_start') {
+      isBreakActive = true;
+    } else if (!isBreakActive && dayBreaks is List && dayBreaks.isNotEmpty) {
+      final lastBreak = dayBreaks.last;
+      if (lastBreak is Map) {
+        final bEnds = lastBreak['ends']?.toString();
+        final bStarts = lastBreak['starts']?.toString();
+        if ((bEnds == null || bEnds.isEmpty || bEnds == '--:--') &&
+            (bStarts != null && bStarts.isNotEmpty && bStarts != '--:--')) {
+          isBreakActive = true;
+        }
+      }
+    }
+    if (punchRole == 'break_end') {
+      isBreakActive = false;
+    }
+    final isOnBreak = isBreakActive;
+
+    String? effectiveBreakSince = since;
+    if (isOnBreak && (effectiveBreakSince == null || effectiveBreakSince.isEmpty)) {
+      if (punchRole == 'break_start' && punchMap?['time'] != null) {
+        effectiveBreakSince = punchMap!['time'].toString();
+      } else if (dayBreaks is List && dayBreaks.isNotEmpty) {
+        final lastBreak = dayBreaks.last;
+        if (lastBreak is Map) {
+          effectiveBreakSince = lastBreak['starts']?.toString();
+        }
+      }
+    }
+
+    // A session is active if:
+    // 1. rawStateCheckedIn is true (standard shift hours), OR
+    // 2. isOnBreak is true (employee is checked in and on break), OR
+    // 3. day.last_out is null/empty AND day.first_in exists AND (dayStatus is incomplete/in_progress OR punchRole == 'check_in' OR punchRole == 'break_start')
+    final bool isSessionActive = isOnBreak ||
+        ((lastOut == null || lastOut.isEmpty || lastOut == '--:--') &&
+            (firstIn != null && firstIn.isNotEmpty && firstIn != '--:--') &&
+            (dayStatus == 'incomplete' ||
+                dayStatus == 'in_progress' ||
+                punchRole == 'check_in' ||
+                punchRole == 'break_start'));
+
+    final bool isCheckedIn = rawStateCheckedIn || isSessionActive;
 
     DateTime? checkInDt;
     if (state['since_at'] != null) {
       checkInDt = DateTime.tryParse(state['since_at'].toString())?.toLocal();
-    } else if (day?['first_in_at'] != null) {
-      checkInDt = DateTime.tryParse(day!['first_in_at'].toString())?.toLocal();
+    } else if (punchMap?['at'] != null && punchRole == 'check_in') {
+      checkInDt = DateTime.tryParse(punchMap!['at'].toString())?.toLocal();
     } else if (day?['segments'] is List) {
       for (final s in (day!['segments'] as List).reversed) {
         if (s is Map &&
@@ -384,14 +491,15 @@ class TodayAttendanceModel {
           break;
         }
       }
+    } else if (day?['first_in_at'] != null) {
+      checkInDt = DateTime.tryParse(day!['first_in_at'].toString())?.toLocal();
     }
 
-    final firstIn = day?['first_in']?.toString();
     final effectiveCheckIn = (firstIn != null && firstIn.isNotEmpty)
         ? firstIn
         : (since ?? '--:--');
 
-    final lastOut = day?['last_out']?.toString() ?? '--:--';
+    final effectiveCheckOut = lastOut ?? '--:--';
     final worked = day?['worked']?.toString() ?? '0:00';
     final overtime = day?['overtime']?.toString() ?? '0:00';
 
@@ -460,17 +568,24 @@ class TodayAttendanceModel {
         ? '${shiftObj.starts} - ${shiftObj.ends}'
         : '--:--';
 
+    final String rawStatusLabel = day?['status_label']?.toString() ?? '';
+    final String resolvedStatus = isCheckedIn
+        ? (rawStatusLabel.isNotEmpty &&
+                !rawStatusLabel.toLowerCase().contains('missing')
+            ? rawStatusLabel
+            : 'In Progress')
+        : (rawStatusLabel.isNotEmpty ? rawStatusLabel : 'Not Checked In');
+
     return TodayAttendanceModel(
       checkInTime: effectiveCheckIn,
-      checkOutTime: lastOut,
+      checkOutTime: effectiveCheckOut,
       workingHours: initialWorkingHours,
       shiftRemaining: remainingStr,
       overtime: overtime,
       isCheckedIn: isCheckedIn,
       isOnBreak: isOnBreak,
       usesBreaks: state['uses_breaks'] as bool? ?? true,
-      status: day?['status_label']?.toString() ??
-          (isCheckedIn ? 'In Progress' : 'Not Checked In'),
+      status: resolvedStatus,
       statusTone: day?['tone']?.toString() ?? 'slate',
       officeRadiusStatus: requiresMap?['position'] == true
           ? 'Geofence Active'
@@ -493,12 +608,15 @@ class TodayAttendanceModel {
       lateMinutes: day?['late_minutes'] as int? ?? 0,
       earlyOutMinutes: day?['early_out_minutes'] as int? ?? 0,
       shortMinutes: day?['short_minutes'] as int? ?? 0,
+      latePenalised: day?['late_penalised'] == true,
+      earlyOutPenalised: day?['early_out_penalised'] == true,
+      punch: punchMap != null ? AttendancePunchModel.fromJson(punchMap) : null,
       dayId: day?['id']?.toString(),
       dateLabel: day?['date_label']?.toString(),
       flags: flagsList,
       dayType: day?['day_type']?.toString(),
       statusCode: day?['status_code']?.toString() ?? '·',
-      breakSince: isOnBreak ? since : null,
+      breakSince: isOnBreak ? effectiveBreakSince : null,
     );
   }
 
@@ -527,6 +645,9 @@ class TodayAttendanceModel {
       'late_minutes': lateMinutes,
       'early_out_minutes': earlyOutMinutes,
       'short_minutes': shortMinutes,
+      'late_penalised': latePenalised,
+      'early_out_penalised': earlyOutPenalised,
+      if (punch != null) 'punch': punch!.toJson(),
       'day_id': dayId,
       'date_label': dateLabel,
     };
@@ -550,6 +671,8 @@ class MonthlySummaryModel {
   final int workedMinutes;
   final int countedMinutes;
   final int shortMinutes;
+  final int shortCoveredMinutes;
+  final int totalCountedMinutes;
   final int missingCheckOuts;
   final int approvedOvertimeMinutes;
   final int pendingOvertimeMinutes;
@@ -574,6 +697,8 @@ class MonthlySummaryModel {
     this.workedMinutes = 0,
     this.countedMinutes = 0,
     this.shortMinutes = 0,
+    this.shortCoveredMinutes = 0,
+    this.totalCountedMinutes = 0,
     this.missingCheckOuts = 0,
     this.approvedOvertimeMinutes = 0,
     this.pendingOvertimeMinutes = 0,
@@ -674,6 +799,8 @@ class MonthlySummaryModel {
       workedMinutes: json['worked_minutes'] as int? ?? 0,
       countedMinutes: json['counted_minutes'] as int? ?? 0,
       shortMinutes: json['short_minutes'] as int? ?? 0,
+      shortCoveredMinutes: json['short_covered_minutes'] as int? ?? 0,
+      totalCountedMinutes: json['total_counted_minutes'] as int? ?? 0,
       missingCheckOuts: json['missing_check_outs'] as int? ?? 0,
       approvedOvertimeMinutes: overtimeMap['approved_minutes'] as int? ?? 0,
       pendingOvertimeMinutes: overtimeMap['pending_minutes'] as int? ?? 0,
@@ -701,6 +828,8 @@ class MonthlySummaryModel {
       'worked_minutes': workedMinutes,
       'counted_minutes': countedMinutes,
       'short_minutes': shortMinutes,
+      'short_covered_minutes': shortCoveredMinutes,
+      'total_counted_minutes': totalCountedMinutes,
       'missing_check_outs': missingCheckOuts,
       'approved_overtime_minutes': approvedOvertimeMinutes,
       'pending_overtime_minutes': pendingOvertimeMinutes,

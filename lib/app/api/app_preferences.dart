@@ -41,6 +41,7 @@ class AppPreferences {
   static const String _keyEnrolledFaceEmbedding = 'enrolled_face_192_vector';
   static const String _keyEnrolledFaceTimestamp = 'enrolled_face_timestamp';
   static const String _keyEnrolledFaceVerified = 'enrolled_face_verified';
+  static const String _keyBirthdaySharing = 'user_birthday_sharing_preference';
 
   /// Initialize local storage container (Must be invoked before runApp in main.dart)
   static Future<void> init() async {
@@ -585,6 +586,16 @@ class AppPreferences {
     await _box.remove(_keyEnrolledFaceEmbedding);
     await _box.remove(_keyEnrolledFaceTimestamp);
     await _box.remove(_keyEnrolledFaceVerified);
+  }
+
+  // --- Birthday Sharing Preference ---
+
+  /// Gets stored birthday sharing preference, defaults to false if not set
+  static bool get birthdaySharing => _box.read<bool>(_keyBirthdaySharing) ?? false;
+
+  /// Saves birthday sharing preference
+  static Future<void> setBirthdaySharing(bool shares) async {
+    await _box.write(_keyBirthdaySharing, shares);
   }
 
   // --- Clear / Reset ---

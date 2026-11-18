@@ -142,7 +142,7 @@ Call it after login, when the app opens, and when it comes back to the foregroun
 ```json
 {
   "data": {
-    "user": { "id": "01j…", "name": "Ayesha Khan", "email": "ayesha@acme.pk", "two_factor_enabled": false },
+    "user": { "id": "01j…", "name": "Ayesha Khan", "email": "ayesha@acme.pk", "two_factor_enabled": false, "must_change_password": false },
     "company": { "id": "01j…", "name": "Acme Textiles", "code": "K7MP2Q" },
     "permissions": {
       "employees.view": ["own"],
@@ -678,6 +678,7 @@ Without `from` and `to`: the last 14 days up to the person's today.
       "counted_minutes": 420, "counted": "7:00",
       "break_minutes": 60,
       "late_minutes": 0, "early_out_minutes": 0, "short_minutes": 0,
+      "late_penalised": true, "early_out_penalised": false,
       "overtime_minutes": 0, "overtime": "0:00", "overtime_status": null,
       "flags": [],
       "locked": false,
@@ -715,6 +716,8 @@ A month's totals (the same figures payroll uses). `month` optional, `YYYY-MM`; d
     "late": { "count": 4, "minutes": 95 },
     "early_out": { "count": 1, "minutes": 30 },
     "short_minutes": 360,
+    "short_covered_minutes": 0,
+    "total_counted_minutes": 8340,
     "missing_check_outs": 0,
     "overtime": { "approved_minutes": 240, "pending_minutes": 60 },
     "penalties": [ { "kind": "leave", "label": "Taken from leave", "days": 0.5 } ]
@@ -774,7 +777,7 @@ JSON, or `multipart/form-data` when a photo is sent. Rate limit 20 a minute.
 | `latitude`, `longitude` | together; −90…90 and −180…180, at most 6 decimals |
 | `accuracy_m` | whole metres, 0–10000. Worse than 150 m is refused when the position is required. |
 | `is_mocked` | bool: Android's mock-location flag. A mocked position is refused. |
-| `break_type` | optional, a break type id (with `break_start`) |
+| `break_type` | optional, a break type id (with `break_start`). Without one, the break takes the shift's only break type, else the company's default type, else counts as unpaid. |
 | `photo` | image (jpg, png, webp), at most 2 MB, 160–4096 px each side |
 | `face_match` | `matched` or `not_matched`: the phone's comparison with the saved face |
 | `face_score` | 0–1, at most 4 decimals (kept for HR) |
@@ -864,6 +867,17 @@ Questions to us (the AMS team), the same tickets as the web's Support page. Who 
 
 `403` without the permission, `404` for a ticket outside the user's reach or another company's.
 
+### `GET /support/training-videos`
+
+Training videos from the AMS team that the user may watch, in our order. No permission is needed: owners get every video, anyone else the ones their company shared with them (an empty list is normal). Play `embed_url` in a web view, or open `watch_url` in the YouTube app. Choosing who watches is web only. The menu key stays `support` and now reaches everyone.
+
+```json
+{ "data": [ { "id": "01jq…", "title": "Running payroll", "description": "Step by step.", "youtube_id": "dQw4w9WgXcQ",
+              "embed_url": "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?rel=0",
+              "watch_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+              "thumbnail_url": "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg" } ] }
+```
+
 ## Leave (Phase 11)
 
 Amounts are numbers in the type's unit: **days with decimals** (`1.5`) for `unit: day`, **minutes** for `unit: hour`. Every balance also has a `text` block ready to show ("1.5 days", "7 h 30 min").
@@ -886,7 +900,7 @@ Balances of the leave year containing `on` (default today), one per type. `meta.
  "meta": {"year": {"starts_on": "2026-01-01", "ends_on": "2026-12-31"}}}
 ```
 
-`available` is null for unpaid leave. `earned` grows through the year; whether only that much can be booked is the company's choice (the server checks).
+`text.working` explains how `total` was worked out, one step per line (`\n`), for example "24 days a year\n× 122 of 365 days employed in 1 Jan 2026 – 31 Dec 2026 (joined 1 Sep 2026)\n= 8.02 days, rounded to nearest half day: 8 days". Show it as-is (an info tap); empty when there is nothing to explain. `available` is null for unpaid leave. `earned` grows through the year; whether only that much can be booked is the company's choice (the server checks).
 
 ### `GET /me/leave/requests`
 
@@ -969,11 +983,12 @@ The salary in force today, or `"data": null`.
 ```json
 { "data": { "id": "01jc…", "effective_from": "2025-01-01", "basis": "period", "basis_label": "Per pay period", "schedule": "Monthly",
   "payment_method": "Bank transfer", "currency": "PKR", "social_security_enrolled": true, "reason": null,
+  "change_kind": "hire", "change_kind_label": "Starting salary",
   "lines": [ { "code": "BASIC", "name": "Basic salary", "kind": "earning", "amount": 10000000, "amount_text": "Rs 100,000.00", "percent": null },
              { "code": "HRA", "name": "House rent allowance", "kind": "earning", "amount": null, "amount_text": null, "percent": "45" } ] } }
 ```
 
-A percentage line (`percent`) is a share of other components; its amount is on each payslip.
+A percentage line (`percent`) is a share of other components; its amount is on each payslip. `change_kind` says why this salary was set: `hire`, `increment`, `promotion`, `correction` or `revision` (Phase 14).
 
 Notification: `payslip_ready` (a run with you in it was finalised), screen `payslips`.
 
@@ -1039,6 +1054,277 @@ Withdraws a request while it is `pending`. Body: `reason` (optional, up to 500).
 
 Notifications: `money_recorded` (HR entered one for you, already approved) and `money_paid_out` (it is being paid), both with screen `money_request` and `id`. Decisions arrive as the usual `request_approved` / `request_rejected`.
 
+## Performance reviews (Phase 16)
+
+Reviews the user is part of: their own, the ones they complete as the manager, and colleagues' reviews that ask for their feedback. The menu has `performance` for everyone (in companies with the Performance module). Anyone else's review answers `404`. Cycles, calibration and set-up are web only.
+
+A review moves through `self_review` → `manager_review` → `calibration` (only in calibrated cycles) → `shared` → `acknowledged`, or `cancelled`. **The app never decides what is allowed**: every review comes with `viewer.writes_as` (`self`, `manager`, `peer` or null) and `can` (what the user may do now). Show inputs only for questions where the matching flag is true (`self_answers`, `manager_answers`, `peers_answer`).
+
+Ratings are level values of the cycle's `scale.levels` (for example 1–5); send `na: true` for "not applicable" when `scale.allows_na`. Scores are hundredths of a percent (`7840` = 78.4%, also as `score_text`).
+
+### `GET /performance/reviews?box=mine|to_review`
+
+`mine` (default): the user's own reviews, newest first. `to_review`: reviews waiting for them as the manager or for their feedback, soonest due first. No paging (at most 50).
+
+```json
+{ "data": [ { "id": "01jg…", "cycle": "Annual review 2025", "kind": "regular",
+  "employee": { "id": "01ja…", "name": "Ayesha Khan", "number": "E-0012" }, "reviewer": "Bilal Ahmed",
+  "status": "shared", "status_label": "Shared", "tone": "emerald", "self_due_on": "2025-08-10", "manager_due_on": "2025-08-20",
+  "result": { "live": false, "score": 7840, "score_text": "78.4%", "level": 4, "level_label": "Exceeds expectations",
+              "calculated_level_label": "Exceeds expectations", "calibrated": false, "calibration_reason": null, "sections": { "12": "80%", "13": "76%" } } } ],
+  "meta": { "box": "mine" } }
+```
+
+`result` is null until the person may see it (shared), and in the `to_review` box.
+
+### `GET /performance/reviews/{id}`
+
+The row fields plus:
+
+```json
+{ "data": {
+  "cycle": { "id": "01jc…", "name": "Annual review 2025", "kind": "regular", "kind_label": "Review cycle", "period_from": "2025-01-01", "period_to": "2025-06-30" },
+  "employee": { "id": "01ja…", "name": "Ayesha Khan", "number": "E-0012", "department": "Sales", "designation": "Officer" },
+  "probation_ends_on": null,
+  "viewer": { "is_self": true, "is_reviewer": false, "is_peer": false, "writes_as": "self" },
+  "can": { "save": true, "submit": true, "edit_goals": false, "ask_peers": false, "decline": false, "acknowledge": false,
+           "calibrate": false, "reopen": false, "reassign": false, "cancel": false },
+  "scale": { "allows_na": true, "levels": [ { "value": 5, "label": "Outstanding", "description": "…" } ] },
+  "months": ["2025-01", "2025-02", "…"],
+  "sections": [ { "id": 12, "title": "Competencies", "kind": "competencies", "weight": "60",
+    "questions": [ { "id": 41, "text": "Quality of work", "help": null, "kind": "rating", "self_answers": true, "manager_answers": true,
+      "peers_answer": true, "required": true, "columns": [],
+      "mine": { "rating": 4, "rating_label": "Exceeds expectations", "na": false, "text": "Comment", "number": null, "rows": null, "verified": null },
+      "self": { "…": "same shape" }, "manager": null, "peers": [ { "…": "same shape", "from": null } ], "reported_totals": null } ] } ],
+  "goals": [ { "id": "01jh…", "title": "Close 20 deals", "measure": null, "weight": "60",
+               "self_rating": 4, "self_comment": null, "manager_rating": null, "manager_comment": null } ],
+  "peers": [],
+  "summary": null, "recommended_action": null, "recommended_action_label": null,
+  "recommended_actions": {},
+  "is_probation": false, "acknowledged_at": null, "acknowledgement_comment": null, "cancel_reason": null } }
+```
+
+- `mine` is the user's own saved answer (draft or final), to prefill the form.
+- `self`, `manager`, `peers`, `result`, `summary` are null / empty when the user may not see them yet. Colleagues are never named to the person (`from: null`); `peers` (who was asked) is only for the reviewer and HR.
+- Kinds: `rating`, `text`, `number`, `figures`. A `figures` question has `columns`; the person fills `rows` (`{"2025-01": [10, 2], …}`, one number per column, months from `months`); the manager sends `verified` per column (`value`, `remark`), and `reported_totals` holds the person's totals.
+- `recommended_actions` (value → label) is filled only for the manager.
+
+### `PUT /performance/reviews/{id}/answers` and `POST /performance/reviews/{id}/submit`
+
+Save a draft, or submit the user's part (as `writes_as` says). Same body:
+
+| Field | Rule |
+|---|---|
+| `answers[]` | `question` (a question id of this review the user answers); `rating` (a level value) or `na` (true); `text` (up to 3,000; the comment for a rating); `number` (±999,999,999.99, 2 decimals); `rows` (person, figures); `verified[]` (manager, figures: `value`, `remark` up to 250) |
+| `goals[]` | `id` (a goal id), `rating` (a level value), `comment` (up to 1,000). Person and manager only |
+| `summary` | manager submit: required, up to 3,000 |
+| `recommended_action` | manager submit: required, a key of `recommended_actions` |
+
+A submit needs every required question answered and, for the person and the manager, every goal rated; the manager needs at least one goal when the form has a goals section, and can submit only once the self review is in (or past its due date). Answers the review. Errors: `404`, `422` (fields), `409` (a rule; the message says which).
+
+### `PUT /performance/reviews/{id}/goals`
+
+Replaces the goals (when `can.edit_goals`). Body: `goals[]` with `id` (to keep an existing goal and its ratings; omit for a new one), `title` (required, up to 150), `measure` (up to 500), `weight` (percent, > 0, 2 decimals). Weights total exactly 100. Answers the review.
+
+### `POST /performance/reviews/{id}/peers`
+
+The manager asks colleagues (when `can.ask_peers`). Body: `people[]`: user ids (1–10, not the person or the reviewer, at most the cycle's limit in all). Answers the review.
+
+### `POST /performance/reviews/{id}/decline`
+
+An asked colleague declines (when `can.decline`). Answers `{"data": {"declined": true}}`.
+
+### `POST /performance/reviews/{id}/acknowledge`
+
+The person confirms they read a shared review (when `can.acknowledge`). Body: `comment` (optional, up to 3,000). Answers the review.
+
+Notifications, all with screen `review` and `id`: `review_started` (your self review is open), `review_to_complete` (a review is ready for you as the manager), `peer_feedback_asked`, `review_shared`, `review_due_soon` (two days before a due date).
+
+## Documents, letters and news (Phase 17)
+
+In companies with the Documents module, the menu has `documents` ("Documents and letters") and `news` ("News and events") for everyone. `GET /me` `badges.documents` is the number of policies the user still has to accept. Uploading files, the library set-up, issuing letters and publishing news are web only. Anything the user may not see answers `404`.
+
+### `GET /me/documents`
+
+Everything of the user's own: files HR shares with them (their category decides), what expires soon, policies to accept, their letters (shared, not void), their letter requests, and the letters they may ask for. Lists are empty for a user without an employee record.
+
+```json
+{ "data": {
+  "files": [ { "id": "01jk…", "title": "Signed contract", "category": { "id": "01jc…", "name": "Contract and offer", "visibility": "employee", "visibility_label": "HR and the employee" },
+               "expires_on": "2027-01-31", "expiry_tone": null, "note": null, "file_name": "contract.pdf", "size": "120 KB", "uploaded_on": "2026-10-01", "uploaded_by": "Hina Ali" } ],
+  "expiring": [ { "source": "identity_document", "source_label": "ID document", "title": "Passport", "expires_on": "2026-11-20", "days_left": 21, "when": "in 21 days",
+                  "tone": "amber", "employee": { "id": "01ja…", "name": "Ayesha", "number": "E-0012" }, "document_id": null, "profile_tab": "documents" } ],
+  "policies_to_accept": [ { "id": "01jd…", "kind": "policy", "kind_label": "Policy", "title": "Code of conduct", "description": null, "version": 2,
+                            "published_on": "2026-10-20", "expires_on": null, "requires_acknowledgement": true, "acknowledged": false, "is_active": true } ],
+  "letters": [ { "id": "01jl…", "reference": "LTR-2026-0042", "kind": "experience", "kind_label": "Experience", "subject": "Experience certificate",
+                 "issued_on": "2026-10-28", "issued_by": "Hina Ali", "shared": true, "void": false, "void_reason": null, "employee": { "id": "01ja…", "name": "Ayesha", "number": "E-0012" } } ],
+  "letter_requests": [ { "id": "01jr…", "letter": "Salary certificate", "purpose": "Bank loan", "status": "pending", "status_label": "Waiting for approval",
+                         "requested_on": "2026-10-29", "letter_id": null } ],
+  "requestable_letters": [ { "id": "01jt…", "name": "Salary certificate" } ] } }
+```
+
+`tone` / `expiry_tone`: `rose` (expired), `amber` (within 30 days) or null. Request `status`: `pending`, `issued` (then `letter_id` is set), `rejected`, `cancelled`.
+
+### `GET /me/documents/files/{id}`
+
+Downloads one of the user's files (one listed in `files`).
+
+### `GET /company-documents` and `GET /company-documents/{id}`
+
+The company library entries the user may read (published, active, in their audience). `acknowledged` is true / false for a policy that asks the user to accept it, null otherwise. The single entry adds the current version and the version list (without their text):
+
+```json
+{ "data": { "id": "01jd…", "kind": "policy", "title": "Code of conduct", "version": 2, "acknowledged": false, "…": "row fields",
+  "current_version": { "id": "01jv…", "version": 2, "published_at": "2026-10-20T09:12:00+00:00", "published_by": "Hina Ali",
+                       "change_note": "New section on social media", "asks_again": true, "body": "<p>…</p>", "file_name": null },
+  "versions": [ { "…": "same shape, body null" } ] } }
+```
+
+A version has either `body` (cleaned HTML; show it in a web view) or `file_name` (open `GET /company-documents/{id}/versions/{version}/file`).
+
+### `POST /company-documents/{id}/acknowledge`
+
+"I have read and accept it" for the current version (when `acknowledged` is false). No body. Answers the entry. `409` when the entry does not ask the user, or they already accepted this version. A new version that asks again sets `acknowledged` back to false.
+
+### `GET /letters/{id}` and `GET /letters/{id}/pdf`
+
+One of the user's letters (shared, not void): the row fields plus `body` (cleaned HTML), or the PDF on the employer's letterhead.
+
+### `POST /me/letter-requests`
+
+Ask for a letter. It goes to approval (HR by default); approving issues the letter and shares it with the user (`letter_issued` notification).
+
+| Field | Rule |
+|---|---|
+| `template` | required; an id from `requestable_letters` |
+| `purpose` | required, up to 300 |
+
+Answers `201` with the request. `409` when a request for the same letter is still waiting, or the letter cannot be requested. In the approvals inbox the request type is `letter_request`.
+
+### `GET /announcements` and `GET /announcements/{id}`
+
+The announcements for the user that are out and not over: pinned first, then newest (at most 50). `meta.unread` counts the unread ones. The list has no `body` (use `excerpt`); opening one returns `body` and marks it read.
+
+```json
+{ "data": [ { "id": "01jn…", "title": "Office closed on Friday", "body": null, "excerpt": "Enjoy the long weekend.", "published_at": "2026-10-30T09:00:00+05:00",
+              "published_on": "30 Oct 2026 09:00", "is_scheduled": false, "ends_on": null, "is_pinned": true, "read": false } ],
+  "meta": { "unread": 1 } }
+```
+
+### `GET /events?from=&to=`
+
+Company events for the user, soonest first. `from` defaults to today, `to` to 60 days after `from` (dates `Y-m-d`, `to` at most two years ahead). `starts_at` / `ends_at` are `HH:MM` on the company clock, null for an all-day event; `when` is ready to show.
+
+```json
+{ "data": [ { "id": "01je…", "title": "Town hall", "description": null, "starts_on": "2026-11-10", "ends_on": "2026-11-10",
+              "starts_at": "10:00", "ends_at": "11:30", "all_day": false, "when": "Tue 10 Nov 2026, 10:00–11:30", "place": "Main hall" } ] }
+```
+
+### `GET /people/milestones`
+
+Birthdays (day and month only, of people who share theirs) and work anniversaries of colleagues at the user's location in the next 14 days.
+
+```json
+{ "data": [ { "kind": "birthday", "on": "2026-11-07", "when": "Tomorrow", "years": null, "text": "Birthday",
+              "employee": { "id": "01ja…", "name": "Ayesha", "designation": "Officer" } } ] }
+```
+
+### `PUT /me/birthday-sharing`
+
+Body: `shares` (boolean). Answers `{"data": {"shares": false}}`.
+
+Notifications: `my_document_expiring` (screen `my_documents`), `policy_to_acknowledge` (screen `company_document`, `id`), `letter_issued` (screen `letter`, `id`), `announcement_published` (screen `announcement`, `id`). `document_expiring` goes to HR (screen `documents_expiring`, or `company_document` for a company document) and is web only for now.
+
+## Tasks, checklists, assets, training and HR helpdesk (Phase 18)
+
+Everything here is the signed-in person's own: their tasks, their joining or leaving checklist, the company assets they hold, their training, their job description and their HR helpdesk tickets. Managing checklists, the asset register, training records and handling helpdesk tickets is web only for now. Ids are public ids (ULIDs). Dates are `YYYY-MM-DD`; times are ISO 8601.
+
+### `GET /tasks?list=&status=&due=&page=`
+
+`list`: `mine` (default), `given` (tasks I gave others) or `team` (people whose tasks I manage; needs `tasks.manage`). `status`: `open` (default) or `finished`. `due` (open only): `overdue`, `today` or `week`. 25 per page, open tasks soonest first.
+
+```json
+{"data": [{"id": "01j…", "title": "Read and accept the company policies", "priority": "normal", "priority_label": "Normal",
+  "due_on": "2026-11-05", "is_overdue": false, "status": "open", "status_label": "To do",
+  "assignee": {"id": "01j…", "name": "Ayesha Khan"}, "about": {"id": "01j…", "name": "Ayesha Khan"},
+  "checklist": {"id": "01j…", "name": "New joiner"}, "linked": "Policies accepted", "completed_at": null}],
+ "meta": {"page": 1, "per_page": 25, "total": 4, "last_page": 1}}
+```
+
+`linked` (or null) means the task ticks itself when the fact is recorded (here: once every policy is accepted). It can still be ticked by hand.
+
+### `GET /tasks/{id}`
+
+The row above plus `description`, `created_by` (null when a checklist made it), `created_at`, `completed_by` ("Done automatically" for a linked task), `completion_note`, `link_help`, `group` (`{"total": 3, "done": 1}` when given to several people, else null), `files` and `comments` (`id`, `author`, `body`, `created_at`, `files`), and `can` (`work`: may tick it / reopen; `edit`: may change it). Each file: `id`, `name`, `size`, `url` (the web link; open it in a signed-in web view). `404` for a task the person may not see.
+
+### `POST /tasks`
+
+Multipart (files) or JSON.
+
+| Field | Rule |
+| --- | --- |
+| `title` | required, at most 150 characters |
+| `description` | optional, at most 5,000 |
+| `priority` | `low`, `normal` or `high` |
+| `due_on` | optional date, 2000-01-01 to 2100-12-31 |
+| `assignees[]` | 1 to 50 user ids (one copy each). Anyone may give themself a task; others need `tasks.manage` over them, else `409` |
+| `about` | optional employee id the task is about (yourself, or someone in your `tasks.manage` reach) |
+| `files[]` | up to 5; pdf, jpg, png, doc, docx, xls, xlsx, txt; 10 MB each |
+
+`201` with the list of created task rows. `422` for field errors, `409` for people outside your reach or unknown people.
+
+### `POST /tasks/{id}/complete`, `POST /tasks/{id}/reopen`
+
+Complete takes an optional `note` (at most 500). `204`. `409` when the task is already finished (or, for reopen, still open, or its checklist was cancelled).
+
+### `POST /tasks/{id}/comments`
+
+`body` (required, at most 2,000) and up to 5 `files[]` as above. `201` with `{"id": "…"}`. The assignee and the giver are told (`task_commented`).
+
+### `GET /me/checklists`
+
+My joining and leaving checklists, newest first: `id`, `name`, `kind` (`onboarding` / `offboarding`), `kind_label`, `status` (`open` / `completed` / `cancelled`), `status_label`, `anchor_on` (joining date or last working day), `anchor_label`, `employee`, `progress` (`done`, `total`) and `tasks` (task rows; each step has its own assignee, so some are HR's or my manager's).
+
+### `GET /me/assets`, `POST /me/assets/{assignment}/acknowledge`
+
+Assets I hold now and returned before (open first):
+
+```json
+{"data": [{"id": "01j…", "asset": {"id": "01j…", "code": "AST-0007", "name": "Dell Latitude 5440", "category": "Laptop", "serial_number": "5CD1234XYZ"},
+  "assigned_on": "2026-11-02", "expected_return_on": null, "condition_out": "Good", "acknowledged_at": null,
+  "returned_on": null, "condition_in": null, "note": null, "is_open": true, "charged": false}]}
+```
+
+Acknowledge confirms receipt (once, while the asset is with me): `204`; `409` when already confirmed, returned, or not mine.
+
+### `GET /me/training`
+
+`required`: the required courses I am expected to have (`course` with `id`, `name`, `provider`, `description`, `validity_months`, `is_required`, `is_active`; `valid` true/false). `records`: `id`, `employee`, `course`, `trainer`, `started_on`, `completed_on`, `duration_minutes`, `result` (`attended` / `passed` / `failed`), `result_label`, `expires_on`, `is_valid`, `note`, `certificate_url`.
+
+### `GET /me/job-description`
+
+The current job description of my designation, or `"data": null`: `designation`, `version`, `body` (cleaned HTML), `file_url` (or null), `updated_at`.
+
+### HR helpdesk
+
+`GET /helpdesk/categories`: `[{"id", "name"}]` (active ones).
+
+`GET /helpdesk/tickets?status=open|finished&page=`: my tickets, latest activity first: `id`, `reference` (`HD-2026-0012`), `subject`, `category`, `is_confidential`, `status` (`open`, `in_progress`, `waiting_on_employee`, `resolved`, `closed`, `cancelled`), `status_label` (as the person reads it, e.g. "Waiting for your reply"), `status_tone`, `priority` (`normal` / `urgent`), `created_at`, `last_activity_at`; `raised_by` and `assignee` are always null for the person.
+
+`GET /helpdesk/tickets/{id}`: the row plus `resolved_at` and `messages` (`id`, `author`, `from_raiser`, `is_internal` (always false here: HR's internal notes are never sent), `body`, `created_at`, `files`). `404` for anyone else's ticket.
+
+`POST /helpdesk/tickets` (multipart or JSON): `category` (id), `subject` (at most 150), `body` (at most 5,000), `priority` (`normal` / `urgent`), up to 5 `files[]`. `201` with the ticket. `409` for a user without an employee record or an archived category.
+
+`POST /helpdesk/tickets/{id}/messages`: `body` and `files[]`. A reply on a resolved ticket reopens it. `201`; `409` on a closed or cancelled ticket.
+
+`POST /helpdesk/tickets/{id}/cancel`: withdraw while it is active. `204`; `409` otherwise.
+
+### Menu, badges and notifications
+
+Menu keys: `tasks` (everyone), `onboarding` (needs `onboarding.manage`), `assets` (`assets.view`), `training` (`training.view`), `helpdesk` (everyone). Badges: `badges.tasks` (my open tasks due today or overdue), `badges.helpdesk` (my tickets waiting for my reply, plus for HR handlers open tickets unassigned or theirs). Employee `sections` may include `onboarding`, `assets`, `training`.
+
+Notification kinds and screens: `task_assigned`, `task_commented` → `task` (`id`); `tasks_due` → `tasks`; `checklist_started` → `tasks`; `asset_assigned` → `my_assets`; `helpdesk_ticket_raised`, `helpdesk_reply`, `helpdesk_resolved` → `helpdesk_ticket` (`id`). Training certificate expiry reminders come as `my_document_expiring` (screen `my_documents`); HR's reminder opens the person's profile (`employee`, `id`, `tab: training`).
+
 ## Opening a screen from a notification
 
 The same `screen` / `id` comes in a push's `data` and in a bell entry's `target`:
@@ -1052,6 +1338,11 @@ The same `screen` / `id` comes in a push's `data` and in a bell entry's `target`
 | `leave` | My leave; with `id`, that request (from `GET /me/leave/requests`) | `GET /me/leave/balances` |
 | `payslips` | My payslips (sent when a payslip is ready; no `id`) | `GET /me/payslips` |
 | `money_request` | That loan, advance or expense | `GET /me/money-requests/{id}` |
+| `review` | That performance review | `GET /performance/reviews/{id}` |
+| `my_documents` | My documents (sent before one of my documents expires; no `id`) | `GET /me/documents` |
+| `company_document` | That library entry (a policy to read and accept) | `GET /company-documents/{id}` |
+| `letter` | That letter | `GET /letters/{id}` |
+| `announcement` | That announcement | `GET /announcements/{id}` |
 
 Unknown `screen` values (from a newer server) should open the notifications list.
 
@@ -1059,12 +1350,24 @@ Unknown `screen` values (from a newer server) should open the notifications list
 
 | Phase | What the app gets |
 |---|---|
-| 17 | Documents, letters, announcements; expiry reminders in the bell |
+| 19 | Dashboards and reports (read only) |
 
 ## Changes
 
 | Date | Change |
 |---|---|
+| 2026-11-16 | Leave balances add `text.working`: how this year's total was worked out (yearly amount, days employed, working days a week, rounding, extra and carried leave), one step per line. |
+| 2026-11-13 | `GET /me` `user` adds `must_change_password` (bool): the company owner chose this person's password, so the app should ask for a new one before anything else. Some people sign in with a made-up `…@ams-hrpayroll.com` name that has no mailbox; never offer "email me" actions for them (nothing is sent). |
+| 2026-11-12 | Punches add `ignored_reason` (`repeat`, `between_first_and_last`; set when `role` is `ignored`) and `reason_label`: one line to show in small text under the role, why the punch was not counted or ignored (null otherwise). |
+| 2026-11-11 | Shift breaks are break types: a shift's `break_minutes` is now the total of its unpaid break types. A punched paid break is not deducted up to its type's length; time beyond it is. A `break_start` without `break_type` takes the shift's only break type, else the company's default, else counts as unpaid. No field changes. |
+| 2026-11-05 | Training videos: `GET /support/training-videos`. The `support` menu item is now in every user's menu (the tickets endpoints still need their permissions, so the app shows the tickets part only when `GET /support/tickets` does not answer `403`). |
+| 2026-11-05 | Attendance day adds `late_penalised` and `early_out_penalised` (the day's time policy penalises it). Show lateness / early out only when true. Attendance summary adds `short_covered_minutes`: where the overtime policy covers short time, approved overtime first makes up short time (lowest rate first), and `short_minutes` and `overtime.approved_minutes` are net of it. `total_counted_minutes` = time counted inside shifts + all approved overtime (show it as "Counted"). |
+| 2026-11-04 | Old app compatibility (Phase 20b): `POST /app/app.php` and `POST /app/company_app.php` serve the **old** Flutter app (same fields, old ids, old answers) for moved companies until the new app ships. Not for the new app: build only against `/api/v1`. No `/api/v1` changes. |
+| 2026-11-02 | Tasks, checklists, assets, training and HR helpdesk (Phase 18): `GET/POST /tasks`, `GET /tasks/{id}`, `POST …/complete`, `POST …/reopen`, `POST …/comments`, `GET /me/checklists`, `GET /me/assets`, `POST /me/assets/{assignment}/acknowledge`, `GET /me/training`, `GET /me/job-description`, `GET /helpdesk/categories`, `GET/POST /helpdesk/tickets`, `GET /helpdesk/tickets/{id}`, `POST …/messages`, `POST …/cancel`; menu keys `tasks`, `onboarding`, `assets`, `training`, `helpdesk`; badges `tasks`, `helpdesk`; sections `onboarding`, `assets`, `training`; notification kinds `task_assigned`, `tasks_due`, `task_commented`, `checklist_started`, `asset_assigned`, `helpdesk_ticket_raised`, `helpdesk_reply`, `helpdesk_resolved` with screens `task`, `tasks`, `my_assets`, `helpdesk_ticket`. |
+| 2026-10-30 | Documents, letters and news (Phase 17): `GET /me/documents`, `GET /me/documents/files/{id}`, `GET /company-documents`, `GET /company-documents/{id}`, `POST …/acknowledge`, `GET …/versions/{version}/file`, `GET /letters/{id}`, `GET /letters/{id}/pdf`, `POST /me/letter-requests`, `GET /announcements`, `GET /announcements/{id}`, `GET /events`, `GET /people/milestones`, `PUT /me/birthday-sharing`; the menu has `documents` and `news`, `badges.documents`; request type `letter_request`; notification kinds `my_document_expiring`, `policy_to_acknowledge`, `letter_issued`, `announcement_published` (and `document_expiring` for HR) with screens `my_documents`, `company_document`, `letter`, `announcement`; employee `sections` may include `files`, and the `documents` section is now labelled "ID and right to work". |
+| 2026-10-29 | Performance reviews (Phase 16): `GET /performance/reviews`, `GET /performance/reviews/{id}`, `PUT …/answers`, `POST …/submit`, `PUT …/goals`, `POST …/peers`, `POST …/decline`, `POST …/acknowledge`; the menu has `performance`; employee `sections` may include `performance`; notification kinds `review_started`, `review_to_complete`, `peer_feedback_asked`, `review_shared`, `review_due_soon` with screen `review`. |
+| 2026-10-29 | UK payroll (Phase 15): employee `sections` may include `uk-tax` (people paid by a UK legal entity; web only for now). UK payslips carry ordinary lines for tax refund, National Insurance, student and postgraduate loans, pension (employee / employer), refunded pension contributions, rolled-up holiday pay and statutory pay (SSP, SMP, SPP, SAP, ShPP, SPBP, SNCP). Notification kinds `pension_enrolled` and `pension_postponed` (screen `payslips`). No new endpoints. |
+| 2026-10-28 | Increments, bonuses and settlement (Phase 14): `GET /me/salary` adds `change_kind` and `change_kind_label`. Bonuses, arrears and settlement items appear on payslips as ordinary lines. No new endpoints (a leaver's sign-in is disabled, so the settlement statement is given by HR). |
 | 2026-10-26 | Loans and expenses (Phase 13): `GET /me/money-request-types`, `GET /me/money-requests`, `POST /me/money-requests` (multipart with receipts), `GET /me/money-requests/{id}`, `POST /me/money-requests/{id}/cancel`; request type `money_request` in the inbox; notification kinds `money_recorded`, `money_paid_out` with screen `money_request`; the menu has `money`. |
 | 2026-10-26 | Payroll (Phase 12): `GET /me/payslips`, `GET /me/payslips/{id}`, `GET /me/payslips/{id}/pdf`, `GET /me/salary`; notification kind `payslip_ready` with screen `payslips`; the menu has `payroll` and `payslips`. |
 | 2026-10-24 | Leave (Phase 11): `GET /leave/types`, `GET /me/leave/balances`, `GET /me/leave/requests`, `POST /me/leave/requests/preview`, `POST /me/leave/requests`, `POST /me/leave/requests/{id}/cancel`, `GET /leave/whos-off`, `GET /employees/{id}/leave`; request type `leave` in the inbox; notification kinds `leave_recorded`, `leave_cancelled`, `leave_expiring` with screen `leave`; skipped step reason `approver_away`. |
@@ -1072,6 +1375,3 @@ Unknown `screen` values (from a newer server) should open the notifications list
 | 2026-10-23 | Attendance (Phase 9): `GET /me/attendance/today` (punch buttons), `GET /me/attendance`, `GET /me/attendance/summary`, `GET /employees/{id}/attendance`, `POST /me/attendance/corrections`; request types `overtime` and `attendance_correction` in the inbox; notification kind `missing_check_out` with screen `attendance`. |
 | 2026-10-22 | Schedule (Phase 8): `GET /me/schedule`, `GET /employees/{id}/schedule`, `GET /holidays`; notification kind `schedule_changed` with screen `schedule`. |
 | 2026-10-22 | First edition: authentication, `me`, profile, ID card, employees, requests and approvals, details change, notifications, push. |
-
-
-

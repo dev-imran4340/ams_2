@@ -1,146 +1,274 @@
 import 'dart:async';
-
+import '../../../api/api_client.dart';
+import '../../../api/api_endpoints.dart';
 import '../../../api/exception_handler.dart';
 import '../model/evaluation_model.dart';
 
+/// Repository for Performance Reviews & Appraisals (Phase 16)
+/// Strictly adheres to .agents/rules/ams.md:
+/// - Mandatory Origin Tagging
+/// - Deserializes JSON envelope into strongly-typed models
+/// - Zero fallback / dummy data injection
 class EvaluationRepo {
-  final String _tag = 'EvaluationRepo / EvaluationScreen';
+  static const String _originTag = 'EvaluationRepo / EvaluationScreen';
 
-  final Map<String, EvaluationReportModel> _mockReports = {
-    'Q3 2026': const EvaluationReportModel(
-      cycleName: 'Q3 2026 Appraisal',
-      overallRating: 4.8,
-      ratingLabel: 'Top Tier Performer / Exceptional',
-      evaluatedBy: 'Hamza Sheikh • Lead Mobile Architect',
-      evaluationDate: 'Oct 01, 2026',
-      appraisalStatus: 'Approved & Finalized',
-      managerFeedback: 'Imran has demonstrated extraordinary technical leadership in Flutter architecture, zero-leak memory discipline, and consistent punctuality. Delivered biometric facial authentication and QR verification modules with exceptional enterprise-grade precision.',
-      kpis: [
-        KpiMetricItem(
-          name: 'Code Quality & Architecture',
-          score: 96.0,
-          target: 100.0,
-          weightage: '30% Weight',
-          grade: 'A+',
-        ),
-        KpiMetricItem(
-          name: 'Attendance & Punctuality',
-          score: 98.5,
-          target: 100.0,
-          weightage: '25% Weight',
-          grade: 'A+',
-        ),
-        KpiMetricItem(
-          name: 'Sprint Deadline Adherence',
-          score: 94.0,
-          target: 100.0,
-          weightage: '25% Weight',
-          grade: 'A',
-        ),
-        KpiMetricItem(
-          name: 'Cross-Functional Collaboration',
-          score: 95.0,
-          target: 100.0,
-          weightage: '20% Weight',
-          grade: 'A+',
-        ),
-      ],
-    ),
-    'Q2 2026': const EvaluationReportModel(
-      cycleName: 'Q2 2026 Appraisal',
-      overallRating: 4.6,
-      ratingLabel: 'Exceeds Expectations',
-      evaluatedBy: 'Hamza Sheikh • Lead Mobile Architect',
-      evaluationDate: 'Jul 05, 2026',
-      appraisalStatus: 'Approved & Finalized',
-      managerFeedback: 'Solid deliverables across offline punch cache, multi-factor QR security scanning, and clean MVVM component abstractions with consistent response times.',
-      kpis: [
-        KpiMetricItem(
-          name: 'Code Quality & Architecture',
-          score: 92.0,
-          target: 100.0,
-          weightage: '30% Weight',
-          grade: 'A',
-        ),
-        KpiMetricItem(
-          name: 'Attendance & Punctuality',
-          score: 95.0,
-          target: 100.0,
-          weightage: '25% Weight',
-          grade: 'A',
-        ),
-        KpiMetricItem(
-          name: 'Sprint Deadline Adherence',
-          score: 91.0,
-          target: 100.0,
-          weightage: '25% Weight',
-          grade: 'A',
-        ),
-        KpiMetricItem(
-          name: 'Cross-Functional Collaboration',
-          score: 90.0,
-          target: 100.0,
-          weightage: '20% Weight',
-          grade: 'A',
-        ),
-      ],
-    ),
-    'Annual 2025': const EvaluationReportModel(
-      cycleName: 'Annual 2025 Comprehensive',
-      overallRating: 4.7,
-      ratingLabel: 'Distinguished Contributor',
-      evaluatedBy: 'Tariq Mahmood • VP of Engineering',
-      evaluationDate: 'Jan 12, 2026',
-      appraisalStatus: 'Approved & Finalized',
-      managerFeedback: 'Annual review highlights consistent high velocity, zero regression rate on biometric core, and valuable technical mentorship across Softech Business Services engineering squads.',
-      kpis: [
-        KpiMetricItem(
-          name: 'Code Quality & Architecture',
-          score: 94.0,
-          target: 100.0,
-          weightage: '30% Weight',
-          grade: 'A',
-        ),
-        KpiMetricItem(
-          name: 'Attendance & Punctuality',
-          score: 96.0,
-          target: 100.0,
-          weightage: '25% Weight',
-          grade: 'A+',
-        ),
-        KpiMetricItem(
-          name: 'Sprint Deadline Adherence',
-          score: 93.0,
-          target: 100.0,
-          weightage: '25% Weight',
-          grade: 'A',
-        ),
-        KpiMetricItem(
-          name: 'Cross-Functional Collaboration',
-          score: 92.0,
-          target: 100.0,
-          weightage: '20% Weight',
-          grade: 'A',
-        ),
-      ],
-    ),
-  };
-
-  /// Fetches performance appraisal report for a specific review cycle
-  Future<EvaluationReportModel?> fetchEvaluationReport(String cycle) async {
+  /// Fetches reviews list for specified box: 'mine' or 'to_review'
+  /// GET /performance/reviews?box=mine|to_review
+  Future<List<PerformanceReviewListItemModel>> fetchReviews({
+    String box = 'mine',
+  }) async {
+    final methodTag = '$_originTag -> fetchReviews(box: $box)';
     try {
-      // Simulate enterprise backend network latency
-      await Future.delayed(const Duration(milliseconds: 600));
+      final response = await ApiClient.request(
+        endpoint: ApiEndpoints.performanceReviews,
+        method: HttpMethod.get,
+        queryParameters: {'box': box},
+        tag: methodTag,
+        showToastOnError: false,
+      );
 
-      final report = _mockReports[cycle] ?? _mockReports['Q3 2026'];
-      return report;
+      if (response != null && response is Map<String, dynamic>) {
+        final data = response['data'];
+        if (data is List) {
+          return data
+              .map(
+                (item) => PerformanceReviewListItemModel.fromJson(
+                  item as Map<String, dynamic>,
+                ),
+              )
+              .toList();
+        }
+      }
+      return [];
+    } on ApiException catch (e) {
+      if (e.statusCode == 403 || e.statusCode == 401) rethrow;
+      return [];
     } catch (e, stackTrace) {
       ExceptionHandler.handle(
-        ApiException(
-          message: 'Failed to fetch evaluation report for $cycle: $e',
-        ),
-        tag:
-            '$_tag -> fetchEvaluationReport() [${stackTrace.toString().split('\n').first}]',
+        ApiException(message: 'Failed to fetch performance reviews: $e'),
+        tag: '$methodTag [${stackTrace.toString().split('\n').first}]',
+        showToast: false,
+      );
+      return [];
+    }
+  }
+
+  /// Fetches full review details including sections, questions, and answers
+  /// GET /performance/reviews/{id}
+  Future<PerformanceReviewDetailsModel?> fetchReviewDetails(String id) async {
+    final methodTag = '$_originTag -> fetchReviewDetails(id: $id)';
+    try {
+      final response = await ApiClient.request(
+        endpoint: ApiEndpoints.performanceReviewDetails(id),
+        method: HttpMethod.get,
+        tag: methodTag,
+        showToastOnError: false,
+      );
+
+      if (response != null && response is Map<String, dynamic>) {
+        final data = response['data'];
+        if (data is Map<String, dynamic>) {
+          return PerformanceReviewDetailsModel.fromJson(data);
+        }
+      }
+      return null;
+    } on ApiException catch (e) {
+      if (e.statusCode == 403 || e.statusCode == 401) rethrow;
+      return null;
+    } catch (e, stackTrace) {
+      ExceptionHandler.handle(
+        ApiException(message: 'Failed to fetch review details: $e'),
+        tag: '$methodTag [${stackTrace.toString().split('\n').first}]',
+        showToast: false,
+      );
+      return null;
+    }
+  }
+
+  /// Saves a draft of answers
+  /// PUT /performance/reviews/{id}/answers
+  Future<PerformanceReviewDetailsModel?> saveAnswers(
+    String id,
+    Map<String, dynamic> body,
+  ) async {
+    final methodTag = '$_originTag -> saveAnswers(id: $id)';
+    try {
+      final response = await ApiClient.request(
+        endpoint: ApiEndpoints.performanceReviewAnswers(id),
+        method: HttpMethod.put,
+        body: body,
+        tag: methodTag,
+        showToastOnError: true,
+      );
+
+      if (response != null && response is Map<String, dynamic>) {
+        final data = response['data'];
+        if (data is Map<String, dynamic>) {
+          return PerformanceReviewDetailsModel.fromJson(data);
+        }
+      }
+      return null;
+    } catch (e, stackTrace) {
+      ExceptionHandler.handle(
+        ApiException(message: 'Failed to save review draft: $e'),
+        tag: '$methodTag [${stackTrace.toString().split('\n').first}]',
+        showToast: true,
+      );
+      return null;
+    }
+  }
+
+  /// Final submission of review answers
+  /// POST /performance/reviews/{id}/submit
+  Future<PerformanceReviewDetailsModel?> submitReview(
+    String id,
+    Map<String, dynamic> body,
+  ) async {
+    final methodTag = '$_originTag -> submitReview(id: $id)';
+    try {
+      final response = await ApiClient.request(
+        endpoint: ApiEndpoints.performanceReviewSubmit(id),
+        method: HttpMethod.post,
+        body: body,
+        tag: methodTag,
+        showToastOnError: true,
+      );
+
+      if (response != null && response is Map<String, dynamic>) {
+        final data = response['data'];
+        if (data is Map<String, dynamic>) {
+          return PerformanceReviewDetailsModel.fromJson(data);
+        }
+      }
+      return null;
+    } catch (e, stackTrace) {
+      ExceptionHandler.handle(
+        ApiException(message: 'Failed to submit review: $e'),
+        tag: '$methodTag [${stackTrace.toString().split('\n').first}]',
+        showToast: true,
+      );
+      return null;
+    }
+  }
+
+  /// Updates or replaces review goals (when can.edit_goals == true)
+  /// PUT /performance/reviews/{id}/goals
+  Future<PerformanceReviewDetailsModel?> updateGoals(
+    String id,
+    List<Map<String, dynamic>> goals,
+  ) async {
+    final methodTag = '$_originTag -> updateGoals(id: $id)';
+    try {
+      final response = await ApiClient.request(
+        endpoint: ApiEndpoints.performanceReviewGoals(id),
+        method: HttpMethod.put,
+        body: {'goals': goals},
+        tag: methodTag,
+        showToastOnError: true,
+      );
+
+      if (response != null && response is Map<String, dynamic>) {
+        final data = response['data'];
+        if (data is Map<String, dynamic>) {
+          return PerformanceReviewDetailsModel.fromJson(data);
+        }
+      }
+      return null;
+    } catch (e, stackTrace) {
+      ExceptionHandler.handle(
+        ApiException(message: 'Failed to update review goals: $e'),
+        tag: '$methodTag [${stackTrace.toString().split('\n').first}]',
+        showToast: true,
+      );
+      return null;
+    }
+  }
+
+  /// Manager asks colleagues for peer feedback (when can.ask_peers == true)
+  /// POST /performance/reviews/{id}/peers
+  Future<PerformanceReviewDetailsModel?> invitePeers(
+    String id,
+    List<String> userIds,
+  ) async {
+    final methodTag = '$_originTag -> invitePeers(id: $id)';
+    try {
+      final response = await ApiClient.request(
+        endpoint: ApiEndpoints.performanceReviewPeers(id),
+        method: HttpMethod.post,
+        body: {'people': userIds},
+        tag: methodTag,
+        showToastOnError: true,
+      );
+
+      if (response != null && response is Map<String, dynamic>) {
+        final data = response['data'];
+        if (data is Map<String, dynamic>) {
+          return PerformanceReviewDetailsModel.fromJson(data);
+        }
+      }
+      return null;
+    } catch (e, stackTrace) {
+      ExceptionHandler.handle(
+        ApiException(message: 'Failed to invite peers: $e'),
+        tag: '$methodTag [${stackTrace.toString().split('\n').first}]',
+        showToast: true,
+      );
+      return null;
+    }
+  }
+
+  /// Peer declines to answer (when can.decline == true)
+  /// POST /performance/reviews/{id}/decline
+  Future<bool> declineReview(String id) async {
+    final methodTag = '$_originTag -> declineReview(id: $id)';
+    try {
+      final response = await ApiClient.request(
+        endpoint: ApiEndpoints.performanceReviewDecline(id),
+        method: HttpMethod.post,
+        tag: methodTag,
+        showToastOnError: true,
+      );
+      return response != null;
+    } catch (e, stackTrace) {
+      ExceptionHandler.handle(
+        ApiException(message: 'Failed to decline review: $e'),
+        tag: '$methodTag [${stackTrace.toString().split('\n').first}]',
+        showToast: true,
+      );
+      return false;
+    }
+  }
+
+  /// Employee confirms they read a shared review (when can.acknowledge == true)
+  /// POST /performance/reviews/{id}/acknowledge
+  Future<PerformanceReviewDetailsModel?> acknowledgeReview(
+    String id, {
+    String? comment,
+  }) async {
+    final methodTag = '$_originTag -> acknowledgeReview(id: $id)';
+    try {
+      final response = await ApiClient.request(
+        endpoint: ApiEndpoints.performanceReviewAcknowledge(id),
+        method: HttpMethod.post,
+        body: {
+          if (comment != null && comment.isNotEmpty) 'comment': comment,
+        },
+        tag: methodTag,
+        showToastOnError: true,
+      );
+
+      if (response != null && response is Map<String, dynamic>) {
+        final data = response['data'];
+        if (data is Map<String, dynamic>) {
+          return PerformanceReviewDetailsModel.fromJson(data);
+        }
+      }
+      return null;
+    } catch (e, stackTrace) {
+      ExceptionHandler.handle(
+        ApiException(message: 'Failed to acknowledge review: $e'),
+        tag: '$methodTag [${stackTrace.toString().split('\n').first}]',
+        showToast: true,
       );
       return null;
     }

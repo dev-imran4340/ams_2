@@ -128,10 +128,25 @@ class DashboardController extends GetxController {
     if (today.segments.isNotEmpty) {
       int completedWorkSeconds = 0;
       DateTime? activeWorkStart;
+      int? activeWorkIndex;
 
-      for (final segment in today.segments) {
+      // When actively checked in and not on break, locate the trailing active work segment
+      if (today.isCheckedIn && !today.isOnBreak) {
+        for (int i = today.segments.length - 1; i >= 0; i--) {
+          final s = today.segments[i];
+          if (s.kind.toLowerCase() == 'work') {
+            activeWorkIndex = i;
+            activeWorkStart = s.startsAt;
+            break;
+          }
+        }
+      }
+
+      for (int i = 0; i < today.segments.length; i++) {
+        final segment = today.segments[i];
         final isWork = segment.kind.toLowerCase() == 'work';
         if (!isWork) continue;
+        if (i == activeWorkIndex) continue; // Calculated dynamically via activeWorkStart
 
         if (segment.startsAt != null && segment.endsAt != null) {
           // Closed work session
@@ -139,9 +154,6 @@ class DashboardController extends GetxController {
           if (diff > 0) {
             completedWorkSeconds += diff;
           }
-        } else if (segment.startsAt != null && segment.endsAt == null) {
-          // Open active work session
-          activeWorkStart = segment.startsAt;
         }
       }
 
@@ -155,7 +167,8 @@ class DashboardController extends GetxController {
             activeSeconds = diff;
           }
         }
-        int total = completedWorkSeconds + activeSeconds;
+        final int baseCompleted = math.max(completedWorkSeconds, today.workedMinutes * 60);
+        int total = baseCompleted + activeSeconds;
 
         // If segments do not separate break intervals, deduct logged break minutes so timer matches net server worked time
         final bool hasBreakSegment =
@@ -168,7 +181,7 @@ class DashboardController extends GetxController {
       }
 
       // Case B: On Break or Checked Out
-      int completed = completedWorkSeconds;
+      int completed = math.max(completedWorkSeconds, today.workedMinutes * 60);
       final bool hasBreakSegment =
           today.segments.any((s) => s.kind.toLowerCase() == 'break');
       if (!hasBreakSegment && today.breakMinutes > 0) {
@@ -209,10 +222,24 @@ class DashboardController extends GetxController {
     if (today.segments.isNotEmpty) {
       int completedBreakSeconds = 0;
       DateTime? activeBreakStart;
+      int? activeBreakIndex;
 
-      for (final segment in today.segments) {
+      if (today.isOnBreak) {
+        for (int i = today.segments.length - 1; i >= 0; i--) {
+          final s = today.segments[i];
+          if (s.kind.toLowerCase() == 'break') {
+            activeBreakIndex = i;
+            activeBreakStart = s.startsAt;
+            break;
+          }
+        }
+      }
+
+      for (int i = 0; i < today.segments.length; i++) {
+        final segment = today.segments[i];
         final isBreak = segment.kind.toLowerCase() == 'break';
         if (!isBreak) continue;
+        if (i == activeBreakIndex) continue;
 
         if (segment.startsAt != null && segment.endsAt != null) {
           // Closed break session
@@ -220,9 +247,6 @@ class DashboardController extends GetxController {
           if (diff > 0) {
             completedBreakSeconds += diff;
           }
-        } else if (segment.startsAt != null && segment.endsAt == null) {
-          // Open active break session
-          activeBreakStart = segment.startsAt;
         }
       }
 
@@ -236,12 +260,14 @@ class DashboardController extends GetxController {
             activeBreakSeconds = diff;
           }
         }
-        return completedBreakSeconds + activeBreakSeconds;
+        final int baseBreak = math.max(completedBreakSeconds, today.breakMinutes * 60);
+        return baseBreak + activeBreakSeconds;
       }
 
       // Case B: Not on break (accumulated completed breaks)
-      if (completedBreakSeconds > 0) {
-        return completedBreakSeconds;
+      final int completed = math.max(completedBreakSeconds, today.breakMinutes * 60);
+      if (completed > 0) {
+        return completed;
       }
     }
 
@@ -400,6 +426,9 @@ class DashboardController extends GetxController {
     } else {
       if (allowed.contains('out')) {
         punchKind = 'out';
+      } else if (allowed.contains('in')) {
+        // Overtime single-button toggle mode on server: accepts 'in' to close open session
+        punchKind = 'in';
       } else {
         final refusal = currentAttendance.refusals['out']?.message ??
             'Check-out is not allowed right now.';
@@ -468,9 +497,7 @@ class DashboardController extends GetxController {
             _updateRunningShiftTimer();
 
             CustomSnackbar.showSuccess(
-              message: punchKind == 'in'
-                  ? 'Checked in successfully! Shift started.'
-                  : 'Checked out successfully! Shift logged.',
+              message: _getPunchSuccessMessage(updatedAttendance, punchKind),
             );
           } else {
             await loadDashboard();
@@ -521,9 +548,7 @@ class DashboardController extends GetxController {
         _updateRunningShiftTimer();
 
         CustomSnackbar.showSuccess(
-          message: punchKind == 'in'
-              ? 'Checked in successfully! Shift started.'
-              : 'Checked out successfully! Shift logged.',
+          message: _getPunchSuccessMessage(updatedAttendance, punchKind),
         );
       } else {
         // If punch call failed or rejected by server rule, refresh today state
@@ -549,11 +574,17 @@ class DashboardController extends GetxController {
     final String punchKind = isOnBreak ? 'break_end' : 'break_start';
 
     if (!allowed.contains(punchKind)) {
-      final refusal = currentAttendance.refusals[punchKind]?.message ??
-          (isOnBreak
-              ? 'Ending break is not allowed right now.'
-              : 'Starting break is not allowed right now.');
-      CustomSnackbar.showError(message: refusal);
+      if (currentAttendance.isCheckedIn && !isOnBreak) {
+        CustomSnackbar.showInfo(
+          message: 'Breaks are not permitted during overtime hours. Please swipe to check out to pause.',
+        );
+      } else {
+        final refusal = currentAttendance.refusals[punchKind]?.message ??
+            (isOnBreak
+                ? 'Ending break is not allowed right now.'
+                : 'Taking a break is not allowed right now.');
+        CustomSnackbar.showError(message: refusal);
+      }
       return;
     }
 
@@ -617,9 +648,7 @@ class DashboardController extends GetxController {
             _updateRunningShiftTimer();
 
             CustomSnackbar.showSuccess(
-              message: punchKind == 'break_start'
-                  ? 'Break started.'
-                  : 'Break ended. Welcome back!',
+              message: _getPunchSuccessMessage(updatedAttendance, punchKind),
             );
           } else {
             await loadDashboard();
@@ -669,15 +698,52 @@ class DashboardController extends GetxController {
         _updateRunningShiftTimer();
 
         CustomSnackbar.showSuccess(
-          message: isOnBreak
-              ? 'Break ended! Welcome back to your shift.'
-              : 'Break started! Enjoy your break.',
+          message: _getPunchSuccessMessage(updatedAttendance, punchKind),
         );
       } else {
         await loadDashboard();
       }
     } finally {
       isBreakLoading.value = false;
+    }
+  }
+
+  /// Derives accurate user-facing success feedback strictly from server-assigned punch role
+  String _getPunchSuccessMessage(TodayAttendanceModel attendance, String attemptedKind) {
+    final punch = attendance.punch;
+    final role = punch?.role.toLowerCase() ?? '';
+
+    if (role == 'check_out') {
+      final timeStr = punch?.time.isNotEmpty == true ? ' at ${punch!.time}' : '';
+      final otStr = (attendance.overtime.isNotEmpty && attendance.overtime != '0:00')
+          ? ' • Overtime: ${attendance.overtime}'
+          : '';
+      return 'Checked out successfully! Shift logged$timeStr$otStr.';
+    } else if (role == 'check_in') {
+      final timeStr = punch?.time.isNotEmpty == true ? ' at ${punch!.time}' : '';
+      final isResume = attendance.latestCheckOutTime != null;
+      final actionLabel = isResume ? 'Session resumed' : 'Shift started';
+      return 'Checked in successfully! $actionLabel$timeStr.';
+    } else if (role == 'break_start') {
+      final timeStr = punch?.time.isNotEmpty == true ? ' at ${punch!.time}' : '';
+      return 'Break started$timeStr.';
+    } else if (role == 'break_end') {
+      final timeStr = punch?.time.isNotEmpty == true ? ' at ${punch!.time}' : '';
+      return 'Break ended$timeStr. Welcome back!';
+    } else if (role == 'ignored') {
+      return punch?.reasonLabel ?? 'Punch was recorded but ignored by attendance rules.';
+    }
+
+    if (attendance.isCheckedIn) {
+      return 'Checked in successfully! Shift started.';
+    } else if (attendance.isOnBreak) {
+      return 'Break started.';
+    } else if (attemptedKind == 'out') {
+      return 'Checked out successfully! Shift logged.';
+    } else if (attemptedKind == 'break_end') {
+      return 'Break ended. Welcome back!';
+    } else {
+      return 'Punch registered successfully.';
     }
   }
 

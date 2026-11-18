@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/utils/app_colors.dart';
 import '../../../../core/utils/app_spaces.dart';
 import '../../../../core/utils/app_text_styles.dart';
+import '../../../../core/widgets/custom_card.dart';
 import '../../model/support_ticket_model.dart';
 
 /// Signature Floating Card for a Support Ticket (Phase 10)
@@ -25,39 +26,21 @@ class SupportTicketCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final statusColor = ticket.statusColor;
 
-    return Container(
-      margin: EdgeInsets.only(bottom: 12.h),
-      decoration: BoxDecoration(
-        color: AppColors.cardBackground,
-        borderRadius: BorderRadius.circular(15.r),
-        border: Border(
-          bottom: BorderSide(color: AppColors.secondary, width: 2.w),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 10.r,
-            offset: Offset(0, 4.h),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          splashColor: AppColors.primary.withValues(alpha: 0.06),
-          highlightColor: AppColors.secondary.withValues(alpha: 0.04),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 14.h),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Header Row: Ticket # + Category + Status Chip
-                    Row(
+    return Padding(
+      padding: EdgeInsets.only(bottom: 12.h),
+      child: CustomCard(
+        onTap: onTap,
+        accentColor: AppColors.secondary,
+        showBottomAccent: true,
+        accentWidth: 3.w,
+        borderRadius: 15.r,
+        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 14.h),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Header Row: Ticket # + Category + Status Chip
+            Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         // Ticket Number Badge
@@ -229,12 +212,6 @@ class SupportTicketCard extends StatelessWidget {
                   ],
                 ),
               ),
-
-              // Signature Bottom Accent Border (3.w)
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
+            );
+          }
+        }

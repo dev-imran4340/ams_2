@@ -352,4 +352,37 @@ class SupportTicketRepo {
       return null;
     }
   }
+
+  /// Fetches training videos (GET /api/v1/support/training-videos)
+  /// Open to everyone without special permissions.
+  Future<List<TrainingVideoModel>> fetchTrainingVideos() async {
+    const methodTag = '$_originTag -> fetchTrainingVideos()';
+    try {
+      final response = await ApiClient.request(
+        endpoint: ApiEndpoints.supportTrainingVideos,
+        method: HttpMethod.get,
+        tag: methodTag,
+        showToastOnError: false,
+      );
+
+      if (response != null && response is Map<String, dynamic>) {
+        final data = response['data'];
+        if (data is List) {
+          return data
+              .whereType<Map>()
+              .map((item) =>
+                  TrainingVideoModel.fromJson(Map<String, dynamic>.from(item)))
+              .toList();
+        }
+      }
+      return [];
+    } catch (e, stackTrace) {
+      ExceptionHandler.handle(
+        ApiException(message: 'Failed to fetch training videos: $e'),
+        tag: '$methodTag [${stackTrace.toString().split('\n').first}]',
+        showToast: false,
+      );
+      return [];
+    }
+  }
 }

@@ -144,7 +144,7 @@ class RecentActivityTimeline extends GetView<DashboardController> {
         workIndex++;
         final bool isFirstSession = (workIndex == 1);
         final bool isLastSession = (workIndex == totalWork);
-        final bool isCurrentlyActive = (s.ends == null && isCheckedIn);
+        final bool isCurrentlyActive = (isLastSession && isCheckedIn);
 
         // Check-In Event for this session
         final String inTime = s.starts ?? '--:--';
@@ -167,7 +167,11 @@ class RecentActivityTimeline extends GetView<DashboardController> {
         );
 
         // Check-Out Event for this session (if ended)
-        if (s.ends != null && s.ends!.isNotEmpty && s.ends != '--:--') {
+        if (!isCurrentlyActive &&
+            s.ends != null &&
+            s.ends!.isNotEmpty &&
+            s.ends != '--:--' &&
+            s.ends != s.starts) {
           final String outTime = s.ends!;
           String durationText = '';
           if (s.startsAt != null && s.endsAt != null) {
@@ -279,8 +283,10 @@ class RecentActivityTimeline extends GetView<DashboardController> {
           } catch (_) {}
         }
 
+        final bool isOnBreak = today?.isOnBreak ?? false;
         final bool isBreakOngoing =
-            (ends == null || ends.isEmpty || ends == '--:--');
+            (ends == null || ends.isEmpty || ends == '--:--') ||
+            (isOnBreak && bIdx == totalBreaks);
         if (isBreakOngoing || (today?.breakSince != null && starts == today?.breakSince)) {
           hasOngoingBreakInList = true;
         }

@@ -131,6 +131,54 @@ class NotificationPayloadHandler {
       return;
     }
 
+    // 2.7 Performance Evaluation Screen (screen: "review")
+    if (cleanScreen == 'review') {
+      Get.log('🧭 [$_tag] Navigating to Evaluation Screen for ID: $cleanId');
+      if (Get.currentRoute != Routes.EVALUATION) {
+        await Get.toNamed(
+          Routes.EVALUATION,
+          arguments: {
+            if (cleanId != null && cleanId.isNotEmpty) 'openId': cleanId,
+          },
+        );
+      }
+      return;
+    }
+
+    // 2.8 Documents, Policies & Letters Screens (Phase 17)
+    if (cleanScreen == 'my_documents' || cleanScreen == 'documents') {
+      Get.log('🧭 [$_tag] Navigating to Documents (My Files)');
+      if (Get.currentRoute != Routes.DOCUMENTS) {
+        await Get.toNamed(Routes.DOCUMENTS, arguments: {'tab': 1});
+      }
+      return;
+    }
+    if (cleanScreen == 'company_document') {
+      Get.log('🧭 [$_tag] Navigating to Company Policy: $cleanId');
+      if (cleanId != null && cleanId.isNotEmpty) {
+        await Get.toNamed(Routes.POLICY_DETAILS, arguments: {'policyId': cleanId});
+      } else {
+        await Get.toNamed(Routes.DOCUMENTS, arguments: {'tab': 0});
+      }
+      return;
+    }
+    if (cleanScreen == 'letter') {
+      Get.log('🧭 [$_tag] Navigating to Letters');
+      if (Get.currentRoute != Routes.DOCUMENTS) {
+        await Get.toNamed(Routes.DOCUMENTS, arguments: {'tab': 2});
+      }
+      return;
+    }
+    if (cleanScreen == 'announcement') {
+      Get.log('🧭 [$_tag] Navigating to Announcement: $cleanId');
+      if (cleanId != null && cleanId.isNotEmpty) {
+        await Get.toNamed(Routes.ANNOUNCEMENT_DETAILS, arguments: {'announcementId': cleanId});
+      } else {
+        await Get.toNamed(Routes.NEWS, arguments: {'initialTab': 0});
+      }
+      return;
+    }
+
     // 3. Fallback for Unknown Screen Values -> Open Notifications List
     Get.log('🧭 [$_tag] Screen "$screen" unknown or general notification. Opening Notifications View.');
     if (Get.currentRoute != Routes.NOTIFICATIONS) {
