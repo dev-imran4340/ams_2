@@ -11,18 +11,21 @@ class IssuedLetterCard extends StatelessWidget {
   final IssuedLetterItemModel letter;
   final bool isDownloading;
   final VoidCallback onDownloadPdf;
+  final VoidCallback? onTap;
 
   const IssuedLetterCard({
     super.key,
     required this.letter,
     required this.isDownloading,
     required this.onDownloadPdf,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return CustomCard(
       margin: EdgeInsets.only(bottom: 12.h),
+      onTap: onTap,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -58,12 +61,34 @@ class IssuedLetterCard extends StatelessWidget {
                       ),
                     ),
                     AppSpaces.vSpace4,
-                    Text(
-                      'Ref: ${letter.reference}',
-                      style: AppTextStyles.text10.copyWith(
-                        color: AppColors.subTextColor,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    Row(
+                      children: [
+                        Text(
+                          'Ref: ${letter.reference}',
+                          style: AppTextStyles.text10.copyWith(
+                            color: AppColors.subTextColor,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        AppSpaces.hSpace6,
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 6.w,
+                            vertical: 1.5.h,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.secondary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(4.r),
+                          ),
+                          child: Text(
+                            letter.kindLabel,
+                            style: AppTextStyles.text10.copyWith(
+                              color: AppColors.secondary,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -125,11 +150,19 @@ class IssuedLetterCard extends StatelessWidget {
                   color: AppColors.secondary,
                 ),
                 AppSpaces.hSpace6,
-                Text(
-                  'Issued: ${letter.issuedOn}${letter.issuedBy != null ? ' by ${letter.issuedBy}' : ''}',
-                  style: AppTextStyles.text10.copyWith(
-                    color: AppColors.subTextColor,
+                Expanded(
+                  child: Text(
+                    'Issued: ${letter.issuedOn}${letter.issuedBy != null ? ' by ${letter.issuedBy}' : ''}',
+                    style: AppTextStyles.text10.copyWith(
+                      color: AppColors.subTextColor,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
+                ),
+                Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 11.w,
+                  color: AppColors.subTextColor.withValues(alpha: 0.6),
                 ),
               ],
             ),

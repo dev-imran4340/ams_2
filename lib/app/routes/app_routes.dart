@@ -41,6 +41,10 @@ abstract class Routes {
   static const POLICY_DETAILS = '/policy-details';
   static const NEWS = '/news';
   static const ANNOUNCEMENT_DETAILS = '/announcement-details';
+  static const ASSETS = '/assets';
+  static const TRAINING = '/training';
+  static const CHECKLISTS = '/checklists';
+  static const HELPDESK = '/helpdesk';
 }
 
 

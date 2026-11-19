@@ -9,6 +9,7 @@ import '../../../core/widgets/custom_screen_header.dart';
 import '../../../core/widgets/custom_state_view.dart';
 import '../../../core/widgets/employee_ambient_header.dart';
 import '../../../core/widgets/network_boundary_wrapper.dart';
+import '../../../routes/app_routes.dart';
 import '../controller/profile_controller.dart';
 import 'components/profile_account_tab.dart';
 import 'components/profile_bank_tab.dart';
@@ -264,8 +265,30 @@ class _ProfileDetailsViewState extends State<ProfileDetailsView> {
         return const ProfileJobTab(key: ValueKey('tab_job'));
 
       case 'documents':
+        if (isOther) {
+          return const ProfileDocumentsTab(key: ValueKey('tab_documents'));
+        }
+        return CustomStateView.empty(
+          key: const ValueKey('tab_empty_documents'),
+          icon: Icons.description_outlined,
+          title: 'Company Documents & Policies',
+          message: 'Browse company HR policies, handbooks, guidelines, and official compliance documents.',
+          buttonText: 'Open Documents & Policies',
+          onAction: () => Get.toNamed(Routes.DOCUMENTS, arguments: {'tab': 0}),
+        );
+
       case 'files':
-        return const ProfileDocumentsTab(key: ValueKey('tab_documents'));
+        if (isOther) {
+          return const ProfileDocumentsTab(key: ValueKey('tab_files'));
+        }
+        return CustomStateView.empty(
+          key: const ValueKey('tab_empty_files'),
+          icon: Icons.folder_shared_outlined,
+          title: 'Employee Personal Files',
+          message: 'Access your personal employee files, credentials, contracts, and issued letters.',
+          buttonText: 'Open Employee Files',
+          onAction: () => Get.toNamed(Routes.DOCUMENTS, arguments: {'tab': 1}),
+        );
 
       case 'bank':
         return const ProfileBankTab(key: ValueKey('tab_bank'));
@@ -279,74 +302,109 @@ class _ProfileDetailsViewState extends State<ProfileDetailsView> {
       case 'schedule':
         return CustomStateView.empty(
           key: const ValueKey('tab_empty_schedule'),
+          icon: Icons.calendar_month_outlined,
           title: 'Schedule Access Restricted',
           message: isOther
               ? 'You do not have department/company permission to audit this employee’s work schedule.'
               : 'Your assigned shift rota and working hours are managed under Attendance.',
+          buttonText: isOther ? null : 'Open Schedule',
+          onAction: isOther ? null : () => Get.toNamed(Routes.SCHEDULE),
         );
 
       case 'attendance':
         return CustomStateView.empty(
           key: const ValueKey('tab_empty_attendance'),
+          icon: Icons.history_rounded,
           title: 'Attendance Access Restricted',
           message: isOther
               ? 'You do not have department/company permission to view this employee’s timesheet logs.'
               : 'Attendance punch logs and shifts can be viewed directly from Attendance History.',
+          buttonText: isOther ? null : 'Open Attendance History',
+          onAction: isOther ? null : () => Get.toNamed(Routes.ATTENDANCE_HISTORY),
         );
 
       case 'leave':
         return CustomStateView.empty(
           key: const ValueKey('tab_empty_leave'),
+          icon: Icons.beach_access_outlined,
           title: 'Leave Records Access',
           message: isOther
               ? 'You do not have permission to audit leave records for this employee.'
               : 'Your leave balance and applications are managed in Leave Management.',
+          buttonText: isOther ? null : 'Open Leave Management',
+          onAction: isOther ? null : () => Get.toNamed(Routes.LEAVE),
         );
 
       case 'pay':
         return CustomStateView.empty(
           key: const ValueKey('tab_empty_pay'),
+          icon: Icons.receipt_long_outlined,
           title: 'Payroll Details',
           message: isOther
               ? 'Confidential: Salary and payslip records are strictly confidential and restricted to authorized payroll officers.'
               : 'Access your salary structure and monthly payslips via Payroll & Payslips.',
+          buttonText: isOther ? null : 'Open Payroll & Payslips',
+          onAction: isOther ? null : () => Get.toNamed(Routes.PAYROLL),
         );
 
       case 'money':
         return CustomStateView.empty(
           key: const ValueKey('tab_empty_money'),
+          icon: Icons.account_balance_wallet_outlined,
           title: 'Loans & Money Requests',
           message: isOther
               ? 'Confidential: Employee loans, advance requests, and expense claims are private to the employee and finance department.'
               : 'Submit and track staff loans, salary advances, and expenses via Money Requests.',
+          buttonText: isOther ? null : 'Open Loans & Money Requests',
+          onAction: isOther ? null : () => Get.toNamed(Routes.LOANS),
         );
 
       case 'performance':
         return CustomStateView.empty(
           key: const ValueKey('tab_empty_performance'),
+          icon: Icons.trending_up_rounded,
           title: 'Performance & Appraisals',
-          message: 'No active appraisal review or KPI criteria report is currently open for this profile cycle.',
+          message: isOther
+              ? 'No active appraisal review or KPI criteria report is currently open for this profile cycle.'
+              : 'Review your appraisal cycles, KPIs, and performance evaluations in Performance.',
+          buttonText: isOther ? null : 'Open Performance & Evaluations',
+          onAction: isOther ? null : () => Get.toNamed(Routes.EVALUATION),
         );
 
       case 'onboarding':
         return CustomStateView.empty(
           key: const ValueKey('tab_empty_onboarding'),
-          title: 'Joining & Leaving',
-          message: 'Onboarding checklist and formal joining documentation are finalized.',
+          icon: Icons.checklist_rounded,
+          title: 'Onboarding & Checklists',
+          message: isOther
+              ? 'Confidential: Joining & leaving checklists are restricted to the employee and HR managers.'
+              : 'Review your active and completed onboarding and offboarding checklist tasks.',
+          buttonText: isOther ? null : 'Open Checklists',
+          onAction: isOther ? null : () => Get.toNamed(Routes.CHECKLISTS),
         );
 
       case 'assets':
         return CustomStateView.empty(
           key: const ValueKey('tab_empty_assets'),
-          title: 'Company Assets',
-          message: 'No hardware assets or company equipment are currently assigned to this profile.',
+          icon: Icons.devices_other_rounded,
+          title: 'Company Assets & Equipment',
+          message: isOther
+              ? 'Confidential: Equipment and hardware inventory is restricted to the assigned employee and IT asset officers.'
+              : 'View, track, and acknowledge laptops, monitors, SIM cards, and company hardware assigned to you.',
+          buttonText: isOther ? null : 'Open Company Assets',
+          onAction: isOther ? null : () => Get.toNamed(Routes.ASSETS),
         );
 
       case 'training':
         return CustomStateView.empty(
           key: const ValueKey('tab_empty_training'),
+          icon: Icons.school_outlined,
           title: 'Training & Development',
-          message: 'No enrolled training programs or professional development courses found on record.',
+          message: isOther
+              ? 'Confidential: Enrolled training records and development certifications are restricted to employee and HR officers.'
+              : 'Review your required compliance courses, training records, and earned certifications.',
+          buttonText: isOther ? null : 'Open Training & Certifications',
+          onAction: isOther ? null : () => Get.toNamed(Routes.TRAINING),
         );
 
       default:

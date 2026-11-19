@@ -17,7 +17,7 @@ class NetworkConnectivityService {
   NetworkConnectivityService._();
 
   static DateTime? _lastSuccessAt;
-  static const Duration _cacheDuration = Duration(seconds: 2);
+  static const Duration _cacheDuration = Duration(seconds: 30);
 
   /// Clears any cached positive result (e.g. immediately after an API failure/timeout).
   static void invalidateCache() {

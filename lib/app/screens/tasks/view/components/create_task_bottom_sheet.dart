@@ -36,9 +36,12 @@ class CreateTaskBottomSheet extends GetView<TaskController> {
       padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 14.h),
       child: SafeArea(
         top: false,
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          child: Column(
+        child: Form(
+          key: controller.createTaskFormKey,
+          child: SingleChildScrollView(
+            controller: controller.createModalScrollController,
+            physics: const BouncingScrollPhysics(),
+            child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -115,16 +118,28 @@ class CreateTaskBottomSheet extends GetView<TaskController> {
 
               AppSpaces.vSpace16,
 
-              // 3. Title Input
-              CustomTextField(
-                controller: controller.titleController,
-                focusNode: controller.titleFocusNode,
-                labelText: 'Deliverable Title',
-                hintText: 'e.g. Audit Weekly Attendance Regularizations',
-                prefixIcon: Icon(
-                  Icons.title_rounded,
-                  size: 18.sp,
-                  color: AppColors.secondary,
+              // 3. Title Input (Validated & Keyed for Auto-Scroll)
+              KeyedSubtree(
+                key: controller.titleFieldKey,
+                child: CustomTextField(
+                  controller: controller.titleController,
+                  focusNode: controller.titleFocusNode,
+                  labelText: 'Deliverable Title',
+                  hintText: 'e.g. Audit Weekly Attendance Regularizations',
+                  prefixIcon: Icon(
+                    Icons.title_rounded,
+                    size: 18.sp,
+                    color: AppColors.secondary,
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please enter a deliverable title';
+                    }
+                    if (value.trim().length > 150) {
+                      return 'Title cannot exceed 150 characters';
+                    }
+                    return null;
+                  },
                 ),
               ),
 
@@ -146,76 +161,7 @@ class CreateTaskBottomSheet extends GetView<TaskController> {
 
               AppSpaces.vSpace14,
 
-              // 5. Project Selector Row
-              Text(
-                'Department / Project',
-                style: AppTextStyles.text12.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textColor,
-                ),
-              ),
-              AppSpaces.vSpace6,
-              SizedBox(
-                height: 34.h,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: controller.availableProjects.length,
-                  separatorBuilder: (_, _) => AppSpaces.hSpace8,
-                  itemBuilder: (context, index) {
-                    final project = controller.availableProjects[index];
-
-                    return Obx(() {
-                      final isSelected =
-                          controller.selectedProject.value == project;
-
-                      return Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: () =>
-                              controller.selectedProject.value = project,
-                          borderRadius: BorderRadius.circular(16.r),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 180),
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 12.w,
-                              vertical: 6.h,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? AppColors.primary
-                                  : AppColors.inputFill,
-                              borderRadius: BorderRadius.circular(16.r),
-                              border: Border.all(
-                                color: isSelected
-                                    ? AppColors.primary
-                                    : AppColors.borderColor,
-                                width: 1.w,
-                              ),
-                            ),
-                            child: Center(
-                              child: Text(
-                                project,
-                                style: AppTextStyles.text10.copyWith(
-                                  fontWeight: isSelected
-                                      ? FontWeight.bold
-                                      : FontWeight.w500,
-                                  color: isSelected
-                                      ? AppColors.white
-                                      : AppColors.subTextColor,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    });
-                  },
-                ),
-              ),
-
-              AppSpaces.vSpace14,
-
-              // 6. Priority & Due Date Row
+              // 5. Priority & Due Date Row
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -397,6 +343,7 @@ class CreateTaskBottomSheet extends GetView<TaskController> {
           ),
         ),
       ),
+    ),
     ),
     ),
     );

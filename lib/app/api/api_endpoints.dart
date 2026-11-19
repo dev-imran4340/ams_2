@@ -111,5 +111,32 @@ class ApiEndpoints {
   }
   static const String peopleMilestones = '/people/milestones';
   static const String meBirthdaySharing = '/me/birthday-sharing';
+
+  // 15. Tasks & Deliverables (Phase 18 Live Engine)
+  static const String tasks = '/tasks';
+  static String taskDetails(String id) => '/tasks/$id';
+  static String completeTask(String id) => '/tasks/$id/complete';
+  static String reopenTask(String id) => '/tasks/$id/reopen';
+  static String taskComments(String id) => '/tasks/$id/comments';
+
+  // 16. Company Assets & Equipment (Phase 18 Live Engine)
+  static const String meAssets = '/me/assets';
+  static String meAssetAcknowledge(String id) => '/me/assets/$id/acknowledge';
+
+  // 17. Training & Certifications (Phase 18 Live Engine)
+  static const String meTraining = '/me/training';
+
+  // 18. Onboarding & Offboarding Checklists (Phase 18 Live Engine)
+  static const String meChecklists = '/me/checklists';
+
+  // 19. Job Description (Phase 18 Live Engine)
+  static const String meJobDescription = '/me/job-description';
+
+  // 20. HR Helpdesk (Phase 18 Live Engine)
+  static const String helpdeskCategories = '/helpdesk/categories';
+  static const String helpdeskTickets = '/helpdesk/tickets';
+  static String helpdeskTicketDetails(String id) => '/helpdesk/tickets/$id';
+  static String helpdeskTicketMessages(String id) => '/helpdesk/tickets/$id/messages';
+  static String helpdeskTicketCancel(String id) => '/helpdesk/tickets/$id/cancel';
 }
 

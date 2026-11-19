@@ -13,14 +13,11 @@ class TaskTelemetryStrip extends GetView<TaskController> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 12.h),
+      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 14.h),
       decoration: BoxDecoration(
         color: AppColors.cardBackground,
         borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(
-          color: AppColors.borderColor,
-          width: 1.w,
-        ),
+        border: Border.all(color: AppColors.borderColor, width: 1.w),
         boxShadow: [
           BoxShadow(
             color: AppColors.primary.withValues(alpha: 0.06),
@@ -99,6 +96,7 @@ class TaskTelemetryStrip extends GetView<TaskController> {
           onTap: () => controller.setFilter(filterTag),
           borderRadius: BorderRadius.circular(12.r),
           child: Container(
+            height: 60.h,
             padding: EdgeInsets.symmetric(vertical: 4.h),
             decoration: BoxDecoration(
               color: isSelected
@@ -106,36 +104,36 @@ class TaskTelemetryStrip extends GetView<TaskController> {
                   : Colors.transparent,
               borderRadius: BorderRadius.circular(12.r),
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      icon,
-                      size: 13.sp,
-                      color: accentColor,
-                    ),
-                    AppSpaces.hSpace4,
-                    Text(
-                      '$count',
-                      style: AppTextStyles.text16.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: accentColor,
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(icon, size: 13.sp, color: accentColor),
+                      AppSpaces.hSpace4,
+                      Text(
+                        '$count',
+                        style: AppTextStyles.text16.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: accentColor,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                AppSpaces.vSpace2,
-                Text(
-                  label,
-                  style: AppTextStyles.text10.copyWith(
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                    color: isSelected ? accentColor : AppColors.subTextColor,
+                    ],
                   ),
-                ),
-              ],
+                  AppSpaces.vSpace2,
+                  Text(
+                    label,
+                    style: AppTextStyles.text10.copyWith(
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.w500,
+                      color: isSelected ? accentColor : AppColors.subTextColor,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -145,8 +143,9 @@ class TaskTelemetryStrip extends GetView<TaskController> {
 
   Widget _buildDivider() {
     return Container(
+      margin: EdgeInsets.symmetric(horizontal: 5.w),
       width: 1.w,
-      height: 28.h,
+      height: 40.h,
       color: AppColors.borderColor,
     );
   }

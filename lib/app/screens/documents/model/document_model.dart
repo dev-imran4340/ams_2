@@ -397,6 +397,7 @@ class IssuedLetterItemModel {
   final bool isVoid;
   final String? voidReason;
   final DocumentEmployeeRef? employee;
+  final String? body;
 
   const IssuedLetterItemModel({
     required this.id,
@@ -410,6 +411,7 @@ class IssuedLetterItemModel {
     required this.isVoid,
     this.voidReason,
     this.employee,
+    this.body,
   });
 
   factory IssuedLetterItemModel.fromJson(Map<String, dynamic> json) {
@@ -428,6 +430,7 @@ class IssuedLetterItemModel {
       employee: empRaw is Map<String, dynamic>
           ? DocumentEmployeeRef.fromJson(empRaw)
           : null,
+      body: json['body']?.toString(),
     );
   }
 
@@ -444,7 +447,38 @@ class IssuedLetterItemModel {
       'void': isVoid,
       'void_reason': voidReason,
       'employee': employee?.toJson(),
+      'body': body,
     };
+  }
+
+  IssuedLetterItemModel copyWith({
+    String? id,
+    String? reference,
+    String? kind,
+    String? kindLabel,
+    String? subject,
+    String? issuedOn,
+    String? issuedBy,
+    bool? shared,
+    bool? isVoid,
+    String? voidReason,
+    DocumentEmployeeRef? employee,
+    String? body,
+  }) {
+    return IssuedLetterItemModel(
+      id: id ?? this.id,
+      reference: reference ?? this.reference,
+      kind: kind ?? this.kind,
+      kindLabel: kindLabel ?? this.kindLabel,
+      subject: subject ?? this.subject,
+      issuedOn: issuedOn ?? this.issuedOn,
+      issuedBy: issuedBy ?? this.issuedBy,
+      shared: shared ?? this.shared,
+      isVoid: isVoid ?? this.isVoid,
+      voidReason: voidReason ?? this.voidReason,
+      employee: employee ?? this.employee,
+      body: body ?? this.body,
+    );
   }
 }
 

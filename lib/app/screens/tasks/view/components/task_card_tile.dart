@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import '../../../../core/utils/app_colors.dart';
 import '../../../../core/utils/app_spaces.dart';
 import '../../../../core/utils/app_text_styles.dart';
+import '../../../../core/widgets/custom_button.dart';
 import '../../controller/task_controller.dart';
 import '../../model/task_model.dart';
 
@@ -18,8 +19,6 @@ class TaskCardTile extends GetView<TaskController> {
 
   @override
   Widget build(BuildContext context) {
-    final accentColor = _getPriorityColor(task.priority);
-
     return Container(
       decoration: BoxDecoration(
         color: AppColors.cardBackground,
@@ -38,54 +37,19 @@ class TaskCardTile extends GetView<TaskController> {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16.r),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () => controller.openTaskDetails(task),
+            child: Padding(
               padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 1. Header Row: Checkbox, Title & Priority Badge
+                  // 1. Header Row: Title & Priority Pill Badge
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Animated Checkbox Circle
-                      Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: () => controller.toggleComplete(task),
-                          borderRadius: BorderRadius.circular(12.r),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            width: 24.r,
-                            height: 24.r,
-                            decoration: BoxDecoration(
-                              color: task.isCompleted
-                                  ? AppColors.success
-                                  : Colors.transparent,
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: task.isCompleted
-                                    ? AppColors.success
-                                    : AppColors.subTextColor
-                                        .withValues(alpha: 0.5),
-                                width: 2.w,
-                              ),
-                            ),
-                            child: task.isCompleted
-                                ? Icon(
-                                    Icons.check_rounded,
-                                    size: 15.sp,
-                                    color: AppColors.white,
-                                  )
-                                : null,
-                          ),
-                        ),
-                      ),
-
-                      AppSpaces.hSpace10,
-
                       // Task Title
                       Expanded(
                         child: Text(
@@ -114,85 +78,97 @@ class TaskCardTile extends GetView<TaskController> {
                   // 2. Body: Description
                   if (task.description.isNotEmpty) ...[
                     AppSpaces.vSpace8,
-                    Padding(
-                      padding: EdgeInsets.only(left: 34.w),
-                      child: Text(
-                        task.description,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTextStyles.text12.copyWith(
-                          color: AppColors.subTextColor,
-                          height: 1.35,
-                        ),
+                    Text(
+                      task.description,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.text12.copyWith(
+                        color: AppColors.subTextColor,
+                        height: 1.35,
                       ),
                     ),
                   ],
 
                   AppSpaces.vSpace12,
 
-                  // 3. Footer Row: Project Tag, Due Date, Status Avatar
-                  Padding(
-                    padding: EdgeInsets.only(left: 34.w),
-                    child: Row(
-                      children: [
-                        // Project Badge
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 8.w,
-                            vertical: 3.h,
+                  // 3. Footer Row: Checklist / Project Tag, Due Date, Status Badge
+                  Row(
+                    children: [
+                      // Checklist / Project Badge
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 8.w,
+                          vertical: 3.h,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(8.r),
+                        ),
+                        child: Text(
+                          task.projectTag,
+                          style: AppTextStyles.text10.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.primary,
                           ),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(alpha: 0.08),
-                            borderRadius: BorderRadius.circular(8.r),
+                        ),
+                      ),
+
+                      AppSpaces.hSpace8,
+
+                      // Due Date Pill
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.calendar_today_rounded,
+                            size: 11.sp,
+                            color: AppColors.subTextColor,
                           ),
-                          child: Text(
-                            task.projectTag,
+                          AppSpaces.hSpace4,
+                          Text(
+                            _formatDueDate(task.dueDate),
                             style: AppTextStyles.text10.copyWith(
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.primary,
+                              color: AppColors.subTextColor,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
-                        ),
+                        ],
+                      ),
 
-                        AppSpaces.hSpace8,
+                      const Spacer(),
 
-                        // Due Date Pill
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.calendar_today_rounded,
-                              size: 11.sp,
-                              color: AppColors.subTextColor,
-                            ),
-                            AppSpaces.hSpace4,
-                            Text(
-                              _formatDueDate(task.dueDate),
-                              style: AppTextStyles.text10.copyWith(
-                                color: AppColors.subTextColor,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
+                      // Status Badge
+                      _buildStatusBadge(task.status, task.isCompleted),
+                    ],
+                  ),
 
-                        const Spacer(),
+                  AppSpaces.vSpace12,
+                  Divider(
+                    color: AppColors.borderColor.withValues(alpha: 0.6),
+                    height: 1.h,
+                  ),
+                  AppSpaces.vSpace10,
 
-                        // Status Badge
-                        _buildStatusBadge(task.status, task.isCompleted),
-                      ],
+                  // 4. Action Button: Complete (if open) / Reopen (if completed)
+                  CustomButton(
+                    text: task.isCompleted ? 'Reopen' : 'Complete',
+                    height: 36.h,
+                    fontSize: 12.sp,
+                    isGradient: !task.isCompleted,
+                    isOutlined: task.isCompleted,
+                    borderColor: task.isCompleted ? AppColors.warning : null,
+                    textColor: task.isCompleted
+                        ? AppColors.warning
+                        : AppColors.white,
+                    onPressed: () => controller.toggleComplete(
+                      task,
+                      isDone: !task.isCompleted,
                     ),
                   ),
                 ],
               ),
             ),
-
-            // 4. Signature Bottom Accent Strip (3.h)
-            Container(
-              height: 3.h,
-              color: task.isCompleted ? AppColors.success : accentColor,
-            ),
-          ],
+          ),
         ),
       ),
     );

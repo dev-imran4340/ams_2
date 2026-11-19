@@ -1,175 +1,368 @@
-import 'dart:async';
+import 'dart:io';
+import 'package:http/http.dart' as http;
 
+import '../../../api/api_client.dart';
+import '../../../api/api_endpoints.dart';
+import '../../../api/app_preferences.dart';
 import '../../../api/exception_handler.dart';
 import '../model/task_model.dart';
 
 class TaskRepo {
-  final String _tag = 'TaskRepo / TaskScreen';
+  final String _tag = 'TaskRepo / TasksScreen';
 
-  // In-memory mock task store simulating backend database
-  final List<TaskModel> _mockTasks = [
-    TaskModel(
-      id: 'TSK-101',
-      title: 'Refactor Face Recognition Stream',
-      description:
-          'Integrate AVFoundation camera preview with dynamic oval cutout and real-time 3D anti-spoofing telemetry.',
-      priority: 'Urgent',
-      status: 'In Progress',
-      dueDate: DateTime.now().add(const Duration(hours: 18)),
-      projectTag: 'AMS 2 Mobile',
-      isCompleted: false,
-    ),
-    TaskModel(
-      id: 'TSK-102',
-      title: 'Audit Weekly Attendance Regularizations',
-      description:
-          'Cross-examine geo-fence check-in logs and overtime claims for Engineering & Product department staff.',
-      priority: 'High',
-      status: 'To Do',
-      dueDate: DateTime.now().add(const Duration(days: 1)),
-      projectTag: 'HR Operations',
-      isCompleted: false,
-    ),
-    TaskModel(
-      id: 'TSK-103',
-      title: 'Implement Offline SQLite Punch Sync',
-      description:
-          'Store attendance punches locally when connectivity drops and auto-sync with exponential backoff.',
-      priority: 'High',
-      status: 'To Do',
-      dueDate: DateTime.now().add(const Duration(days: 2)),
-      projectTag: 'Core Engine',
-      isCompleted: false,
-    ),
-    TaskModel(
-      id: 'TSK-104',
-      title: 'Review Overtime Claims for SFT-094',
-      description:
-          'Verify weekend shift supervisor approval receipts and calculate billable overtime rates.',
-      priority: 'Medium',
-      status: 'In Progress',
-      dueDate: DateTime.now().add(const Duration(days: 3)),
-      projectTag: 'Finance & Payroll',
-      isCompleted: false,
-    ),
-    TaskModel(
-      id: 'TSK-105',
-      title: 'Update Biometric Encryption Handshake',
-      description:
-          'Rotate cryptographic public key for QR badge token signature validation.',
-      priority: 'Urgent',
-      status: 'Completed',
-      dueDate: DateTime.now().subtract(const Duration(hours: 6)),
-      projectTag: 'Security & Auth',
-      isCompleted: true,
-    ),
-    TaskModel(
-      id: 'TSK-106',
-      title: 'Verify Monthly Shift Roster Allocation',
-      description:
-          'Confirm rotating evening shift rosters for customer support and QA engineering teams.',
-      priority: 'Low',
-      status: 'Completed',
-      dueDate: DateTime.now().subtract(const Duration(days: 1)),
-      projectTag: 'Operations',
-      isCompleted: true,
-    ),
-  ];
+  /// GET /tasks?list=&status=&due=&page=&per_page=
+  /// Fetches live server-filtered task roster with pagination & operational telemetry
+  /// Zero Dummy Fallback Policy: Live data or clean empty list on failure
+  Future<({List<TaskModel> tasks, TaskTelemetryModel telemetry, int total, int page, int lastPage})?>
+      fetchTasks({
+    String list = 'mine',
+    String status = 'open',
+    String? due,
+    int page = 1,
+    int perPage = 25,
+  }) async {
+    final methodTag =
+        '$_tag -> fetchTasks(list=$list, status=$status, due=$due, page=$page)';
 
-  /// Computes telemetry metrics from task list
-  TaskTelemetryModel _computeTelemetry(List<TaskModel> list) {
-    int pending = 0;
-    int inProgress = 0;
-    int completed = 0;
-
-    for (final t in list) {
-      if (t.isCompleted || t.status == 'Completed') {
-        completed++;
-      } else if (t.status == 'In Progress') {
-        inProgress++;
-      } else {
-        pending++;
-      }
-    }
-
-    return TaskTelemetryModel(
-      totalTasks: list.length,
-      pendingCount: pending,
-      inProgressCount: inProgress,
-      completedCount: completed,
-    );
-  }
-
-  /// Fetches all active tasks and computes telemetry metrics
-  Future<({List<TaskModel> tasks, TaskTelemetryModel telemetry})?>
-      fetchTasks() async {
     try {
-      await Future.delayed(const Duration(milliseconds: 500));
+      final queryParams = <String, dynamic>{
+        'list': list,
+        'status': status,
+        'page': page.toString(),
+        'per_page': perPage.toString(),
+      };
 
-      final tasksCopy = List<TaskModel>.from(_mockTasks);
-      final telemetry = _computeTelemetry(tasksCopy);
+      if (due != null && due.isNotEmpty && status == 'open') {
+        queryParams['due'] = due;
+      }
 
-      return (tasks: tasksCopy, telemetry: telemetry);
+      final response = await ApiClient.request(
+        endpoint: ApiEndpoints.tasks,
+        method: HttpMethod.get,
+        queryParameters: queryParams,
+        tag: methodTag,
+        showToastOnError: false,
+      );
+
+      if (response != null && response is Map<String, dynamic>) {
+        final rawData = response['data'];
+        final meta = response['meta'] is Map<String, dynamic>
+            ? response['meta'] as Map<String, dynamic>
+            : <String, dynamic>{};
+
+        List<TaskModel> taskList = [];
+        if (rawData is List) {
+          taskList = rawData
+              .whereType<Map<String, dynamic>>()
+              .map((item) => TaskModel.fromJson(item))
+              .toList();
+        }
+
+        final int total = (meta['total'] as num?)?.toInt() ?? taskList.length;
+        final int currentPage = (meta['page'] as num?)?.toInt() ?? page;
+        final int lastPage = (meta['last_page'] as num?)?.toInt() ?? 1;
+
+        // Compute telemetry from received tasks list
+        int openCount = 0;
+        int completedCount = 0;
+        int overdueCount = 0;
+
+        for (final t in taskList) {
+          if (t.isCompleted) {
+            completedCount++;
+          } else {
+            openCount++;
+            if (t.isOverdue) overdueCount++;
+          }
+        }
+
+        final telemetry = TaskTelemetryModel(
+          totalTasks: total,
+          pendingCount: openCount,
+          inProgressCount: overdueCount,
+          completedCount: completedCount,
+        );
+
+        return (
+          tasks: taskList,
+          telemetry: telemetry,
+          total: total,
+          page: currentPage,
+          lastPage: lastPage,
+        );
+      }
+      return null;
     } catch (e, stackTrace) {
       ExceptionHandler.handle(
         ApiException(message: 'Failed to fetch task operations: $e'),
-        tag:
-            '$_tag -> fetchTasks() [${stackTrace.toString().split('\n').first}]',
+        tag: '$methodTag [${stackTrace.toString().split('\n').first}]',
+        showToast: false,
       );
       return null;
     }
   }
 
-  /// Creates a new deliverable task and prepends to roster
-  Future<TaskModel?> createTask(Map<String, dynamic> body) async {
+  /// GET /tasks/{id}
+  /// Fetches complete audit details, description, linked checklist, files and discussion thread
+  Future<TaskModel?> fetchTaskDetails(String id) async {
+    final methodTag = '$_tag -> fetchTaskDetails($id)';
     try {
-      await Future.delayed(const Duration(milliseconds: 600));
-
-      final newTask = TaskModel(
-        id: 'TSK-${100 + _mockTasks.length + 1}',
-        title: body['title']?.toString() ?? 'New Deliverable',
-        description: body['description']?.toString() ?? '',
-        priority: body['priority']?.toString() ?? 'Medium',
-        status: 'To Do',
-        dueDate: body['due_date'] is DateTime
-            ? body['due_date'] as DateTime
-            : DateTime.now().add(const Duration(days: 1)),
-        projectTag: body['project_tag']?.toString() ?? 'AMS 2 Mobile',
-        isCompleted: false,
+      final response = await ApiClient.request(
+        endpoint: ApiEndpoints.taskDetails(id),
+        method: HttpMethod.get,
+        tag: methodTag,
+        showToastOnError: true,
       );
 
-      _mockTasks.insert(0, newTask);
-      return newTask;
+      if (response != null && response is Map<String, dynamic>) {
+        final data = response['data'];
+        if (data is Map<String, dynamic>) {
+          return TaskModel.fromJson(data);
+        }
+      }
+      return null;
+    } catch (e, stackTrace) {
+      ExceptionHandler.handle(
+        ApiException(message: 'Failed to fetch task details: $e'),
+        tag: '$methodTag [${stackTrace.toString().split('\n').first}]',
+        showToast: true,
+      );
+      return null;
+    }
+  }
+
+  /// POST /tasks
+  /// Creates a new deliverable task on the live backend
+  Future<TaskModel?> createTask({
+    required String title,
+    String? description,
+    String priority = 'normal',
+    String? dueOn,
+    List<String>? assignees,
+    String? about,
+    List<File>? files,
+  }) async {
+    final methodTag = '$_tag -> createTask()';
+    try {
+      // Priority must be strictly 'low', 'normal', or 'high'
+      String normalizedPriority = 'normal';
+      final p = priority.toLowerCase().trim();
+      if (p == 'urgent' || p == 'high') {
+        normalizedPriority = 'high';
+      } else if (p == 'low') {
+        normalizedPriority = 'low';
+      } else {
+        normalizedPriority = 'normal';
+      }
+
+      // Backend validator strictly requires 'assignees' => 'required|array'
+      final selfUserId =
+          AppPreferences.userId ?? AppPreferences.selfEmployeeId ?? '';
+      final List<String> effectiveAssignees =
+          (assignees != null && assignees.isNotEmpty)
+              ? assignees
+              : (selfUserId.isNotEmpty ? [selfUserId] : <String>[]);
+
+      // Check if files are attached -> Multipart request
+      dynamic response;
+      if (files != null && files.isNotEmpty) {
+        final fields = <String, String>{
+          'title': title.trim(),
+          'priority': normalizedPriority,
+        };
+
+        if (description != null && description.trim().isNotEmpty) {
+          fields['description'] = description.trim();
+        }
+
+        if (dueOn != null && dueOn.trim().isNotEmpty) {
+          fields['due_on'] = dueOn.trim();
+        }
+
+        if (about != null && about.trim().isNotEmpty) {
+          fields['about'] = about.trim();
+        }
+
+        for (int i = 0; i < effectiveAssignees.length; i++) {
+          fields['assignees[$i]'] = effectiveAssignees[i];
+        }
+
+        final multipartFiles = <http.MultipartFile>[];
+        for (final f in files) {
+          if (await f.exists()) {
+            multipartFiles.add(
+              await http.MultipartFile.fromPath('files[]', f.path),
+            );
+          }
+        }
+
+        response = await ApiClient.requestMultipart(
+          method: HttpMethod.post,
+          endpoint: ApiEndpoints.tasks,
+          fields: fields,
+          files: multipartFiles,
+          tag: '$methodTag [multipart]',
+          showToastOnError: true,
+        );
+      } else {
+        final jsonBody = <String, dynamic>{
+          'title': title.trim(),
+          'priority': normalizedPriority,
+          'assignees': effectiveAssignees,
+        };
+
+        if (description != null && description.trim().isNotEmpty) {
+          jsonBody['description'] = description.trim();
+        }
+
+        if (dueOn != null && dueOn.trim().isNotEmpty) {
+          jsonBody['due_on'] = dueOn.trim();
+        }
+
+        if (about != null && about.trim().isNotEmpty) {
+          jsonBody['about'] = about.trim();
+        }
+
+        response = await ApiClient.request(
+          endpoint: ApiEndpoints.tasks,
+          method: HttpMethod.post,
+          body: jsonBody,
+          tag: methodTag,
+          showToastOnError: true,
+        );
+      }
+
+      if (response != null && response is Map<String, dynamic>) {
+        final data = response['data'];
+        if (data is List && data.isNotEmpty) {
+          final first = data.first;
+          if (first is Map<String, dynamic>) {
+            return TaskModel.fromJson(first);
+          }
+        } else if (data is Map<String, dynamic>) {
+          return TaskModel.fromJson(data);
+        }
+      }
+      return null;
     } catch (e, stackTrace) {
       ExceptionHandler.handle(
         ApiException(message: 'Failed to create task deliverable: $e'),
-        tag:
-            '$_tag -> createTask() [${stackTrace.toString().split('\n').first}]',
+        tag: '$methodTag [${stackTrace.toString().split('\n').first}]',
+        showToast: true,
       );
       return null;
     }
   }
 
-  /// Toggles task completion state
-  Future<bool> toggleTaskCompletion(String taskId, bool isDone) async {
+  /// POST /tasks/{id}/complete
+  /// Marks an active deliverable as completed with an optional note
+  Future<bool> completeTask(String id, {String? note}) async {
+    final methodTag = '$_tag -> completeTask($id)';
     try {
-      await Future.delayed(const Duration(milliseconds: 300));
-
-      final index = _mockTasks.indexWhere((t) => t.id == taskId);
-      if (index != -1) {
-        final existing = _mockTasks[index];
-        _mockTasks[index] = existing.copyWith(
-          isCompleted: isDone,
-          status: isDone ? 'Completed' : 'To Do',
-        );
-        return true;
+      final body = <String, dynamic>{};
+      if (note != null && note.trim().isNotEmpty) {
+        body['note'] = note.trim();
       }
-      return false;
+
+      final response = await ApiClient.request(
+        endpoint: ApiEndpoints.completeTask(id),
+        method: HttpMethod.post,
+        body: body,
+        tag: methodTag,
+        showToastOnError: true,
+      );
+
+      return response != null;
     } catch (e, stackTrace) {
       ExceptionHandler.handle(
-        ApiException(message: 'Failed to toggle task completion: $e'),
-        tag:
-            '$_tag -> toggleTaskCompletion() [${stackTrace.toString().split('\n').first}]',
+        ApiException(message: 'Failed to mark task completed: $e'),
+        tag: '$methodTag [${stackTrace.toString().split('\n').first}]',
+        showToast: true,
+      );
+      return false;
+    }
+  }
+
+  /// POST /tasks/{id}/reopen
+  /// Reopens a previously completed deliverable
+  Future<bool> reopenTask(String id) async {
+    final methodTag = '$_tag -> reopenTask($id)';
+    try {
+      final response = await ApiClient.request(
+        endpoint: ApiEndpoints.reopenTask(id),
+        method: HttpMethod.post,
+        tag: methodTag,
+        showToastOnError: true,
+      );
+
+      return response != null;
+    } catch (e, stackTrace) {
+      ExceptionHandler.handle(
+        ApiException(message: 'Failed to reopen task: $e'),
+        tag: '$methodTag [${stackTrace.toString().split('\n').first}]',
+        showToast: true,
+      );
+      return false;
+    }
+  }
+
+  /// Toggles task completion state calling live complete or reopen
+  Future<bool> toggleTaskCompletion(String taskId, bool isDone, {String? note}) async {
+    if (isDone) {
+      return await completeTask(taskId, note: note);
+    } else {
+      return await reopenTask(taskId);
+    }
+  }
+
+  /// POST /tasks/{id}/comments
+  /// Appends comment reply to the task thread with optional file attachments
+  Future<bool> postComment(
+    String taskId, {
+    required String body,
+    List<File>? files,
+  }) async {
+    final methodTag = '$_tag -> postComment($taskId)';
+    try {
+      final fields = <String, String>{
+        'body': body.trim(),
+      };
+
+      dynamic response;
+      if (files != null && files.isNotEmpty) {
+        final multipartFiles = <http.MultipartFile>[];
+        for (final f in files) {
+          if (await f.exists()) {
+            multipartFiles.add(
+              await http.MultipartFile.fromPath('files[]', f.path),
+            );
+          }
+        }
+
+        response = await ApiClient.requestMultipart(
+          method: HttpMethod.post,
+          endpoint: ApiEndpoints.taskComments(taskId),
+          fields: fields,
+          files: multipartFiles,
+          tag: '$methodTag [multipart]',
+          showToastOnError: true,
+        );
+      } else {
+        response = await ApiClient.request(
+          endpoint: ApiEndpoints.taskComments(taskId),
+          method: HttpMethod.post,
+          body: fields,
+          tag: methodTag,
+          showToastOnError: true,
+        );
+      }
+
+      return response != null;
+    } catch (e, stackTrace) {
+      ExceptionHandler.handle(
+        ApiException(message: 'Failed to post task comment: $e'),
+        tag: '$methodTag [${stackTrace.toString().split('\n').first}]',
+        showToast: true,
       );
       return false;
     }

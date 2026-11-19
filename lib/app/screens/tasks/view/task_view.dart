@@ -32,8 +32,8 @@ class TaskView extends GetView<TaskController> {
             SafeArea(
               bottom: false,
               child: RefreshIndicator(
-                onRefresh: controller.loadTasks,
-                color: AppColors.primary,
+                onRefresh: () => controller.loadTasks(isRefresh: true),
+                color: AppColors.secondary,
                 child: SingleChildScrollView(
                   physics: const AlwaysScrollableScrollPhysics(
                     parent: BouncingScrollPhysics(),
@@ -45,17 +45,10 @@ class TaskView extends GetView<TaskController> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Top Bar: Back Pill, Title/Subtitle Capsule, New Task Glass Action Pill
-                      CustomScreenHeader(
+                      // Top Bar: Back Pill, Title/Subtitle Capsule
+                      const CustomScreenHeader(
                         title: 'Task Operations',
-                        subtitle: 'Daily Deliverables & Milestones',
-                        actions: [
-                          CustomScreenHeader.actionButton(
-                            icon: Icons.add_rounded,
-                            onTap: () => controller.openCreateTaskModal(context),
-                            tooltip: 'New Task',
-                          ),
-                        ],
+                        subtitle: 'Tasks, deliverables & checklists',
                       ),
 
                       AppSpaces.vSpace14,
@@ -65,7 +58,7 @@ class TaskView extends GetView<TaskController> {
 
                       AppSpaces.vSpace14,
 
-                      // Component 2: Status Filter Tabs
+                      // Component 2: Scope & Status/Due Filter Tabs
                       const TaskFilterTabs(),
 
                       AppSpaces.vSpace16,
@@ -137,7 +130,7 @@ class TaskView extends GetView<TaskController> {
           padding: EdgeInsets.symmetric(vertical: 40.h),
           child: Center(
             child: CircularProgressIndicator(
-              color: AppColors.primary,
+              color: AppColors.secondary,
               strokeWidth: 2.5.w,
             ),
           ),
@@ -147,14 +140,14 @@ class TaskView extends GetView<TaskController> {
       final tasks = controller.filteredTasks;
 
       if (tasks.isEmpty) {
-        return CustomStateView.empty(
-          icon: Icons.task_alt_rounded,
-          title: 'No Deliverables Found',
-          message:
-              'There are no operational tasks currently matching the "${controller.selectedFilter.value}" status.',
-          buttonText: 'New Task',
-          onAction: () => controller.openCreateTaskModal(context),
-          padding: EdgeInsets.symmetric(vertical: 36.h),
+        return Center(
+          child: CustomStateView.empty(
+            icon: Icons.task_alt_rounded,
+            title: 'No Deliverables Found',
+            message:
+                'There are no operational tasks currently matching the "${controller.selectedFilter.value}" status.',
+            padding: EdgeInsets.symmetric(vertical: 36.h),
+          ),
         );
       }
 

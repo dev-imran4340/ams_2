@@ -7,6 +7,7 @@ import '../../../core/widgets/custom_snackbar.dart';
 import '../../../routes/app_routes.dart';
 import '../model/document_model.dart';
 import '../repo/document_repo.dart';
+import '../view/components/letter_details_bottom_sheet.dart';
 
 class DocumentController extends GetxController {
   final DocumentRepo repo;
@@ -16,6 +17,7 @@ class DocumentController extends GetxController {
   // State Observables
   final RxBool isLoading = false.obs;
   final RxBool isDetailsLoading = false.obs;
+  final RxBool isLetterDetailsLoading = false.obs;
   final RxBool isSubmitting = false.obs;
 
   /// Selected tab: 0 = Policies, 1 = My Files, 2 = Letters
@@ -31,6 +33,10 @@ class DocumentController extends GetxController {
   /// Currently viewed policy details
   final Rxn<CompanyDocumentDetailsModel> selectedDocument =
       Rxn<CompanyDocumentDetailsModel>();
+
+  /// Currently viewed letter details (GET /letters/{id})
+  final Rxn<IssuedLetterItemModel> selectedLetter =
+      Rxn<IssuedLetterItemModel>();
 
   /// Tracks active downloading file IDs for inline button loaders
   final RxSet<String> downloadingFileIds = <String>{}.obs;
@@ -56,6 +62,11 @@ class DocumentController extends GetxController {
       if (args['policyId'] is String) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           loadPolicyDetails(args['policyId'] as String);
+        });
+      }
+      if (args['letterId'] is String) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          openLetterDetailsById(args['letterId'] as String);
         });
       }
     }
@@ -217,6 +228,42 @@ class DocumentController extends GetxController {
       return false;
     } finally {
       isSubmitting.value = false;
+    }
+  }
+
+  /// Opens Letter details modal and fetches complete audit & body via GET /letters/{id}
+  Future<void> openLetterDetails(IssuedLetterItemModel letter) async {
+    await openLetterDetailsById(letter.id, initial: letter);
+  }
+
+  /// Fetches single official letter details by ID and shows bottom sheet
+  Future<void> openLetterDetailsById(
+    String letterId, {
+    IssuedLetterItemModel? initial,
+  }) async {
+    HapticFeedback.lightImpact();
+
+    // Populate initial state if available
+    if (initial != null) {
+      selectedLetter.value = initial;
+    }
+
+    // Open bottom sheet
+    Get.bottomSheet(
+      LetterDetailsBottomSheet(letter: initial),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+    );
+
+    // Fetch fresh details with full HTML body from API (GET /letters/{id})
+    try {
+      isLetterDetailsLoading.value = true;
+      final fresh = await repo.fetchLetterDetails(letterId);
+      if (fresh != null) {
+        selectedLetter.value = fresh;
+      }
+    } finally {
+      isLetterDetailsLoading.value = false;
     }
   }
 

@@ -146,6 +146,35 @@ class DocumentRepo {
     }
   }
 
+  /// GET /letters/{id}
+  /// Fetches single official issued letter details with cleaned HTML body
+  /// Adheres strictly to Zero Dummy Policy & Mandatory Origin Tagging
+  Future<IssuedLetterItemModel?> fetchLetterDetails(String id) async {
+    final methodTag = '$_originTag -> fetchLetterDetails($id)';
+    try {
+      final response = await ApiClient.request(
+        method: HttpMethod.get,
+        endpoint: ApiEndpoints.letterDetails(id),
+        tag: methodTag,
+        showToastOnError: true,
+      );
+
+      if (response != null && response['data'] is Map<String, dynamic>) {
+        return IssuedLetterItemModel.fromJson(
+          response['data'] as Map<String, dynamic>,
+        );
+      }
+      return null;
+    } catch (e, stackTrace) {
+      ExceptionHandler.handle(
+        ApiException(message: 'Failed to fetch letter details: $e'),
+        tag: '$methodTag [${stackTrace.toString().split('\n').first}]',
+        showToast: true,
+      );
+      return null;
+    }
+  }
+
   /// Downloads and caches an issued letter PDF (GET /letters/{id}/pdf)
   Future<File?> downloadLetterPdf(String letterId, {String? reference}) async {
     final methodTag = '$_originTag -> downloadLetterPdf($letterId)';

@@ -233,9 +233,15 @@ Live API endpoints par hardcoded fallback mock data, fake counters, ya dummy obj
 
 Agar API null return kare ya network/server error throw kare, to screen par CustomStateView.error(...) ya CustomStateView.empty(...) render karein, ya observable ko null rakhein. UI kabhi bhi fake numbers (e.g. hardcoded 21 present days, fake worked hours) create karke user ko misinform na kare.
 
+10. Mandatory FormKey & Auto-Scroll Error Invariant
+
+Har form ya bottom sheet jahan user inputs fill karta hai, use `GlobalKey<FormState>()` ke zariye validate karna lazmi hai:
+- Form State Validation: `formKey.currentState!.validate()` ke zariye fields check hon.
+- Error Auto-Scroll & Focus: Agar validation fail ho ya kisi field mein error aaye, to screen ya modal automatically us pehle error field par scroll kare (`Scrollable.ensureVisible(...)`) aur uske `FocusNode` par `requestFocus()` kare taake user ko foran pata chale ke kaunsi field missing ya invalid hai.
+
 PART 3: AGENT PRE-FLIGHT VERIFICATION CHECKLIST
 
-Jab bhi Agent koi naya code generate ya modify kare, wo in 7 checks ko verify karega:
+Jab bhi Agent koi naya code generate ya modify kare, wo in 8 checks ko verify karega:
 
 [ ] Binding Check: Kya binding inline BindingsBuilder mein hai bina kisi alag binding.dart file ke?
 
@@ -252,3 +258,5 @@ Jab bhi Agent koi naya code generate ya modify kare, wo in 7 checks ko verify ka
 [ ] Zero Dummy / Fallback Check: Kya live API call fail hone par dummy fallback data inject karne ke bajaye clean null / CustomStateView handle kiya gaya hai?
 
 [ ] Centered Empty & Error State Check: Kya empty aur error state widget screen ke exact vertical & horizontal center mein render ho raha hai?
+
+[ ] FormKey & Auto-Scroll Check: Kya form validation FormKey ke zariye ho rahi hai aur error aane par view automatically scroll karke error field tak le jaata hai?

@@ -126,70 +126,68 @@ class DashboardController extends GetxController {
 
     // 1. Primary Strategy: Calculate from individual attendance timeline segments (Precision standard)
     if (today.segments.isNotEmpty) {
-      int completedWorkSeconds = 0;
-      DateTime? activeWorkStart;
-      int? activeWorkIndex;
-
-      // When actively checked in and not on break, locate the trailing active work segment
-      if (today.isCheckedIn && !today.isOnBreak) {
-        for (int i = today.segments.length - 1; i >= 0; i--) {
-          final s = today.segments[i];
-          if (s.kind.toLowerCase() == 'work') {
-            activeWorkIndex = i;
-            activeWorkStart = s.startsAt;
-            break;
+      // Collect all break intervals for mathematically precise deduction
+      final List<_TimeInterval> breakIntervals = [];
+      for (final s in today.segments) {
+        if (s.kind.toLowerCase() == 'break' && s.startsAt != null) {
+          final bStart = s.startsAt!;
+          final bEnd = s.endsAt ?? (today.isOnBreak ? now : bStart);
+          if (bEnd.isAfter(bStart)) {
+            breakIntervals.add(_TimeInterval(bStart, bEnd));
           }
         }
       }
 
-      for (int i = 0; i < today.segments.length; i++) {
-        final segment = today.segments[i];
-        final isWork = segment.kind.toLowerCase() == 'work';
-        if (!isWork) continue;
-        if (i == activeWorkIndex) continue; // Calculated dynamically via activeWorkStart
+      int totalNetWorkSeconds = 0;
+      bool hasActiveWorkSegment = false;
 
-        if (segment.startsAt != null && segment.endsAt != null) {
-          // Closed work session
-          final diff = segment.endsAt!.difference(segment.startsAt!).inSeconds;
-          if (diff > 0) {
-            completedWorkSeconds += diff;
+      for (final s in today.segments) {
+        if (s.kind.toLowerCase() != 'work' || s.startsAt == null) continue;
+
+        final wStart = s.startsAt!;
+        if (s.endsAt == null) {
+          hasActiveWorkSegment = true;
+        }
+        // When actively checked in (whether working or on break), open work session extends to 'now'.
+        // Any overlapping break interval (including active break) is subtracted below, perfectly freezing the timer if on break!
+        final wEnd = s.endsAt ?? (today.isCheckedIn ? now : wStart);
+        if (!wEnd.isAfter(wStart)) continue;
+
+        final int grossWork = wEnd.difference(wStart).inSeconds;
+
+        // Deduct break intervals that overlap with this work segment
+        int breakDeduction = 0;
+        for (final b in breakIntervals) {
+          final overlapStart = wStart.isAfter(b.start) ? wStart : b.start;
+          final overlapEnd = wEnd.isBefore(b.end) ? wEnd : b.end;
+          if (overlapEnd.isAfter(overlapStart)) {
+            breakDeduction += overlapEnd.difference(overlapStart).inSeconds;
           }
         }
+
+        final netWork = math.max(0, grossWork - breakDeduction);
+        totalNetWorkSeconds += netWork;
       }
 
-      // Case A: Actively checked in and NOT on break
-      if (today.isCheckedIn && !today.isOnBreak) {
-        final start = activeWorkStart ?? today.checkInDateTime;
-        int activeSeconds = 0;
-        if (start != null) {
-          final diff = now.difference(start).inSeconds;
-          if (diff > 0) {
-            activeSeconds = diff;
+      // Fallback: If checked in but no open work segment was marked, add elapsed time from checkInDateTime
+      if (!hasActiveWorkSegment && today.isCheckedIn) {
+        final activeStart = today.checkInDateTime;
+        if (activeStart != null && now.isAfter(activeStart)) {
+          int activeGross = now.difference(activeStart).inSeconds;
+          int activeBreakDeduction = 0;
+          for (final b in breakIntervals) {
+            final overlapStart = activeStart.isAfter(b.start) ? activeStart : b.start;
+            final overlapEnd = now.isBefore(b.end) ? now : b.end;
+            if (overlapEnd.isAfter(overlapStart)) {
+              activeBreakDeduction += overlapEnd.difference(overlapStart).inSeconds;
+            }
           }
+          totalNetWorkSeconds += math.max(0, activeGross - activeBreakDeduction);
         }
-        final int baseCompleted = math.max(completedWorkSeconds, today.workedMinutes * 60);
-        int total = baseCompleted + activeSeconds;
-
-        // If segments do not separate break intervals, deduct logged break minutes so timer matches net server worked time
-        final bool hasBreakSegment =
-            today.segments.any((s) => s.kind.toLowerCase() == 'break');
-        if (!hasBreakSegment && today.breakMinutes > 0) {
-          total = math.max(0, total - (today.breakMinutes * 60));
-        }
-
-        return total;
       }
 
-      // Case B: On Break or Checked Out
-      int completed = math.max(completedWorkSeconds, today.workedMinutes * 60);
-      final bool hasBreakSegment =
-          today.segments.any((s) => s.kind.toLowerCase() == 'break');
-      if (!hasBreakSegment && today.breakMinutes > 0) {
-        completed = math.max(0, completed - (today.breakMinutes * 60));
-      }
-      if (completed > 0) {
-        return completed;
-      }
+      // Ensure timer never drops below the server's official validated baseline
+      return math.max(totalNetWorkSeconds, today.workedMinutes * 60);
     }
 
     // 2. Fallback Strategy: If server response did not provide segments array
@@ -197,8 +195,9 @@ class DashboardController extends GetxController {
     final int breakSec = today.breakMinutes * 60;
 
     if (today.isCheckedIn && !today.isOnBreak) {
-      if (today.checkInDateTime != null) {
-        final grossDiff = now.difference(today.checkInDateTime!).inSeconds;
+      final start = today.firstInDateTime ?? today.checkInDateTime;
+      if (start != null) {
+        final grossDiff = now.difference(start).inSeconds;
         final netDiff = math.max(0, grossDiff - breakSec);
         if (netDiff > 0) {
           return math.max(baseSeconds, netDiff);
@@ -220,55 +219,23 @@ class DashboardController extends GetxController {
 
     // 1. Calculate from individual attendance timeline segments (Precision standard)
     if (today.segments.isNotEmpty) {
-      int completedBreakSeconds = 0;
-      DateTime? activeBreakStart;
-      int? activeBreakIndex;
+      int totalBreakSeconds = 0;
 
-      if (today.isOnBreak) {
-        for (int i = today.segments.length - 1; i >= 0; i--) {
-          final s = today.segments[i];
-          if (s.kind.toLowerCase() == 'break') {
-            activeBreakIndex = i;
-            activeBreakStart = s.startsAt;
-            break;
-          }
-        }
-      }
-
-      for (int i = 0; i < today.segments.length; i++) {
-        final segment = today.segments[i];
+      for (final segment in today.segments) {
         final isBreak = segment.kind.toLowerCase() == 'break';
         if (!isBreak) continue;
-        if (i == activeBreakIndex) continue;
 
-        if (segment.startsAt != null && segment.endsAt != null) {
-          // Closed break session
-          final diff = segment.endsAt!.difference(segment.startsAt!).inSeconds;
+        if (segment.startsAt != null) {
+          final start = segment.startsAt!;
+          final end = segment.endsAt ?? (today.isOnBreak ? now : start);
+          final diff = end.difference(start).inSeconds;
           if (diff > 0) {
-            completedBreakSeconds += diff;
+            totalBreakSeconds += diff;
           }
         }
       }
 
-      // Case A: Currently ON BREAK -> Resume previous completed breaks + active break duration
-      if (today.isOnBreak) {
-        final start = activeBreakStart ?? today.checkInDateTime;
-        int activeBreakSeconds = 0;
-        if (start != null) {
-          final diff = now.difference(start).inSeconds;
-          if (diff > 0) {
-            activeBreakSeconds = diff;
-          }
-        }
-        final int baseBreak = math.max(completedBreakSeconds, today.breakMinutes * 60);
-        return baseBreak + activeBreakSeconds;
-      }
-
-      // Case B: Not on break (accumulated completed breaks)
-      final int completed = math.max(completedBreakSeconds, today.breakMinutes * 60);
-      if (completed > 0) {
-        return completed;
-      }
+      return math.max(totalBreakSeconds, today.breakMinutes * 60);
     }
 
     // 2. Fallback Strategy: If segments array is not provided
@@ -283,6 +250,9 @@ class DashboardController extends GetxController {
   }
 
   /// Calculates and updates active shift elapsed time if checked in
+  @visibleForTesting
+  void updateRunningShiftTimer() => _updateRunningShiftTimer();
+
   void _updateRunningShiftTimer() {
     final today = dashboardData.value?.todayAttendance;
     if (today == null) {
@@ -900,4 +870,10 @@ class DashboardController extends GetxController {
     _permissionWorker = null;
     super.onClose();
   }
+}
+
+class _TimeInterval {
+  final DateTime start;
+  final DateTime end;
+  const _TimeInterval(this.start, this.end);
 }

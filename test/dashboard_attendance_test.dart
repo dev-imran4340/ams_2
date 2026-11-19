@@ -278,6 +278,7 @@ void main() {
             monthName: 'Nov',
           ),
         );
+        controller.updateRunningShiftTimer();
 
         // Should calculate ~25 minutes
         expect(controller.elapsedHoursMinutes.value, equals('00:25'));
@@ -331,6 +332,7 @@ void main() {
             monthName: 'Nov',
           ),
         );
+        controller.updateRunningShiftTimer();
 
         // 1. Work timer is paused at exactly 2 hours (02:00) with (Paused) indicator
         expect(controller.elapsedShiftTimer.value, equals('02h 00m (Paused)'));
@@ -390,6 +392,7 @@ void main() {
             monthName: 'Nov',
           ),
         );
+        controller.updateRunningShiftTimer();
 
         // Break 1 (15m) + Break 2 (10m) = 25m total break time
         expect(controller.elapsedHoursMinutes.value, equals('00:25'));
@@ -444,6 +447,7 @@ void main() {
             monthName: 'Nov',
           ),
         );
+        controller.updateRunningShiftTimer();
 
         expect(controller.elapsedHoursMinutes.value, equals('02:00'));
         expect(controller.elapsedShiftTimer.value, equals('2h 00m (Done)'));
@@ -499,6 +503,7 @@ void main() {
             monthName: 'Nov',
           ),
         );
+        controller.updateRunningShiftTimer();
 
         // Session 1 (3h) + Session 2 (30m) = 3h 30m (03:30)
         expect(controller.elapsedHoursMinutes.value, equals('03:30'));
@@ -542,6 +547,7 @@ void main() {
             monthName: 'Nov',
           ),
         );
+        controller.updateRunningShiftTimer();
 
         expect(controller.elapsedHoursMinutes.value, equals('07:00'));
         expect(controller.elapsedShiftTimer.value, equals('7h 00m (Done)'));

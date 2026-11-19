@@ -303,13 +303,49 @@ class ProfileController extends GetxController {
         return;
 
       case 'performance':
-      case 'onboarding':
-      case 'assets':
-      case 'training':
-        // No live standalone backend API endpoint for these sections:
-        // Render user-friendly tab empty message with zero fallback dummy data
+        if (!isOther) {
+          Get.toNamed(Routes.EVALUATION);
+          return;
+        }
         selectedSectionKey.value = key;
         return;
+
+      case 'assets':
+        if (!isOther) {
+          Get.toNamed(Routes.ASSETS);
+          return;
+        }
+        selectedSectionKey.value = key;
+        return;
+
+      case 'training':
+        if (!isOther) {
+          Get.toNamed(Routes.TRAINING);
+          return;
+        }
+        selectedSectionKey.value = key;
+        return;
+
+      case 'files':
+        if (!isOther) {
+          Get.toNamed(Routes.DOCUMENTS, arguments: {'tab': 1});
+          return;
+        }
+        break;
+
+      case 'documents':
+        if (!isOther) {
+          Get.toNamed(Routes.DOCUMENTS, arguments: {'tab': 0});
+          return;
+        }
+        break;
+
+      case 'onboarding':
+        if (!isOther) {
+          Get.toNamed(Routes.CHECKLISTS);
+          return;
+        }
+        break;
 
       case 'account':
         if (!isOther) {

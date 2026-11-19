@@ -132,6 +132,22 @@ import '../screens/news/view/announcement_details_view.dart';
 import '../screens/news/controller/news_controller.dart';
 import '../screens/news/repo/news_repo.dart';
 
+import '../screens/assets/view/assets_view.dart';
+import '../screens/assets/controller/asset_controller.dart';
+import '../screens/assets/repo/asset_repo.dart';
+
+import '../screens/training/view/training_view.dart';
+import '../screens/training/controller/training_controller.dart';
+import '../screens/training/repo/training_repo.dart';
+
+import '../screens/checklists/view/checklists_view.dart';
+import '../screens/checklists/controller/checklist_controller.dart';
+import '../screens/checklists/repo/checklist_repo.dart';
+
+import '../screens/helpdesk/view/helpdesk_view.dart';
+import '../screens/helpdesk/controller/helpdesk_controller.dart';
+import '../screens/helpdesk/repo/helpdesk_repo.dart';
+
 class AppPages {
   // Initial Entry Route
   static const INITIAL = Routes.SPLASH;
@@ -695,6 +711,62 @@ class AppPages {
         Get.lazyPut(() => NewsRepo(), fenix: true);
         Get.lazyPut(
           () => NewsController(repo: Get.find()),
+          fenix: true,
+        );
+      }),
+    ),
+
+    // 34. Company Assets Screen (Phase 18 Part 2)
+    GetPage(
+      name: Routes.ASSETS,
+      page: () => const AssetsView(),
+      transition: Transition.rightToLeftWithFade,
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => AssetRepo(), fenix: true);
+        Get.lazyPut(
+          () => AssetController(repo: Get.find()),
+          fenix: true,
+        );
+      }),
+    ),
+
+    // 35. Training & Certifications Screen (Phase 18 Part 3)
+    GetPage(
+      name: Routes.TRAINING,
+      page: () => const TrainingView(),
+      transition: Transition.rightToLeftWithFade,
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => TrainingRepo(), fenix: true);
+        Get.lazyPut(
+          () => TrainingController(repo: Get.find()),
+          fenix: true,
+        );
+      }),
+    ),
+
+    // 36. Checklists / Onboarding & Offboarding (Phase 18 Part 4)
+    GetPage(
+      name: Routes.CHECKLISTS,
+      page: () => const ChecklistsView(),
+      transition: Transition.rightToLeftWithFade,
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => ChecklistRepo(), fenix: true);
+        Get.lazyPut(
+          () => ChecklistController(repo: Get.find()),
+          fenix: true,
+        );
+      }),
+    ),
+
+    // 37. HR Helpdesk & Support Tickets (Phase 18 Part 5)
+    GetPage(
+      name: Routes.HELPDESK,
+      page: () => const HelpdeskView(),
+      transition: Transition.rightToLeftWithFade,
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => HelpdeskRepo(), fenix: true);
+        Get.lazyPut(
+          () => HelpdeskController(repo: Get.find()),
           fenix: true,
         );
       }),

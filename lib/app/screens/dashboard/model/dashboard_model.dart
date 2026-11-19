@@ -196,6 +196,7 @@ class TodayAttendanceModel {
   final String shiftTiming;
   final String shiftName;
   final DateTime? checkInDateTime;
+  final DateTime? firstInDateTime;
   final List<String> allowed;
   final Map<String, AttendanceRefusalModel> refusals;
   final AttendanceRequiresModel? requires;
@@ -236,6 +237,7 @@ class TodayAttendanceModel {
     required this.shiftTiming,
     required this.shiftName,
     this.checkInDateTime,
+    this.firstInDateTime,
     this.allowed = const [],
     this.refusals = const {},
     this.requires,
@@ -343,6 +345,7 @@ class TodayAttendanceModel {
     String? shiftTiming,
     String? shiftName,
     DateTime? checkInDateTime,
+    DateTime? firstInDateTime,
     List<String>? allowed,
     Map<String, AttendanceRefusalModel>? refusals,
     AttendanceRequiresModel? requires,
@@ -378,6 +381,7 @@ class TodayAttendanceModel {
       shiftTiming: shiftTiming ?? this.shiftTiming,
       shiftName: shiftName ?? this.shiftName,
       checkInDateTime: checkInDateTime ?? this.checkInDateTime,
+      firstInDateTime: firstInDateTime ?? this.firstInDateTime,
       allowed: allowed ?? this.allowed,
       refusals: refusals ?? this.refusals,
       requires: requires ?? this.requires,
@@ -478,6 +482,10 @@ class TodayAttendanceModel {
     final bool isCheckedIn = rawStateCheckedIn || isSessionActive;
 
     DateTime? checkInDt;
+    DateTime? firstInDt;
+    if (day?['first_in_at'] != null) {
+      firstInDt = DateTime.tryParse(day!['first_in_at'].toString())?.toLocal();
+    }
     if (state['since_at'] != null) {
       checkInDt = DateTime.tryParse(state['since_at'].toString())?.toLocal();
     } else if (punchMap?['at'] != null && punchRole == 'check_in') {
@@ -593,6 +601,7 @@ class TodayAttendanceModel {
       shiftTiming: shiftTimingStr,
       shiftName: shiftObj?.name ?? 'General Shift',
       checkInDateTime: checkInDt,
+      firstInDateTime: firstInDt,
       allowed: allowedList,
       refusals: refusalsMap,
       requires: requiresMap != null

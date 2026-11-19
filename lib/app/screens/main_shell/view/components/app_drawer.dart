@@ -105,6 +105,23 @@ class AppDrawer extends StatelessWidget {
                       sessionController.hasMenuItem('tasks');
                   final int taskBadges = sessionController.getBadge('tasks');
 
+                  final bool hasAssets =
+                      sessionController.hasMenuItem('assets') ||
+                      sessionController.hasPermission('assets.view') ||
+                      sessionController.hasModule('assets') ||
+                      sessionController.hasModule('onboarding');
+
+                  final bool hasTraining =
+                      sessionController.hasMenuItem('training') ||
+                      sessionController.hasPermission('training.view') ||
+                      sessionController.hasModule('training') ||
+                      sessionController.hasModule('onboarding');
+
+                  final bool hasChecklists =
+                      sessionController.hasMenuItem('checklists') ||
+                      sessionController.hasPermission('checklists.view') ||
+                      sessionController.hasModule('onboarding');
+
                   // Staff Onboarding is strictly for Manager/HR/Admin with department or company scope
                   final bool hasOnboarding =
                       sessionController.hasModule('onboarding') &&
@@ -114,6 +131,11 @@ class AppDrawer extends StatelessWidget {
                   final bool hasSupport =
                       sessionController.hasMenuItem('support') ||
                       sessionController.hasPermission('support.view');
+
+                  final bool hasHelpdesk =
+                      sessionController.hasMenuItem('helpdesk') ||
+                      sessionController.hasModule('onboarding');
+                  final int helpdeskBadges = sessionController.getBadge('helpdesk');
 
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -242,6 +264,36 @@ class AppDrawer extends StatelessWidget {
                           onTap: () => _navigateToRoute(Routes.TASKS),
                         ),
 
+                      // Card 8b: Company Assets (Module: assets)
+                      if (hasAssets)
+                        DrawerModuleCard(
+                          title: 'Company Assets',
+                          subtitle: 'Assigned hardware, equipment & inventory',
+                          icon: Icons.devices_other_rounded,
+                          accentTint: AppColors.accentNavy,
+                          onTap: () => _navigateToRoute(Routes.ASSETS),
+                        ),
+
+                      // Card 8c: Training & Certifications (Module: training)
+                      if (hasTraining)
+                        DrawerModuleCard(
+                          title: 'Training & Development',
+                          subtitle: 'Courses, compliance & certifications',
+                          icon: Icons.school_outlined,
+                          accentTint: AppColors.secondary,
+                          onTap: () => _navigateToRoute(Routes.TRAINING),
+                        ),
+
+                      // Card 8d: Checklists (Module: onboarding)
+                      if (hasChecklists)
+                        DrawerModuleCard(
+                          title: 'Checklists',
+                          subtitle: 'Onboarding & offboarding workflows',
+                          icon: Icons.checklist_rounded,
+                          accentTint: AppColors.primary,
+                          onTap: () => _navigateToRoute(Routes.CHECKLISTS),
+                        ),
+
                       // Card 9: Staff Onboarding (Manager/HR with department/company scope)
                       if (hasOnboarding)
                         DrawerModuleCard(
@@ -252,13 +304,24 @@ class AppDrawer extends StatelessWidget {
                           onTap: () => _navigateToRoute(Routes.ADD_EMPLOYEE),
                         ),
 
-                      // Card 10: Help & Support (Permission: support.view)
+                      // Card 10a: HR Helpdesk (Corporate Service Desk & Inquiries)
+                      if (hasHelpdesk)
+                        DrawerModuleCard(
+                          title: 'HR Helpdesk',
+                          subtitle: 'Service desk, HR, IT & payroll inquiries',
+                          icon: Icons.confirmation_number_outlined,
+                          accentTint: AppColors.secondary,
+                          badgeCount: helpdeskBadges,
+                          onTap: () => _navigateToRoute(Routes.HELPDESK),
+                        ),
+
+                      // Card 10b: App Support & Guides (App Technical Issues & Videos)
                       if (hasSupport)
                         DrawerModuleCard(
-                          title: 'Help & Support',
-                          subtitle: 'Ticket inquiries, issues & assistance',
-                          icon: Icons.support_agent_rounded,
-                          accentTint: AppColors.secondary,
+                          title: 'App Support & Guides',
+                          subtitle: 'Technical app issues & video tutorials',
+                          icon: Icons.video_library_outlined,
+                          accentTint: AppColors.primary,
                           onTap: () => _navigateToRoute(Routes.SUPPORT_TICKETS),
                         ),
 

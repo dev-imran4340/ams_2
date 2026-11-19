@@ -60,9 +60,17 @@ class DocumentsView extends GetView<DocumentController> {
                                 final canRequest = controller.meDocuments.value
                                         ?.requestableLetters.isNotEmpty ==
                                     true;
+                                final String headerSubtitle = controller
+                                            .selectedTabIndex.value ==
+                                        0
+                                    ? 'Company policies & official guidelines'
+                                    : controller.selectedTabIndex.value == 1
+                                        ? 'Personal employee files & records'
+                                        : 'Official issued letters & requests';
 
                                 return CustomScreenHeader(
                                   title: 'Documents',
+                                  subtitle: headerSubtitle,
                                   actions: (isLettersTab && canRequest)
                                       ? [
                                           CustomScreenHeader.actionButton(
@@ -417,6 +425,7 @@ class DocumentsView extends GetView<DocumentController> {
             return IssuedLetterCard(
               letter: letter,
               isDownloading: isDl,
+              onTap: () => controller.openLetterDetails(letter),
               onDownloadPdf: () => controller.downloadAndOpenLetter(
                 letter.id,
                 letter.reference,

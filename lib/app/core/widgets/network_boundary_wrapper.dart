@@ -30,7 +30,6 @@ class NetworkBoundaryWrapper extends StatefulWidget {
 class _NetworkBoundaryWrapperState extends State<NetworkBoundaryWrapper> {
   late StreamSubscription<List<ConnectivityResult>> _connectivitySubscription;
   bool _isConnected = true;
-  bool _isChecking = true;
 
   @override
   void initState() {
@@ -60,11 +59,26 @@ class _NetworkBoundaryWrapperState extends State<NetworkBoundaryWrapper> {
   }
 
   Future<void> _checkInitialConnectivity() async {
+    // Fast hardware check (local, near-zero latency)
+    try {
+      final results = await Connectivity().checkConnectivity();
+      final hasHardware =
+          !results.contains(ConnectivityResult.none) && results.isNotEmpty;
+      if (!hasHardware) {
+        if (mounted && _isConnected != false) {
+          setState(() {
+            _isConnected = false;
+          });
+        }
+        return;
+      }
+    } catch (_) {}
+
+    // Verify real packet connectivity (uses cached result if verified within 30s)
     final connected = await NetworkConnectivityService.hasConnection();
-    if (mounted) {
+    if (mounted && _isConnected != connected) {
       setState(() {
         _isConnected = connected;
-        _isChecking = false;
       });
     }
   }
@@ -102,10 +116,6 @@ class _NetworkBoundaryWrapperState extends State<NetworkBoundaryWrapper> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isChecking) {
-      return SafeArea(child: widget.child);
-    }
-
     if (!_isConnected) {
       return Scaffold(
         backgroundColor: AppColors.backgroundColor,
