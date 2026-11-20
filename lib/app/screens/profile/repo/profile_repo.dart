@@ -139,6 +139,36 @@ class ProfileRepo {
     }
   }
 
+  /// Configures employee's 4-6 digit kiosk fallback PIN (PUT /api/v1/me/kiosk-pin).
+  /// Strictly follows Phase 10 spec: 4-6 digits, cannot be identical or sequential.
+  Future<bool> setKioskPin({
+    required String pin,
+    required String pinConfirmation,
+  }) async {
+    try {
+      final response = await ApiClient.request(
+        endpoint: ApiEndpoints.meKioskPin,
+        method: HttpMethod.put,
+        body: {
+          'pin': pin,
+          'pin_confirmation': pinConfirmation,
+        },
+        tag: '$_tag -> setKioskPin()',
+      );
+
+      if (response != null) {
+        await AppPreferences.setKioskPinConfigured(true);
+        return true;
+      }
+    } catch (e, stackTrace) {
+      ExceptionHandler.handle(
+        ApiException(message: 'Failed to configure kiosk PIN: $e'),
+        tag: '$_tag -> setKioskPin() [${stackTrace.toString().split('\n').first}]',
+      );
+    }
+    return false;
+  }
+
   /// Terminates the active session on the server via POST /api/v1/auth/logout.
   /// Server responds with 204 No Content.
   Future<bool> logout() async {

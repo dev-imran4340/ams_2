@@ -176,6 +176,30 @@ class SupportTicketDetailsModel {
     );
   }
 
+  SupportTicketDetailsModel copyWith({
+    String? id,
+    String? number,
+    String? subject,
+    String? status,
+    String? statusValue,
+    String? priority,
+    String? category,
+    String? openedAt,
+    List<SupportMessageModel>? messages,
+  }) {
+    return SupportTicketDetailsModel(
+      id: id ?? this.id,
+      number: number ?? this.number,
+      subject: subject ?? this.subject,
+      status: status ?? this.status,
+      statusValue: statusValue ?? this.statusValue,
+      priority: priority ?? this.priority,
+      category: category ?? this.category,
+      openedAt: openedAt ?? this.openedAt,
+      messages: messages ?? this.messages,
+    );
+  }
+
   bool get isOpen => statusValue == 'open' || statusValue == 'waiting_on_customer';
   bool get isResolved => statusValue == 'resolved';
   bool get isClosed => statusValue == 'closed';

@@ -42,6 +42,10 @@ class AppPreferences {
   static const String _keyEnrolledFaceTimestamp = 'enrolled_face_timestamp';
   static const String _keyEnrolledFaceVerified = 'enrolled_face_verified';
   static const String _keyBirthdaySharing = 'user_birthday_sharing_preference';
+  static const String _keyKioskToken = 'kiosk_secret_token';
+  static const String _keyKioskConfig = 'kiosk_active_config';
+  static const String _keyKioskPinConfigured = 'kiosk_pin_configured';
+  static const String _keyIsCompanyMode = 'is_company_mode';
 
   /// Initialize local storage container (Must be invoked before runApp in main.dart)
   static Future<void> init() async {
@@ -80,9 +84,13 @@ class AppPreferences {
 
   /// Returns typed UserModel instance or null
   static UserModel? getUser() {
-    final data = _box.read<Map<String, dynamic>>(_keyUser);
-    if (data == null) return null;
-    return UserModel.fromJson(Map<String, dynamic>.from(data));
+    try {
+      final data = _box.read<Map<String, dynamic>>(_keyUser);
+      if (data == null) return null;
+      return UserModel.fromJson(Map<String, dynamic>.from(data));
+    } catch (_) {
+      return null;
+    }
   }
 
   /// Clears active authentication session (Leaves device ID, theme, and saved email intact)
@@ -596,6 +604,54 @@ class AppPreferences {
   /// Saves birthday sharing preference
   static Future<void> setBirthdaySharing(bool shares) async {
     await _box.write(_keyBirthdaySharing, shares);
+  }
+
+  // --- Kiosk Mode & PIN Storage ---
+
+  /// Gets stored kiosk authorization secret token
+  static String? get kioskToken => _box.read<String>(_keyKioskToken);
+
+  /// Saves kiosk secret token received during POST /kiosks
+  static Future<void> setKioskToken(String? token) async {
+    if (token == null || token.isEmpty) {
+      await _box.remove(_keyKioskToken);
+    } else {
+      await _box.write(_keyKioskToken, token);
+    }
+  }
+
+  /// Checks if active device is provisioned as an enterprise kiosk terminal
+  static bool get isKioskProvisioned => kioskToken != null && kioskToken!.isNotEmpty;
+
+  /// Gets active kiosk configuration cache
+  static Map<String, dynamic>? get kioskConfig {
+    final raw = _box.read<Map<String, dynamic>>(_keyKioskConfig);
+    return raw != null ? Map<String, dynamic>.from(raw) : null;
+  }
+
+  /// Saves active kiosk configuration cache
+  static Future<void> setKioskConfig(Map<String, dynamic>? config) async {
+    if (config == null) {
+      await _box.remove(_keyKioskConfig);
+    } else {
+      await _box.write(_keyKioskConfig, config);
+    }
+  }
+
+  /// Gets whether employee has set a self-service kiosk backup PIN
+  static bool get isKioskPinConfigured => _box.read<bool>(_keyKioskPinConfigured) ?? false;
+
+  /// Saves whether employee has set a self-service kiosk backup PIN
+  static Future<void> setKioskPinConfigured(bool val) async {
+    await _box.write(_keyKioskPinConfigured, val);
+  }
+
+  /// Gets whether user session is in Company/Organization Mode
+  static bool get isCompanyMode => _box.read<bool>(_keyIsCompanyMode) ?? false;
+
+  /// Saves Company/Organization Mode flag
+  static Future<void> setIsCompanyMode(bool val) async {
+    await _box.write(_keyIsCompanyMode, val);
   }
 
   // --- Clear / Reset ---

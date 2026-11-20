@@ -7,6 +7,7 @@ import '../../../api/app_preferences.dart';
 import '../../../core/utils/app_colors.dart';
 import '../../../core/utils/app_spaces.dart';
 import '../../../core/utils/app_text_styles.dart';
+import '../../../core/widgets/custom_button.dart';
 import '../../../core/widgets/custom_screen_header.dart';
 import '../../../core/widgets/custom_state_view.dart';
 import '../../../core/widgets/employee_ambient_header.dart';
@@ -302,57 +303,32 @@ class AttendanceHistoryView extends GetView<AttendanceHistoryController> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              OutlinedButton.icon(
-                onPressed: () => controller.openCustomDateRangeSheet(context),
+              CustomButton(
+                text: 'Change Date Range',
+                isOutlined: true,
+                borderColor: AppColors.secondary,
+                textColor: AppColors.secondary,
                 icon: Icon(
                   Icons.date_range_rounded,
                   size: 14.sp,
                   color: AppColors.secondary,
                 ),
-                label: Text(
-                  'Change Date Range',
-                  style: AppTextStyles.text12.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.secondary,
-                  ),
-                ),
-                style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: AppColors.secondary, width: 1.w),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10.r),
-                  ),
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 14.w,
-                    vertical: 9.h,
-                  ),
-                ),
+                padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 9.h),
+                borderRadius: 10.r,
+                onPressed: () => controller.openCustomDateRangeSheet(context),
               ),
               AppSpaces.hSpace10,
-              ElevatedButton.icon(
-                onPressed: controller.loadTimesheet,
+              CustomButton(
+                text: 'Retry',
+                isGradient: true,
                 icon: Icon(
                   Icons.refresh_rounded,
                   size: 14.sp,
                   color: AppColors.white,
                 ),
-                label: Text(
-                  'Retry',
-                  style: AppTextStyles.text12.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.white,
-                  ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10.r),
-                  ),
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 14.w,
-                    vertical: 9.h,
-                  ),
-                ),
+                padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 9.h),
+                borderRadius: 10.r,
+                onPressed: controller.loadTimesheet,
               ),
             ],
           ),
@@ -394,15 +370,14 @@ class AttendanceHistoryView extends GetView<AttendanceHistoryController> {
             style: AppTextStyles.text10.copyWith(color: AppColors.subTextColor),
           ),
           AppSpaces.vSpace12,
-          TextButton(
+          CustomButton(
+            text: 'Show All Records',
+            isOutlined: true,
+            borderColor: AppColors.secondary,
+            textColor: AppColors.secondary,
+            borderRadius: 8.r,
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
             onPressed: () => controller.setFilter('all'),
-            child: Text(
-              'Show All Records',
-              style: AppTextStyles.text12.copyWith(
-                fontWeight: FontWeight.bold,
-                color: AppColors.secondary,
-              ),
-            ),
           ),
         ],
       ),

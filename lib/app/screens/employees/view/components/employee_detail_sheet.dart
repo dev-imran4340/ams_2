@@ -1,6 +1,7 @@
 import 'package:ams_2/app/core/utils/app_colors.dart';
 import 'package:ams_2/app/core/utils/app_spaces.dart';
 import 'package:ams_2/app/core/utils/app_text_styles.dart';
+import 'package:ams_2/app/core/widgets/custom_button.dart';
 import 'package:ams_2/app/routes/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -335,66 +336,43 @@ class EmployeeDetailSheet extends StatelessWidget {
 
               // 5. Full Profile Navigation Action
               AppSpaces.vSpace14,
-              SizedBox(
-                width: double.infinity,
+              CustomButton(
+                text: 'View Detailed Profile & Records',
+                isOutlined: true,
                 height: 44.h,
-                child: OutlinedButton.icon(
-                  onPressed: () {
-                    Get.back();
-                    controller.openEmployeeProfile(employee);
-                  },
-                  style: OutlinedButton.styleFrom(
-                    side: BorderSide(
-                      color: AppColors.secondary.withValues(alpha: 0.6),
-                      width: 1.2.w,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12.r),
-                    ),
-                  ),
-                  icon: Icon(
-                    Icons.badge_outlined,
-                    size: 18.sp,
-                    color: AppColors.secondary,
-                  ),
-                  label: Text(
-                    'View Detailed Profile & Records',
-                    style: AppTextStyles.text12.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.secondary,
-                    ),
-                  ),
+                width: double.infinity,
+                borderRadius: 12.r,
+                borderColor: AppColors.secondary.withValues(alpha: 0.6),
+                textColor: AppColors.secondary,
+                icon: Icon(
+                  Icons.badge_outlined,
+                  size: 18.sp,
+                  color: AppColors.secondary,
                 ),
+                onPressed: () {
+                  Get.back();
+                  controller.openEmployeeProfile(employee);
+                },
               ),
 
               // 6. Print / Export ID Card Button (Gated strictly by 'employees.cards.print')
               if (canPrintCard) ...[
                 AppSpaces.vSpace10,
-                SizedBox(
-                  width: double.infinity,
+                CustomButton(
+                  text: 'Print / Export ID Card',
+                  isGradient: true,
                   height: 46.h,
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      Get.back();
-                      Get.toNamed(Routes.EMPLOYEE_CARD);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: AppColors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12.r),
-                      ),
-                    ),
-                    icon: Icon(Icons.print_rounded, size: 18.sp, color: AppColors.liteSecondary),
-                    label: Text(
-                      'Print / Export ID Card',
-                      style: AppTextStyles.text14.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.white,
-                      ),
-                    ),
+                  width: double.infinity,
+                  borderRadius: 12.r,
+                  icon: Icon(
+                    Icons.print_rounded,
+                    size: 18.sp,
+                    color: AppColors.liteSecondary,
                   ),
+                  onPressed: () {
+                    Get.back();
+                    Get.toNamed(Routes.EMPLOYEE_CARD);
+                  },
                 ),
               ],
             ],

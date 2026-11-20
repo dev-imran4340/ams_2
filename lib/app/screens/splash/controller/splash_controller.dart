@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:get/get.dart';
 
 import '../../../api/app_preferences.dart';

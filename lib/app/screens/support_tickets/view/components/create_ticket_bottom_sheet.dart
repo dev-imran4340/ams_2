@@ -394,48 +394,34 @@ class _CreateTicketBottomSheetState extends State<CreateTicketBottomSheet> {
 
                     return Row(
                       children: [
-                        OutlinedButton.icon(
-                          onPressed: () =>
-                              _pickAttachment(ImageSource.camera),
+                        CustomButton(
+                          text: 'Camera',
+                          isOutlined: true,
+                          borderColor: AppColors.borderColor,
+                          textColor: AppColors.primary,
+                          borderRadius: 8.r,
                           icon: Icon(
                             Icons.camera_alt_outlined,
                             size: 16.sp,
                             color: AppColors.primary,
                           ),
-                          label: Text(
-                            'Camera',
-                            style: AppTextStyles.text12.copyWith(
-                              color: AppColors.primary,
-                            ),
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            side: BorderSide(color: AppColors.borderColor),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8.r),
-                            ),
-                          ),
+                          onPressed: () =>
+                              _pickAttachment(ImageSource.camera),
                         ),
                         AppSpaces.hSpace8,
-                        OutlinedButton.icon(
-                          onPressed: () =>
-                              _pickAttachment(ImageSource.gallery),
+                        CustomButton(
+                          text: 'Gallery',
+                          isOutlined: true,
+                          borderColor: AppColors.borderColor,
+                          textColor: AppColors.primary,
+                          borderRadius: 8.r,
                           icon: Icon(
                             Icons.photo_library_outlined,
                             size: 16.sp,
                             color: AppColors.primary,
                           ),
-                          label: Text(
-                            'Gallery',
-                            style: AppTextStyles.text12.copyWith(
-                              color: AppColors.primary,
-                            ),
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            side: BorderSide(color: AppColors.borderColor),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8.r),
-                            ),
-                          ),
+                          onPressed: () =>
+                              _pickAttachment(ImageSource.gallery),
                         ),
                       ],
                     );

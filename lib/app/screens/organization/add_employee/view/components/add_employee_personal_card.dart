@@ -256,20 +256,13 @@ class AddEmployeePersonalCard extends GetView<AddEmployeeController> {
                         ),
                       ],
                       Expanded(
-                        child: TextFormField(
+                        child: CustomTextField(
                           controller: controller.phoneController,
                           focusNode: controller.phoneFocusNode,
                           keyboardType: TextInputType.phone,
-                          style: AppTextStyles.text14.copyWith(
-                            color: AppColors.textColor,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          decoration: InputDecoration(
-                            hintText: 'Enter phone number',
-                            hintStyle: AppTextStyles.text14.copyWith(color: AppColors.hintColor),
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 12.h),
-                          ),
+                          hintText: 'Enter phone number',
+                          fillColor: AppColors.transparent,
+                          contentPadding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 12.h),
                         ),
                       ),
                     ],

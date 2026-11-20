@@ -308,6 +308,13 @@ class AuthController extends GetxController {
         // Register FCM device push token with AMS 2 backend
         PushNotificationService.instance.registerDevicePushToken();
 
+        // Decode whether Employee or Company/Organization user signed in
+        final bool isEmpMode = isEmployeeNumberMode.value;
+        await AppPreferences.setIsCompanyMode(!isEmpMode);
+        Get.log(
+          '🎯 [AuthController -> login()] Decoded user identity type: ${isEmpMode ? "Employee" : "Company/Organization User"}',
+        );
+
         Get.offAllNamed(Routes.INDEX);
       } else {
         loginError.value = response.message ?? 'Authentication failed. Please verify your credentials.';
@@ -392,6 +399,13 @@ class AuthController extends GetxController {
         // Register FCM device push token with AMS 2 backend
         PushNotificationService.instance.registerDevicePushToken();
 
+        // Decode whether Employee or Company/Organization user signed in
+        final bool isEmpMode = isEmployeeNumberMode.value;
+        await AppPreferences.setIsCompanyMode(!isEmpMode);
+        Get.log(
+          '🎯 [AuthController -> login()] Decoded user identity type: ${isEmpMode ? "Employee" : "Company/Organization User"}',
+        );
+
         Get.offAllNamed(Routes.INDEX);
       }
     } catch (e) {
@@ -454,6 +468,13 @@ class AuthController extends GetxController {
 
         // Register FCM device push token with AMS 2 backend
         PushNotificationService.instance.registerDevicePushToken();
+
+        // Decode whether Employee or Company/Organization user signed in
+        final bool isEmpMode = isEmployeeNumberMode.value;
+        await AppPreferences.setIsCompanyMode(!isEmpMode);
+        Get.log(
+          '🎯 [AuthController -> login()] Decoded user identity type: ${isEmpMode ? "Employee" : "Company/Organization User"}',
+        );
 
         Get.offAllNamed(Routes.INDEX);
       }

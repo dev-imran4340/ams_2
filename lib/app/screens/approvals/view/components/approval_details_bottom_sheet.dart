@@ -1296,32 +1296,30 @@ class ApprovalDetailsBottomSheet extends GetView<ApprovalController> {
           ],
         ),
         actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: Text(
-              'Back',
-              style: AppTextStyles.text12.copyWith(color: AppColors.subTextColor),
-            ),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.secondary,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8.r),
+          Row(
+            children: [
+              Expanded(
+                child: CustomButton(
+                  text: 'Back',
+                  isOutlined: true,
+                  borderColor: AppColors.borderColor,
+                  textColor: AppColors.subTextColor,
+                  onPressed: () => Get.back(),
+                ),
               ),
-            ),
-            onPressed: () {
-              final comment = controller.actionCommentController.text.trim();
-              Get.back();
-              controller.approveRequest(id, comment: comment);
-            },
-            child: Text(
-              'Confirm Approval',
-              style: AppTextStyles.text12.copyWith(
-                fontWeight: FontWeight.bold,
-                color: AppColors.white,
+              AppSpaces.hSpace8,
+              Expanded(
+                child: CustomButton(
+                  text: 'Confirm Approval',
+                  isGradient: true,
+                  onPressed: () {
+                    final comment = controller.actionCommentController.text.trim();
+                    Get.back();
+                    controller.approveRequest(id, comment: comment);
+                  },
+                ),
               ),
-            ),
+            ],
           ),
         ],
       ),
@@ -1390,49 +1388,48 @@ class ApprovalDetailsBottomSheet extends GetView<ApprovalController> {
           ],
         ),
         actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: Text(
-              'Cancel',
-              style: AppTextStyles.text12.copyWith(color: AppColors.subTextColor),
-            ),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8.r),
+          Row(
+            children: [
+              Expanded(
+                child: CustomButton(
+                  text: 'Cancel',
+                  isOutlined: true,
+                  borderColor: AppColors.borderColor,
+                  textColor: AppColors.subTextColor,
+                  onPressed: () => Get.back(),
+                ),
               ),
-            ),
-            onPressed: () {
-              final comment = controller.actionCommentController.text.trim();
-              if (comment.isEmpty) {
-                controller.rejectionError.value = 'Rejection reason is mandatory.';
-                controller.actionCommentFocusNode.requestFocus();
-                return;
-              }
-              if (comment.length < 5) {
-                controller.rejectionError.value =
-                    'Reason must be at least 5 characters long.';
-                controller.actionCommentFocusNode.requestFocus();
-                return;
-              }
-              if (comment.length > 1000) {
-                controller.rejectionError.value =
-                    'Reason cannot exceed 1000 characters.';
-                controller.actionCommentFocusNode.requestFocus();
-                return;
-              }
-              Get.back();
-              controller.rejectRequest(id, comment: comment);
-            },
-            child: Text(
-              'Confirm Rejection',
-              style: AppTextStyles.text12.copyWith(
-                fontWeight: FontWeight.bold,
-                color: AppColors.white,
+              AppSpaces.hSpace8,
+              Expanded(
+                child: CustomButton(
+                  text: 'Confirm Rejection',
+                  backgroundColor: AppColors.error,
+                  textColor: AppColors.white,
+                  onPressed: () {
+                    final comment = controller.actionCommentController.text.trim();
+                    if (comment.isEmpty) {
+                      controller.rejectionError.value = 'Rejection reason is mandatory.';
+                      controller.actionCommentFocusNode.requestFocus();
+                      return;
+                    }
+                    if (comment.length < 5) {
+                      controller.rejectionError.value =
+                          'Reason must be at least 5 characters long.';
+                      controller.actionCommentFocusNode.requestFocus();
+                      return;
+                    }
+                    if (comment.length > 1000) {
+                      controller.rejectionError.value =
+                          'Reason cannot exceed 1000 characters.';
+                      controller.actionCommentFocusNode.requestFocus();
+                      return;
+                    }
+                    Get.back();
+                    controller.rejectRequest(id, comment: comment);
+                  },
+                ),
               ),
-            ),
+            ],
           ),
         ],
       ),
@@ -1457,31 +1454,30 @@ class ApprovalDetailsBottomSheet extends GetView<ApprovalController> {
           style: AppTextStyles.text12.copyWith(color: AppColors.subTextColor),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: Text(
-              'No, Keep It',
-              style: AppTextStyles.text12.copyWith(color: AppColors.subTextColor),
-            ),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8.r),
+          Row(
+            children: [
+              Expanded(
+                child: CustomButton(
+                  text: 'No, Keep It',
+                  isOutlined: true,
+                  borderColor: AppColors.borderColor,
+                  textColor: AppColors.subTextColor,
+                  onPressed: () => Get.back(),
+                ),
               ),
-            ),
-            onPressed: () {
-              Get.back();
-              controller.cancelRequest(id);
-            },
-            child: Text(
-              'Yes, Withdraw',
-              style: AppTextStyles.text12.copyWith(
-                fontWeight: FontWeight.bold,
-                color: AppColors.white,
+              AppSpaces.hSpace8,
+              Expanded(
+                child: CustomButton(
+                  text: 'Yes, Withdraw',
+                  backgroundColor: AppColors.error,
+                  textColor: AppColors.white,
+                  onPressed: () {
+                    Get.back();
+                    controller.cancelRequest(id);
+                  },
+                ),
               ),
-            ),
+            ],
           ),
         ],
       ),

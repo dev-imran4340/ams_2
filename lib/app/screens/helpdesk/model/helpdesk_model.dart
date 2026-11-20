@@ -178,6 +178,42 @@ class HelpdeskTicketModel {
     );
   }
 
+  HelpdeskTicketModel copyWith({
+    String? id,
+    String? reference,
+    String? subject,
+    String? category,
+    bool? isConfidential,
+    String? status,
+    String? statusLabel,
+    String? statusTone,
+    String? priority,
+    String? raisedByName,
+    String? assigneeName,
+    String? createdAt,
+    String? lastActivityAt,
+    String? resolvedAt,
+    List<HelpdeskMessageModel>? messages,
+  }) {
+    return HelpdeskTicketModel(
+      id: id ?? this.id,
+      reference: reference ?? this.reference,
+      subject: subject ?? this.subject,
+      category: category ?? this.category,
+      isConfidential: isConfidential ?? this.isConfidential,
+      status: status ?? this.status,
+      statusLabel: statusLabel ?? this.statusLabel,
+      statusTone: statusTone ?? this.statusTone,
+      priority: priority ?? this.priority,
+      raisedByName: raisedByName ?? this.raisedByName,
+      assigneeName: assigneeName ?? this.assigneeName,
+      createdAt: createdAt ?? this.createdAt,
+      lastActivityAt: lastActivityAt ?? this.lastActivityAt,
+      resolvedAt: resolvedAt ?? this.resolvedAt,
+      messages: messages ?? this.messages,
+    );
+  }
+
   bool get isOpen => status.toLowerCase() == 'open';
   bool get isInProgress => status.toLowerCase() == 'in_progress';
   bool get isWaitingOnUser => status.toLowerCase() == 'waiting_on_user' || status.toLowerCase() == 'waiting';

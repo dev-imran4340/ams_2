@@ -13,12 +13,17 @@ void main() {
 
   group('Dashboard Attendance Timer Tests', () {
     test('Correctly calculates live worked time without double counting', () {
+      final now = DateTime.now().toUtc();
+      final sinceAtStr = now.subtract(const Duration(hours: 4, minutes: 22)).toIso8601String();
+      final firstInStr = now.subtract(const Duration(hours: 4, minutes: 45)).toIso8601String();
+      final firstSegEnd = now.subtract(Duration(hours: 4, minutes: 22, seconds: 9)).toIso8601String();
+
       final json = {
         "state": {
           "checked_in": true,
           "on_break": false,
           "since": "11:22",
-          "since_at": "2026-11-19T06:22:22Z",
+          "since_at": sinceAtStr,
           "date": "2026-11-19",
           "uses_breaks": true,
           "allowed": ["out", "break_start"],
@@ -28,7 +33,7 @@ void main() {
           "date": "2026-11-19",
           "status": "in_progress",
           "first_in": "10:59",
-          "first_in_at": "2026-11-19T05:59:20Z",
+          "first_in_at": firstInStr,
           "worked_minutes": 199,
           "worked": "3:19",
           "break_minutes": 41,
@@ -37,8 +42,8 @@ void main() {
               "kind": "work",
               "starts": "10:59",
               "ends": "11:22",
-              "starts_at": "2026-11-19T05:59:20Z",
-              "ends_at": "2026-11-19T06:22:13Z",
+              "starts_at": firstInStr,
+              "ends_at": firstSegEnd,
               "paid": false
             },
             {
@@ -53,7 +58,7 @@ void main() {
               "kind": "work",
               "starts": "11:22",
               "ends": null,
-              "starts_at": "2026-11-19T06:22:22Z",
+              "starts_at": sinceAtStr,
               "ends_at": null,
               "paid": false
             },
@@ -108,6 +113,89 @@ void main() {
       expect(hours >= 3 && hours <= 10, isTrue,
           reason: 'Hours should be valid active work duration, got $hours');
       expect(controller.elapsedHoursMinutes.value, isNot(equals('00:00')));
+      expect(controller.elapsedSeconds.value, isNotEmpty);
+    });
+
+    test('Live ticking seconds advance accurately for working session and break session', () {
+      final now = DateTime.now();
+      // Start 1 minute and 25 seconds ago
+      final workStart = now.subtract(const Duration(minutes: 1, seconds: 25));
+
+      final workingModel = TodayAttendanceModel(
+        checkInTime: '10:00',
+        checkOutTime: '--:--',
+        workingHours: '0h 01m',
+        shiftRemaining: '6h 59m',
+        overtime: '0:00',
+        isCheckedIn: true,
+        isOnBreak: false,
+        status: 'In Progress',
+        officeRadiusStatus: 'Verified',
+        shiftTiming: '09:00 - 17:00',
+        shiftName: 'Day Shift',
+        checkInDateTime: workStart,
+        segments: [
+          AttendanceSegmentModel(
+            kind: 'work',
+            startsAt: workStart,
+            endsAt: null,
+            paid: true,
+          ),
+        ],
+      );
+
+      final controller = DashboardController(repo: MockDashboardRepo());
+      controller.dashboardData.value = DashboardDataModel(
+        todayAttendance: workingModel,
+        monthlySummary: const MonthlySummaryModel(
+          totalDays: 20,
+          presentDays: 15,
+          lateDays: 2,
+          absentDays: 1,
+          attendanceRate: 90.0,
+          monthName: 'Nov',
+        ),
+      );
+
+      controller.updateRunningShiftTimer();
+
+      // Should be 1 minute and ~25 seconds
+      expect(controller.elapsedHoursMinutes.value, '00:01');
+      expect(int.parse(controller.elapsedSeconds.value) >= 24, isTrue);
+
+      // Now switch to break session started 42 seconds ago
+      final breakStart = now.subtract(const Duration(seconds: 42));
+      final breakModel = workingModel.copyWith(
+        isOnBreak: true,
+        breakStartDateTime: breakStart,
+        segments: [
+          AttendanceSegmentModel(
+            kind: 'work',
+            startsAt: workStart,
+            endsAt: breakStart,
+            paid: true,
+          ),
+          AttendanceSegmentModel(
+            kind: 'break',
+            startsAt: breakStart,
+            endsAt: null,
+            paid: false,
+          ),
+        ],
+      );
+
+      controller.dashboardData.value = DashboardDataModel(
+        todayAttendance: breakModel,
+        monthlySummary: controller.dashboardData.value!.monthlySummary,
+      );
+
+      controller.updateRunningShiftTimer();
+
+      // Break timer should reflect ~42 seconds
+      expect(controller.elapsedBreakHoursMinutes.value, '00:00');
+      expect(int.parse(controller.elapsedBreakSeconds.value) >= 41, isTrue);
+      // In foreground when on break, elapsedSeconds is set to break seconds
+      expect(int.parse(controller.elapsedSeconds.value) >= 41, isTrue);
     });
   });
 }

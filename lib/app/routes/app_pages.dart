@@ -145,8 +145,13 @@ import '../screens/checklists/controller/checklist_controller.dart';
 import '../screens/checklists/repo/checklist_repo.dart';
 
 import '../screens/helpdesk/view/helpdesk_view.dart';
+import '../screens/helpdesk/view/helpdesk_ticket_view.dart';
 import '../screens/helpdesk/controller/helpdesk_controller.dart';
 import '../screens/helpdesk/repo/helpdesk_repo.dart';
+
+import '../screens/job_description/view/job_description_view.dart';
+import '../screens/job_description/controller/job_description_controller.dart';
+import '../screens/job_description/repo/job_description_repo.dart';
 
 class AppPages {
   // Initial Entry Route
@@ -767,6 +772,34 @@ class AppPages {
         Get.lazyPut(() => HelpdeskRepo(), fenix: true);
         Get.lazyPut(
           () => HelpdeskController(repo: Get.find()),
+          fenix: true,
+        );
+      }),
+    ),
+
+    // 38. HR Helpdesk Ticket Discussion Screen
+    GetPage(
+      name: Routes.HELPDESK_TICKET,
+      page: () => const HelpdeskTicketView(),
+      transition: Transition.rightToLeftWithFade,
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => HelpdeskRepo(), fenix: true);
+        Get.lazyPut(
+          () => HelpdeskController(repo: Get.find()),
+          fenix: true,
+        );
+      }),
+    ),
+
+    // 39. Job Description Screen (Phase 18)
+    GetPage(
+      name: Routes.JOB_DESCRIPTION,
+      page: () => const JobDescriptionView(),
+      transition: Transition.rightToLeftWithFade,
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => JobDescriptionRepo(), fenix: true);
+        Get.lazyPut(
+          () => JobDescriptionController(repo: Get.find()),
           fenix: true,
         );
       }),

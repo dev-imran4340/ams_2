@@ -343,21 +343,15 @@ class _SelfiePunchSheetState extends State<SelfiePunchSheet> {
                   children: [
                     Expanded(
                       flex: 1,
-                      child: OutlinedButton.icon(
+                      child: CustomButton(
+                        text: 'Retake',
+                        isOutlined: true,
+                        borderColor: AppColors.borderColor,
+                        textColor: AppColors.textColor,
+                        borderRadius: 12.r,
+                        padding: EdgeInsets.symmetric(vertical: 12.h),
+                        icon: Icon(Icons.refresh_rounded, size: 16.sp, color: AppColors.textColor),
                         onPressed: _retakeSelfie,
-                        icon: Icon(Icons.refresh_rounded, size: 16.sp),
-                        label: const Text('Retake'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.textColor,
-                          side: BorderSide(
-                            color: AppColors.borderColor,
-                            width: 1.w,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12.r),
-                          ),
-                          padding: EdgeInsets.symmetric(vertical: 12.h),
-                        ),
                       ),
                     ),
                     AppSpaces.hSpace10,
@@ -410,19 +404,19 @@ class _SelfiePunchSheetState extends State<SelfiePunchSheet> {
                   ],
                 ),
                 AppSpaces.vSpace8,
-                TextButton.icon(
-                  onPressed: _pickFromPicker,
+                CustomButton(
+                  text: 'Use Gallery / Camera Fallback',
+                  isOutlined: true,
+                  borderColor: AppColors.borderColor,
+                  textColor: AppColors.subTextColor,
+                  borderRadius: 10.r,
+                  padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
                   icon: Icon(
                     Icons.photo_library_rounded,
                     size: 14.sp,
                     color: AppColors.subTextColor,
                   ),
-                  label: Text(
-                    'Use Gallery / Camera Fallback',
-                    style: AppTextStyles.text10.copyWith(
-                      color: AppColors.subTextColor,
-                    ),
-                  ),
+                  onPressed: _pickFromPicker,
                 ),
               ],
 

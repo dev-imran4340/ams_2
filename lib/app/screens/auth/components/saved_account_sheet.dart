@@ -173,31 +173,29 @@ class SavedAccountSheet {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  TextButton(
+                  CustomButton(
+                    text: 'Forget Account',
+                    isOutlined: true,
+                    borderColor: AppColors.error.withValues(alpha: 0.3),
+                    textColor: AppColors.error,
+                    padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+                    borderRadius: 8.r,
                     onPressed: () {
                       controller.forgetSavedAccount();
                       Get.back();
                     },
-                    child: Text(
-                      'Forget Account',
-                      style: AppTextStyles.text12.copyWith(
-                        color: AppColors.error,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
                   ),
-                  TextButton(
+                  CustomButton(
+                    text: 'Use Different Account',
+                    isOutlined: true,
+                    borderColor: AppColors.borderColor,
+                    textColor: AppColors.textColor,
+                    padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+                    borderRadius: 8.r,
                     onPressed: () {
                       controller.dismissSavedAccountPrompt();
                       Get.back();
                     },
-                    child: Text(
-                      'Use Different Account',
-                      style: AppTextStyles.text12.copyWith(
-                        color: AppColors.textColor,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
                   ),
                 ],
               ),

@@ -1,6 +1,6 @@
 # AMS 2 Mobile API Implementation Status & Endpoint Specifications
 
-This document tracks the implementation status of all endpoints defined in `doc/api.md` (up to Phase 13 — 26 October 2026). It distinguishes between live implemented endpoints and remaining endpoints, providing exhaustive specifications for remaining request bodies, query parameters, validation rules, and response contracts.
+This document tracks the implementation status of all endpoints defined in `doc/api.md` (up to Phase 18 — 20 November 2026). It distinguishes between live implemented endpoints and remaining endpoints, providing exhaustive specifications for remaining request bodies, query parameters, validation rules, and response contracts.
 
 ---
 
@@ -8,13 +8,13 @@ This document tracks the implementation status of all endpoints defined in `doc/
 
 | Category | Count | Status |
 |---|---|---|
-| **Total Documented Endpoints** | **62** | Full API Surface (Phases 7–13) |
-| **Implemented / Done Endpoints** | **55** | Live in Codebase (`ApiClient` + Repos + Screens) |
-| **Remaining Endpoints** | **7** | Pending Implementation (Phase 10) |
+| **Total Documented Endpoints** | **98** | Full API Surface (Phases 7–18) |
+| **Implemented / Done Endpoints** | **98** | **100% Fully Integrated** (`ApiClient` + Repos + Screens) |
+| **Remaining Endpoints** | **0** | All Endpoints Completed & Verified |
 
 ---
 
-## Part 1: Implemented / Done Endpoints (55 Endpoints)
+## Part 1: Implemented / Done Endpoints (98 Endpoints)
 
 All endpoints listed below are connected with the central network engine (`ApiClient.request()`), mapped in `ApiEndpoints`, and wired to their respective GetX Repositories and Controllers.
 
@@ -73,12 +73,57 @@ All endpoints listed below are connected with the central network engine (`ApiCl
 | 51 | `POST` | `/support/tickets/{id}/close` | Phase 10 | `SupportTicketRepo.closeTicket()` (Marks active ticket as closed) |
 | 52 | `POST` | `/support/tickets/{id}/reopen` | Phase 10 | `SupportTicketRepo.reopenTicket()` (Reopens resolved ticket) |
 | 53 | `GET` | `/support/tickets/{id}/files/{file}` | Phase 10 | `SupportTicketRepo.downloadAttachment()` (Downloads attachment file) |
-| 54 | `GET` | `/employees/{id}/attendance` | Phase 9 | `AttendanceHistoryRepo.fetchEmployeeAttendance()`, `DepartmentEmployeesRepo.fetchEmployeeAttendance()` (Manager & HR subordinate attendance audit with range & punch logs) |
-| 55 | `GET` | `/employees/{id}/leave` | Phase 11 | `LeaveRepo.fetchEmployeeLeave()`, `DepartmentEmployeesRepo.fetchEmployeeLeave()` (Manager & HR subordinate leave balances quota & request history audit) |
+| 54 | `GET` | `/support/training-videos` | Phase 10 | `SupportTicketRepo.fetchTrainingVideos()` (Support help guides and training videos) |
+| 55 | `GET` | `/employees/{id}/attendance` | Phase 9 | `AttendanceHistoryRepo.fetchEmployeeAttendance()`, `DepartmentEmployeesRepo.fetchEmployeeAttendance()` (Manager & HR subordinate attendance audit with range & punch logs) |
+| 56 | `GET` | `/employees/{id}/leave` | Phase 11 | `LeaveRepo.fetchEmployeeLeave()`, `DepartmentEmployeesRepo.fetchEmployeeLeave()` (Manager & HR subordinate leave balances quota & request history audit) |
+| 57 | `GET` | `/performance/reviews` | Phase 16 | `EvaluationRepo.fetchReviews()` (Performance cycles: mine & to_review) |
+| 58 | `GET` | `/performance/reviews/{id}` | Phase 16 | `EvaluationRepo.fetchReviewDetails()` (Audit breakdown, criteria questions, competencies) |
+| 59 | `PUT` | `/performance/reviews/{id}/answers` | Phase 16 | `EvaluationRepo.saveReviewAnswers()` (Save self, manager, or peer feedback answers) |
+| 60 | `POST` | `/performance/reviews/{id}/submit` | Phase 16 | `EvaluationRepo.submitReview()` (Finalize review stage submission) |
+| 61 | `PUT` | `/performance/reviews/{id}/goals` | Phase 16 | `EvaluationRepo.saveReviewGoals()` (Future KPI commitments & goal targets) |
+| 62 | `POST` | `/performance/reviews/{id}/peers` | Phase 16 | `EvaluationRepo.nominatePeers()` (Nominate colleagues for 360 peer review) |
+| 63 | `POST` | `/performance/reviews/{id}/decline` | Phase 16 | `EvaluationRepo.declinePeerFeedback()` (Decline peer feedback request with reason) |
+| 64 | `POST` | `/performance/reviews/{id}/acknowledge` | Phase 16 | `EvaluationRepo.acknowledgeReview()` (Employee signature & acknowledgement) |
+| 65 | `GET` | `/me/documents` | Phase 17 | `DocumentRepo.fetchMyDocuments()` (Personal right-to-work documents, IDs, visas) |
+| 66 | `GET` | `/me/documents/files/{id}` | Phase 17 | `DocumentRepo.downloadMyDocument()` (Secure stream download of uploaded employee document) |
+| 67 | `GET` | `/company-documents` | Phase 17 | `DocumentRepo.fetchCompanyDocuments()` (Employee handbook, SOPs, corporate policies) |
+| 68 | `GET` | `/company-documents/{id}` | Phase 17 | `DocumentRepo.fetchCompanyDocumentDetails()` (Policy version text & mandatory acknowledgement requirements) |
+| 69 | `POST` | `/company-documents/{id}/acknowledge` | Phase 17 | `DocumentRepo.acknowledgeCompanyDocument()` (Acknowledge mandatory company policies) |
+| 70 | `GET` | `/letters/{id}` | Phase 17 | `DocumentRepo.fetchLetterDetails()` (Formal employment, confirmation, or increment letters) |
+| 71 | `GET` | `/letters/{id}/pdf` | Phase 17 | `DocumentRepo.downloadLetterPdf()` (Download official signed letter PDF) |
+| 72 | `POST` | `/me/letter-requests` | Phase 17 | `DocumentRepo.submitLetterRequest()` (Self-service request for salary certificate, embassy letter, etc.) |
+| 73 | `GET` | `/announcements` | Phase 17 | `NewsRepo.fetchAnnouncements()` (Company broadcast news, updates & notices) |
+| 74 | `GET` | `/announcements/{id}` | Phase 17 | `NewsRepo.fetchAnnouncementDetails()` (Announcement full HTML content, cover & attachments) |
+| 75 | `GET` | `/events` | Phase 17 | `NewsRepo.fetchEvents()` (Company events, townhalls, webinars, sports gala) |
+| 76 | `GET` | `/people/milestones` | Phase 17 | `NewsRepo.fetchMilestones()` (Colleague work anniversaries & birthdays) |
+| 77 | `PUT` | `/me/birthday-sharing` | Phase 17 | `NewsRepo.updateBirthdaySharing()` (Toggle birthday visibility setting) |
+| 78 | `GET` | `/tasks` | Phase 18 | `TaskRepo.fetchTasks()` (Assigned tasks with list, status, due date & telemetry) |
+| 79 | `POST` | `/tasks` | Phase 18 | `TaskRepo.createTask()` (Assign new task to self or subordinate team member) |
+| 80 | `GET` | `/tasks/{id}` | Phase 18 | `TaskRepo.fetchTaskDetails()` (Task timeline, comments, checklist subitems) |
+| 81 | `POST` | `/tasks/{id}/complete` | Phase 18 | `TaskRepo.completeTask()` (Mark task as completed) |
+| 82 | `POST` | `/tasks/{id}/reopen` | Phase 18 | `TaskRepo.reopenTask()` (Reopen previously completed task) |
+| 83 | `POST` | `/tasks/{id}/comments` | Phase 18 | `TaskRepo.addComment()` (Add comment or file attachment to task discussion) |
+| 84 | `GET` | `/me/checklists` | Phase 18 | `ChecklistRepo.fetchChecklists()` (Onboarding & offboarding workflow checklists) |
+| 85 | `GET` | `/me/assets` | Phase 18 | `AssetRepo.fetchAssets()` (Company hardware, laptops, monitors assigned to employee) |
+| 86 | `POST` | `/me/assets/{assignment}/acknowledge` | Phase 18 | `AssetRepo.acknowledgeAsset()` (Digitally acknowledge physical asset custody) |
+| 87 | `GET` | `/me/training` | Phase 18 | `TrainingRepo.fetchTraining()` (Mandatory compliance courses & certified credentials) |
+| 88 | `GET` | `/helpdesk/categories` | Phase 18 | `HelpdeskRepo.fetchCategories()` (HR helpdesk support categories) |
+| 89 | `GET` | `/helpdesk/tickets` | Phase 18 | `HelpdeskRepo.fetchTickets()` (List employee helpdesk tickets with status tones) |
+| 90 | `POST` | `/helpdesk/tickets` | Phase 18 | `HelpdeskRepo.createTicket()` (Raise new HR helpdesk ticket with attachments) |
+| 91 | `GET` | `/me/job-description` | Phase 18 | `JobDescriptionRepo.fetchJobDescription()` (Official designation terms of reference, scope & PDF) |
+| 92 | `PUT` | `/me/kiosk-pin` | Phase 10 | `ProfileRepo.setKioskPin()`, `KioskPinBottomSheet` (Self-service 4-6 digit kiosk PIN setup) |
+| 93 | `GET` | `/me/face` | Phase 10 | `FaceRecognitionRepo.fetchAndSyncServerFace()` (Registered baseline neural face template) |
+| 94 | `POST` | `/kiosks` | Phase 10 | `EmployeeTerminalRepo.provisionKiosk()`, `ProvisionKioskSheet` (Provision reception tablet terminal) |
+| 95 | `GET` | `/kiosk` | Phase 10 | `EmployeeTerminalRepo.fetchKioskConfig()` (Fetch active kiosk location & PIN config) |
+| 96 | `POST` | `/kiosk/identify` | Phase 10 | `EmployeeTerminalRepo.identifyEmployee()`, `KioskPinClockInSheet` (Scan QR badge or PIN clock-in) |
+| 97 | `GET` | `/kiosk/face` | Phase 10 | `EmployeeTerminalRepo.fetchKioskFace()` (Download identified employee face photo for verification) |
+| 98 | `POST` | `/kiosk/punches` | Phase 10 | `EmployeeTerminalRepo.submitKioskPunch()` (Submit tablet live or queued attendance punch) |
 
 ---
 
-## Part 2: Remaining Endpoints & Detailed Specifications (7 Endpoints)
+## Part 2: Module Specifications & Architecture Invariants (All 98 Endpoints Completed)
+
+All 98 endpoints defined across Phase 7 through Phase 18 are now fully implemented and connected with the central network engine (`ApiClient.request()` & `ApiClient.requestMultipart()`). The 7 Phase 10 Tablet Hardware/Kiosk & PIN endpoints are wired directly into `EmployeeTerminalRepo`, `ProfileRepo`, and `FaceRecognitionRepo`.
 
 ---
 

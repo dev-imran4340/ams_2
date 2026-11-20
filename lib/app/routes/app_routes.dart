@@ -45,6 +45,8 @@ abstract class Routes {
   static const TRAINING = '/training';
   static const CHECKLISTS = '/checklists';
   static const HELPDESK = '/helpdesk';
+  static const HELPDESK_TICKET = '/helpdesk-ticket';
+  static const JOB_DESCRIPTION = '/job-description';
 }
 
 

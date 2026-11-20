@@ -1,5 +1,7 @@
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:ams_2/app/screens/helpdesk/model/helpdesk_model.dart';
 import 'package:ams_2/app/screens/helpdesk/repo/helpdesk_repo.dart';
 import 'package:ams_2/app/screens/helpdesk/controller/helpdesk_controller.dart';
@@ -82,6 +84,16 @@ class MockHelpdeskRepo extends HelpdeskRepo {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUpAll(() async {
+    const MethodChannel channel =
+        MethodChannel('plugins.flutter.io/path_provider');
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+      return '.';
+    });
+    await GetStorage.init();
+  });
 
   group('Helpdesk Models & Deserialization Tests', () {
     test('parses live server ticket payload with messages accurately', () {
@@ -269,13 +281,84 @@ void main() {
       expect(controller.messageController.text, isEmpty);
     });
 
-    test('manages ScrollController and resources disposal cleanly', () {
+    test('loadTicketById loads ticket details into selectedTicket', () async {
+      const detailedTicket = HelpdeskTicketModel(
+        id: 'ticket_deep_link_123',
+        reference: 'HD-2026-0099',
+        subject: 'Deep link subject',
+        category: 'IT Support',
+        status: 'open',
+        createdAt: '2026-11-20T10:00:00Z',
+        messages: [
+          HelpdeskMessageModel(
+            id: 'm1',
+            author: 'HR Admin',
+            fromRaiser: false,
+            body: 'Hello, how can we help?',
+            createdAt: '2026-11-20T10:05:00Z',
+          ),
+        ],
+      );
+
+      final repo = MockHelpdeskRepo(mockDetails: detailedTicket);
+      controller = HelpdeskController(repo: repo);
+
+      await controller.loadTicketById('ticket_deep_link_123');
+      expect(controller.selectedTicket.value, isNotNull);
+      expect(controller.selectedTicket.value!.id, 'ticket_deep_link_123');
+      expect(controller.selectedTicket.value!.messages.length, 1);
+      expect(controller.selectedTicket.value!.messages.first.author, 'HR Admin');
+    });
+
+    test('polls and syncs new incoming chat messages silently', () async {
+      const initialTicket = HelpdeskTicketModel(
+        id: 'poll_1',
+        reference: 'HD-001',
+        subject: 'Realtime test',
+        category: 'General',
+        status: 'open',
+        createdAt: '2026-11-20T10:00:00Z',
+        messages: [],
+      );
+
+      const updatedWithReply = HelpdeskTicketModel(
+        id: 'poll_1',
+        reference: 'HD-001',
+        subject: 'Realtime test',
+        category: 'General',
+        status: 'open',
+        createdAt: '2026-11-20T10:00:00Z',
+        messages: [
+          HelpdeskMessageModel(
+            id: 'm_incoming',
+            author: 'HR Agent',
+            fromRaiser: false,
+            body: 'Hello from HR, we received your message!',
+            createdAt: '2026-11-20T10:01:00Z',
+          ),
+        ],
+      );
+
+      final repo = MockHelpdeskRepo(mockDetails: updatedWithReply);
+      controller = HelpdeskController(repo: repo);
+      controller.selectedTicket.value = initialTicket;
+
+      await controller.syncTicketDetailsSilently('poll_1');
+      expect(controller.selectedTicket.value!.messages.length, 1);
+      expect(controller.selectedTicket.value!.messages.first.author, 'HR Agent');
+
+      controller.startChatPolling('poll_1');
+      controller.stopChatPolling();
+    });
+
+    test('manages ScrollController, chatScrollController and resources disposal cleanly', () {
       final repo = MockHelpdeskRepo();
       controller = HelpdeskController(repo: repo);
       controller.onInit();
 
       expect(controller.scrollOffset.value, 0.0);
       expect(controller.scrollController.hasClients, isFalse);
+      expect(controller.chatScrollController.hasClients, isFalse);
 
       controller.onClose();
     });

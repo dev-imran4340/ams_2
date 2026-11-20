@@ -379,22 +379,14 @@ class _AttendanceDateRangeSheetState extends State<AttendanceDateRangeSheet> {
             Row(
               children: [
                 Expanded(
-                  child: OutlinedButton(
+                  child: CustomButton(
+                    text: 'Cancel',
+                    isOutlined: true,
+                    borderColor: AppColors.borderColor,
+                    textColor: AppColors.subTextColor,
+                    borderRadius: 10.r,
+                    padding: EdgeInsets.symmetric(vertical: 12.h),
                     onPressed: () => Get.back(),
-                    style: OutlinedButton.styleFrom(
-                      padding: EdgeInsets.symmetric(vertical: 12.h),
-                      side: BorderSide(color: AppColors.borderColor, width: 1.w),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10.r),
-                      ),
-                    ),
-                    child: Text(
-                      'Cancel',
-                      style: AppTextStyles.text12.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.subTextColor,
-                      ),
-                    ),
                   ),
                 ),
                 AppSpaces.hSpace10,

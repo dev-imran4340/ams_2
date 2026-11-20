@@ -17,7 +17,7 @@ class FaceNetService {
   }
 
   FaceNetService._internal() {
-    threshold = 1.0; // Calibrated MobileFaceNet threshold (distance <= 1.0)
+    threshold = 1.18; // Calibrated MobileFaceNet Euclidean distance threshold for mobile cameras
   }
 
   static const String modelAssetPath = 'assets/models/mobilefacenet.tflite';
@@ -107,17 +107,35 @@ class FaceNetService {
   }
 
   /// Extracts 192-dimensional MobileFaceNet embedding from raw image bytes and detected Face
-  List<double> extractEmbeddingFromUint8List(Uint8List imageBytes, Face face) {
+  List<double> extractEmbeddingFromUint8List(
+    Uint8List imageBytes,
+    Face face, {
+    bool flipHorizontal = false,
+  }) {
     if (!_isModelLoaded || _interpreter == null) {
       throw Exception('FaceNet model is not loaded');
     }
 
-    List input = _preProcessUint8(imageBytes, face);
+    List input = _preProcessUint8(
+      imageBytes,
+      face,
+      flipHorizontal: flipHorizontal,
+    );
     input = input.reshape([1, 112, 112, 3]);
     List output = List.generate(1, (index) => List<double>.filled(192, 0.0));
     _runInterpreter(input, output);
     output = output.reshape([192]);
-    return List<double>.from(output);
+    return _l2Normalize(List<double>.from(output));
+  }
+
+  List<double> _l2Normalize(List<double> v) {
+    double sum = 0.0;
+    for (int i = 0; i < v.length; i++) {
+      sum += v[i] * v[i];
+    }
+    final norm = sqrt(sum);
+    if (norm == 0.0) return v;
+    return List<double>.generate(v.length, (i) => v[i] / norm);
   }
 
   /// Extracts 192-dimensional MobileFaceNet embedding directly from CameraImage stream buffer
@@ -138,23 +156,30 @@ class FaceNetService {
     return _predictedData;
   }
 
-  /// Pre-processes Uint8List image: orient upright, crop with +10 padding, resize to 112x112, normalize
-  List _preProcessUint8(Uint8List imageBytes, Face faceDetected) {
+  /// Pre-processes Uint8List image: orient upright, square crop centered on face, resize to 112x112, normalize
+  List _preProcessUint8(
+    Uint8List imageBytes,
+    Face faceDetected, {
+    bool flipHorizontal = false,
+  }) {
     final imglib.Image? decoded = imglib.decodeImage(imageBytes);
     if (decoded == null) {
       throw Exception('Could not decode image for FaceNet');
     }
     final imglib.Image convertedImage = imglib.bakeOrientation(decoded);
 
-    final double x = faceDetected.boundingBox.left - 10.0;
-    final double y = faceDetected.boundingBox.top - 10.0;
-    final double w = faceDetected.boundingBox.width + 20.0;
-    final double h = faceDetected.boundingBox.height + 20.0;
+    final double boxW = faceDetected.boundingBox.width;
+    final double boxH = faceDetected.boundingBox.height;
+    final double cx = faceDetected.boundingBox.left + boxW / 2.0;
+    final double cy = faceDetected.boundingBox.top + boxH / 2.0;
 
-    final int cropX = x.clamp(0, convertedImage.width - 1).round();
-    final int cropY = y.clamp(0, convertedImage.height - 1).round();
-    final int cropW = w.clamp(0, convertedImage.width - cropX).round();
-    final int cropH = h.clamp(0, convertedImage.height - cropY).round();
+    // Use a square crop with 15% margin to encompass entire face without distorting aspect ratio
+    final double side = max(boxW, boxH) * 1.15;
+
+    final int cropX = (cx - side / 2.0).clamp(0, convertedImage.width - 1).round();
+    final int cropY = (cy - side / 2.0).clamp(0, convertedImage.height - 1).round();
+    final int cropW = side.clamp(1, convertedImage.width - cropX).round();
+    final int cropH = side.clamp(1, convertedImage.height - cropY).round();
 
     final imglib.Image croppedImage = imglib.copyCrop(
       convertedImage,
@@ -164,7 +189,17 @@ class FaceNetService {
       height: cropH,
     );
 
-    final imglib.Image img = imglib.copyResizeCropSquare(croppedImage, size: 112);
+    imglib.Image img = imglib.copyResize(
+      croppedImage,
+      width: 112,
+      height: 112,
+      interpolation: imglib.Interpolation.linear,
+    );
+
+    if (flipHorizontal) {
+      img = imglib.copyFlip(img, direction: imglib.FlipDirection.horizontal);
+    }
+
     return imageToByteListFloat32(img);
   }
 
@@ -208,7 +243,7 @@ class FaceNetService {
   imglib.Image? _convertCameraImage(CameraImage image) {
     try {
       if (Platform.isIOS) {
-        if (image.format.group == ImageFormatGroup.bgra8888 && image.planes.isNotEmpty) {
+        if (image.planes.isNotEmpty) {
           final bytes = image.planes[0].bytes;
           final img = imglib.Image.fromBytes(
             width: image.width,
@@ -219,19 +254,78 @@ class FaceNetService {
           return img;
         }
       } else {
-        // Android YUV420
-        if (image.format.group == ImageFormatGroup.yuv420 && image.planes.length >= 3) {
-          final int width = image.width;
-          final int height = image.height;
-          final img = imglib.Image(width: width, height: height);
+        // Android: Supports NV21 (1 or 2 planes) and YUV420 (3 planes)
+        final int width = image.width;
+        final int height = image.height;
+        final img = imglib.Image(width: width, height: height);
+
+        if (image.planes.length == 1) {
+          // NV21 single plane: Y of size width*height, followed by interleaved VU
+          final bytes = image.planes[0].bytes;
+          final int ySize = width * height;
+          for (int y = 0; y < height; y++) {
+            final int yRow = y * width;
+            final int uvRow = ySize + (y ~/ 2) * width;
+            for (int x = 0; x < width; x++) {
+              final int yIndex = yRow + x;
+              final int uvIndex = uvRow + (x & ~1);
+              if (yIndex >= bytes.length || uvIndex + 1 >= bytes.length) continue;
+
+              final int yp = bytes[yIndex];
+              final int vp = bytes[uvIndex];
+              final int up = bytes[uvIndex + 1];
+
+              final int r = (yp + vp * 1436 / 1024 - 179).round().clamp(0, 255);
+              final int g = (yp - up * 46549 / 131072 + 44 - vp * 93604 / 131072 + 91)
+                  .round()
+                  .clamp(0, 255);
+              final int b = (yp + up * 1814 / 1024 - 227).round().clamp(0, 255);
+
+              img.setPixelRgb(x, y, r, g, b);
+            }
+          }
+          return imglib.copyRotate(img, angle: -90);
+        } else if (image.planes.length == 2) {
+          // NV21 2 planes: Plane 0 is Y, Plane 1 is interleaved VU
+          final yBytes = image.planes[0].bytes;
+          final uvBytes = image.planes[1].bytes;
+          final int uvRowStride = image.planes[1].bytesPerRow;
+          final int uvPixelStride = image.planes[1].bytesPerPixel ?? 2;
+
+          for (int y = 0; y < height; y++) {
+            final int yRow = y * width;
+            final int uvRow = (y ~/ 2) * uvRowStride;
+            for (int x = 0; x < width; x++) {
+              final int yIndex = yRow + x;
+              final int uvIndex = uvRow + (x ~/ 2) * uvPixelStride;
+              if (yIndex >= yBytes.length || uvIndex + 1 >= uvBytes.length) continue;
+
+              final int yp = yBytes[yIndex];
+              final int vp = uvBytes[uvIndex];
+              final int up = uvBytes[uvIndex + 1];
+
+              final int r = (yp + vp * 1436 / 1024 - 179).round().clamp(0, 255);
+              final int g = (yp - up * 46549 / 131072 + 44 - vp * 93604 / 131072 + 91)
+                  .round()
+                  .clamp(0, 255);
+              final int b = (yp + up * 1814 / 1024 - 227).round().clamp(0, 255);
+
+              img.setPixelRgb(x, y, r, g, b);
+            }
+          }
+          return imglib.copyRotate(img, angle: -90);
+        } else if (image.planes.length >= 3) {
+          // YUV420 3 planes
           final int uvRowStride = image.planes[1].bytesPerRow;
           final int? uvPixelStride = image.planes[1].bytesPerPixel;
 
           if (uvPixelStride != null) {
             for (int y = 0; y < height; y++) {
+              final int yRow = y * width;
+              final int uvRow = uvRowStride * (y ~/ 2);
               for (int x = 0; x < width; x++) {
-                final int uvIndex = uvPixelStride * (x ~/ 2) + uvRowStride * (y ~/ 2);
-                final int index = y * width + x;
+                final int uvIndex = uvPixelStride * (x ~/ 2) + uvRow;
+                final int index = yRow + x;
 
                 if (index >= image.planes[0].bytes.length ||
                     uvIndex >= image.planes[1].bytes.length ||

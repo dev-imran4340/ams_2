@@ -6,9 +6,9 @@ import '../../../../core/utils/app_colors.dart';
 import '../../../../core/utils/app_spaces.dart';
 import '../../../../core/utils/app_text_styles.dart';
 import '../../../../core/widgets/custom_card.dart';
+import '../../../../routes/app_routes.dart';
 import '../../controller/helpdesk_controller.dart';
 import '../../model/helpdesk_model.dart';
-import 'helpdesk_ticket_details_bottom_sheet.dart';
 
 class HelpdeskTicketCard extends GetView<HelpdeskController> {
   final HelpdeskTicketModel ticket;
@@ -25,7 +25,7 @@ class HelpdeskTicketCard extends GetView<HelpdeskController> {
       accentWidth: 3.w,
       onTap: () {
         controller.openTicketDetails(ticket);
-        HelpdeskTicketDetailsBottomSheet.show(context, ticket: ticket);
+        Get.toNamed(Routes.HELPDESK_TICKET, arguments: ticket.id);
       },
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

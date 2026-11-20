@@ -669,54 +669,38 @@ class ApplyLeaveBottomSheet extends GetView<LeaveController> {
                                 Row(
                                   children: [
                                     Expanded(
-                                      child: OutlinedButton.icon(
-                                        onPressed: () =>
-                                            controller.pickAttachmentImage(ImageSource.camera),
+                                      child: CustomButton(
+                                        text: 'Camera Capture',
+                                        isOutlined: true,
+                                        borderColor: AppColors.borderColor,
+                                        textColor: AppColors.textColor,
+                                        borderRadius: 10.r,
+                                        padding: EdgeInsets.symmetric(vertical: 12.h),
                                         icon: Icon(
                                           Icons.camera_alt_outlined,
                                           size: 16.sp,
                                           color: AppColors.secondary,
                                         ),
-                                        label: Text(
-                                          'Camera Capture',
-                                          style: AppTextStyles.text12.copyWith(
-                                            color: AppColors.textColor,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                        style: OutlinedButton.styleFrom(
-                                          padding: EdgeInsets.symmetric(vertical: 12.h),
-                                          side: BorderSide(color: AppColors.borderColor),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(10.r),
-                                          ),
-                                        ),
+                                        onPressed: () =>
+                                            controller.pickAttachmentImage(ImageSource.camera),
                                       ),
                                     ),
                                     AppSpaces.hSpace8,
                                     Expanded(
-                                      child: OutlinedButton.icon(
-                                        onPressed: () =>
-                                            controller.pickAttachmentImage(ImageSource.gallery),
+                                      child: CustomButton(
+                                        text: 'Pick from Gallery',
+                                        isOutlined: true,
+                                        borderColor: AppColors.borderColor,
+                                        textColor: AppColors.textColor,
+                                        borderRadius: 10.r,
+                                        padding: EdgeInsets.symmetric(vertical: 12.h),
                                         icon: Icon(
                                           Icons.photo_library_outlined,
                                           size: 16.sp,
                                           color: AppColors.primary,
                                         ),
-                                        label: Text(
-                                          'Pick from Gallery',
-                                          style: AppTextStyles.text12.copyWith(
-                                            color: AppColors.textColor,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                        style: OutlinedButton.styleFrom(
-                                          padding: EdgeInsets.symmetric(vertical: 12.h),
-                                          side: BorderSide(color: AppColors.borderColor),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(10.r),
-                                          ),
-                                        ),
+                                        onPressed: () =>
+                                            controller.pickAttachmentImage(ImageSource.gallery),
                                       ),
                                     ),
                                   ],

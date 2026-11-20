@@ -7,7 +7,9 @@ import 'package:image_picker/image_picker.dart';
 import '../../../../core/utils/app_colors.dart';
 import '../../../../core/utils/app_spaces.dart';
 import '../../../../core/utils/app_text_styles.dart';
+import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/widgets/custom_snackbar.dart';
+import '../../../../core/widgets/custom_text_field.dart';
 import '../../controller/support_ticket_controller.dart';
 import '../../model/support_ticket_model.dart';
 
@@ -36,6 +38,21 @@ class TicketThreadBottomSheet extends StatefulWidget {
 
 class _TicketThreadBottomSheetState extends State<TicketThreadBottomSheet> {
   final _picker = ImagePicker();
+
+  @override
+  void initState() {
+    super.initState();
+    final ticketId = widget.controller.selectedTicket.value?.id;
+    if (ticketId != null && ticketId.isNotEmpty) {
+      widget.controller.startThreadPolling(ticketId);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.controller.stopThreadPolling();
+    super.dispose();
+  }
 
   Future<void> _pickReplyAttachment(ImageSource source) async {
     try {
@@ -682,36 +699,16 @@ class _TicketThreadBottomSheetState extends State<TicketThreadBottomSheet> {
 
               // Text Field
               Expanded(
-                child: TextField(
+                child: CustomTextField(
                   controller: widget.controller.replyController,
+                  hintText: 'Type your reply message...',
                   maxLines: 3,
-                  minLines: 1,
-                  style: AppTextStyles.text12.copyWith(
-                    color: AppColors.textColor,
-                  ),
-                  decoration: InputDecoration(
-                    hintText: 'Type your reply message...',
-                    hintStyle: AppTextStyles.text12.copyWith(
-                      color: AppColors.subTextColor,
-                    ),
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 12.w,
-                      vertical: 8.h,
-                    ),
-                    filled: true,
-                    fillColor: AppColors.backgroundColor,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(20.r),
-                      borderSide: BorderSide(color: AppColors.borderColor),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(20.r),
-                      borderSide: BorderSide(color: AppColors.borderColor),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(20.r),
-                      borderSide: BorderSide(color: AppColors.secondary),
-                    ),
+                  fillColor: AppColors.backgroundColor,
+                  borderColor: AppColors.borderColor,
+                  borderRadius: 20.r,
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 14.w,
+                    vertical: 8.h,
                   ),
                 ),
               ),
@@ -814,42 +811,26 @@ class _TicketThreadBottomSheetState extends State<TicketThreadBottomSheet> {
               ),
               AppSpaces.vSpace20,
               Row(
-                mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  TextButton(
-                    onPressed: () => Get.back(),
-                    child: Text(
-                      'Cancel',
-                      style: AppTextStyles.text12.copyWith(
-                        color: AppColors.subTextColor,
-                        fontWeight: FontWeight.w600,
-                      ),
+                  Expanded(
+                    child: CustomButton(
+                      text: 'Cancel',
+                      isOutlined: true,
+                      borderColor: AppColors.borderColor,
+                      textColor: AppColors.subTextColor,
+                      onPressed: () => Get.back(),
                     ),
                   ),
                   AppSpaces.hSpace8,
-                  ElevatedButton(
-                    onPressed: () {
-                      Get.back();
-                      widget.controller.closeTicket();
-                    },
-                    style: ElevatedButton.styleFrom(
+                  Expanded(
+                    child: CustomButton(
+                      text: 'Yes, Close Ticket',
                       backgroundColor: AppColors.error,
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8.r),
-                      ),
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 14.w,
-                        vertical: 8.h,
-                      ),
-                    ),
-                    child: Text(
-                      'Yes, Close Ticket',
-                      style: AppTextStyles.text12.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                      ),
+                      textColor: Colors.white,
+                      onPressed: () {
+                        Get.back();
+                        widget.controller.closeTicket();
+                      },
                     ),
                   ),
                 ],

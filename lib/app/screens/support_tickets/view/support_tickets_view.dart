@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import '../../../core/utils/app_colors.dart';
 import '../../../core/utils/app_spaces.dart';
 import '../../../core/utils/app_text_styles.dart';
+import '../../../core/widgets/custom_button.dart';
 import '../../../core/widgets/custom_screen_header.dart';
 import '../../../core/widgets/custom_state_view.dart';
 import '../../../core/widgets/employee_ambient_header.dart';
@@ -282,19 +283,17 @@ class SupportTicketsView extends GetView<SupportTicketController> {
                 message: controller.forbiddenMessage.value,
               ),
               AppSpaces.vSpace16,
-              TextButton.icon(
-                onPressed: () => controller.setMainTab(1),
+              CustomButton(
+                text: 'Browse Training Videos Instead',
+                isOutlined: true,
+                borderColor: AppColors.secondary,
+                textColor: AppColors.secondary,
                 icon: Icon(
                   Icons.play_circle_outline_rounded,
+                  size: 18.sp,
                   color: AppColors.secondary,
                 ),
-                label: Text(
-                  'Browse Training Videos Instead',
-                  style: AppTextStyles.text14.copyWith(
-                    color: AppColors.secondary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+                onPressed: () => controller.setMainTab(1),
               ),
             ],
           ),

@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
+import '../../../api/app_preferences.dart';
 import '../../../core/utils/app_colors.dart';
 import '../model/helpdesk_model.dart';
 import '../repo/helpdesk_repo.dart';
@@ -29,6 +31,10 @@ class HelpdeskController extends GetxController {
   // Scroll Controller for dynamic background contrast adaptation
   final ScrollController scrollController = ScrollController();
   final RxDouble scrollOffset = 0.0.obs;
+
+  // Scroll Controller for ticket conversation chat
+  final ScrollController chatScrollController = ScrollController();
+  Timer? _chatPollingTimer;
 
   // New Ticket Form
   final GlobalKey<FormState> createFormKey = GlobalKey<FormState>();
@@ -95,8 +101,11 @@ class HelpdeskController extends GetxController {
   /// Mandatory Resource Disposal (.agents/rules/ams.md)
   @override
   void onClose() {
+    _chatPollingTimer?.cancel();
+    _chatPollingTimer = null;
     scrollController.removeListener(_onScroll);
     scrollController.dispose();
+    chatScrollController.dispose();
     subjectController.dispose();
     descriptionController.dispose();
     messageController.dispose();
@@ -162,6 +171,78 @@ class HelpdeskController extends GetxController {
       }
     } finally {
       isDetailsLoading.value = false;
+      scrollChatToBottom();
+    }
+  }
+
+  /// Direct load by ID (used by deep linking or direct screen routing)
+  Future<void> loadTicketById(String id) async {
+    try {
+      isDetailsLoading.value = true;
+      final details = await repo.fetchTicketDetails(id);
+      if (details != null) {
+        selectedTicket.value = details;
+        final index = tickets.indexWhere((t) => t.id == id);
+        if (index != -1) {
+          tickets[index] = details;
+        }
+      }
+    } finally {
+      isDetailsLoading.value = false;
+      scrollChatToBottom();
+    }
+  }
+
+  /// Automatically scrolls chat list to the newest message
+  void scrollChatToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (chatScrollController.hasClients) {
+        chatScrollController.animateTo(
+          chatScrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
+  /// Starts real-time periodic polling while the discussion view is active
+  void startChatPolling(String ticketId) {
+    _chatPollingTimer?.cancel();
+    _chatPollingTimer = Timer.periodic(const Duration(seconds: 4), (_) {
+      syncTicketDetailsSilently(ticketId);
+    });
+  }
+
+  /// Stops real-time polling when user leaves the chat view
+  void stopChatPolling() {
+    _chatPollingTimer?.cancel();
+    _chatPollingTimer = null;
+  }
+
+  /// Silently checks for new incoming messages from HR without blocking UI
+  Future<void> syncTicketDetailsSilently(String ticketId) async {
+    if (isPostingMessage.value) return;
+
+    try {
+      final details = await repo.fetchTicketDetails(ticketId);
+      if (details != null) {
+        final currentCount = selectedTicket.value?.messages.length ?? 0;
+        final hasNewMessages = details.messages.length > currentCount;
+        selectedTicket.value = details;
+
+        final index = tickets.indexWhere((t) => t.id == ticketId);
+        if (index != -1) {
+          tickets[index] = details;
+        }
+
+        if (hasNewMessages) {
+          scrollChatToBottom();
+          HapticFeedback.lightImpact();
+        }
+      }
+    } catch (_) {
+      // Silent catch during periodic background polling
     }
   }
 
@@ -227,7 +308,7 @@ class HelpdeskController extends GetxController {
     }
   }
 
-  /// Submits a reply message on active ticket
+  /// Submits a reply message on active ticket with immediate Optimistic UI update
   Future<bool> sendReplyMessage() async {
     final ticket = selectedTicket.value;
     if (ticket == null) return false;
@@ -235,41 +316,71 @@ class HelpdeskController extends GetxController {
     final body = messageController.text.trim();
     if (body.isEmpty) return false;
 
+    // 1. Optimistic UI update: Immediately append message to chat
+    final tempId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
+    String currentUserName = 'Me';
+    try {
+      currentUserName = AppPreferences.getUser()?.name ?? 'Me';
+    } catch (_) {}
+    final optimisticMessage = HelpdeskMessageModel(
+      id: tempId,
+      author: currentUserName,
+      fromRaiser: true,
+      body: body,
+      createdAt: DateTime.now().toIso8601String(),
+    );
+
+    final previousTicket = ticket;
+    final updatedMessages = List<HelpdeskMessageModel>.from(ticket.messages)..add(optimisticMessage);
+    final optimisticTicket = ticket.copyWith(
+      messages: updatedMessages,
+      lastActivityAt: optimisticMessage.createdAt,
+      status: ticket.isResolved ? 'open' : ticket.status,
+      statusLabel: ticket.isResolved ? 'Open' : ticket.statusLabel,
+    );
+
+    selectedTicket.value = optimisticTicket;
+    final ticketIndex = tickets.indexWhere((t) => t.id == ticket.id);
+    if (ticketIndex != -1) {
+      tickets[ticketIndex] = optimisticTicket;
+    }
+
+    messageController.clear();
+    scrollChatToBottom();
+    HapticFeedback.lightImpact();
+
     try {
       isPostingMessage.value = true;
-      final message = await repo.postMessage(
+      final serverMessage = await repo.postMessage(
         ticketId: ticket.id,
         body: body,
       );
 
-      if (message != null) {
-        messageController.clear();
-        final updatedMessages = List<HelpdeskMessageModel>.from(ticket.messages)..add(message);
-        final updatedTicket = HelpdeskTicketModel(
-          id: ticket.id,
-          reference: ticket.reference,
-          subject: ticket.subject,
-          category: ticket.category,
-          isConfidential: ticket.isConfidential,
-          status: ticket.status,
-          statusLabel: ticket.statusLabel,
-          statusTone: ticket.statusTone,
-          priority: ticket.priority,
-          raisedByName: ticket.raisedByName,
-          assigneeName: ticket.assigneeName,
-          createdAt: ticket.createdAt,
-          lastActivityAt: message.createdAt,
-          resolvedAt: ticket.resolvedAt,
-          messages: updatedMessages,
-        );
-        selectedTicket.value = updatedTicket;
-        final index = tickets.indexWhere((t) => t.id == ticket.id);
-        if (index != -1) {
-          tickets[index] = updatedTicket;
+      // 2. Fetch authoritative ticket state from server to guarantee synchronization
+      final freshTicket = await repo.fetchTicketDetails(ticket.id);
+      if (freshTicket != null) {
+        selectedTicket.value = freshTicket;
+        final idx = tickets.indexWhere((t) => t.id == ticket.id);
+        if (idx != -1) {
+          tickets[idx] = freshTicket;
         }
-        HapticFeedback.lightImpact();
-        return true;
+      } else if (serverMessage != null) {
+        final syncedMessages = List<HelpdeskMessageModel>.from(previousTicket.messages)..add(serverMessage);
+        final syncedTicket = previousTicket.copyWith(messages: syncedMessages);
+        selectedTicket.value = syncedTicket;
+        if (ticketIndex != -1) {
+          tickets[ticketIndex] = syncedTicket;
+        }
       }
+      scrollChatToBottom();
+      return true;
+    } catch (e) {
+      // Revert optimistic update on network error
+      selectedTicket.value = previousTicket;
+      if (ticketIndex != -1) {
+        tickets[ticketIndex] = previousTicket;
+      }
+      messageController.text = body;
       return false;
     } finally {
       isPostingMessage.value = false;

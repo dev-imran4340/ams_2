@@ -742,15 +742,13 @@ class EditProfileController extends GetxController {
                 },
               ),
               AppSpaces.vSpace10,
-              TextButton(
+              CustomButton(
+                text: 'Dismiss',
+                isOutlined: true,
+                borderColor: AppColors.borderColor,
+                textColor: AppColors.subTextColor,
+                borderRadius: 8.r,
                 onPressed: () => Get.back(),
-                child: Text(
-                  'Dismiss',
-                  style: AppTextStyles.text12.copyWith(
-                    color: AppColors.liteSecondary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
               ),
             ],
           ),

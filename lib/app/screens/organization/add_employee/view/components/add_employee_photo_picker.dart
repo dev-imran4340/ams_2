@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../../../../core/utils/app_colors.dart';
 import '../../../../../core/utils/app_spaces.dart';
 import '../../../../../core/utils/app_text_styles.dart';
+import '../../../../../core/widgets/custom_button.dart';
 import '../../controller/add_employee_controller.dart';
 
 class AddEmployeePhotoPicker extends GetView<AddEmployeeController> {
@@ -111,37 +112,35 @@ class AddEmployeePhotoPicker extends GetView<AddEmployeeController> {
                   return Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      TextButton.icon(
-                        onPressed: () => _showPhotoPickerDialog(context),
+                      CustomButton(
+                        text: hasPhoto ? 'Change Photo' : 'Add Photo',
+                        isOutlined: true,
+                        borderColor: AppColors.secondary,
+                        textColor: AppColors.secondary,
+                        borderRadius: 8.r,
+                        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
                         icon: Icon(
                           hasPhoto ? Icons.change_circle_outlined : Icons.add_photo_alternate_outlined,
                           size: 18.sp,
                           color: AppColors.secondary,
                         ),
-                        label: Text(
-                          hasPhoto ? 'Change Photo' : 'Add Photo',
-                          style: AppTextStyles.text12.copyWith(
-                            color: AppColors.secondary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+                        onPressed: () => _showPhotoPickerDialog(context),
                       ),
                       if (hasPhoto) ...[
                         AppSpaces.hSpace16,
-                        TextButton.icon(
-                          onPressed: controller.removePhoto,
+                        CustomButton(
+                          text: 'Remove',
+                          isOutlined: true,
+                          borderColor: AppColors.error,
+                          textColor: AppColors.error,
+                          borderRadius: 8.r,
+                          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
                           icon: Icon(
                             Icons.delete_outline_rounded,
                             size: 18.sp,
                             color: AppColors.error,
                           ),
-                          label: Text(
-                            'Remove',
-                            style: AppTextStyles.text12.copyWith(
-                              color: AppColors.error,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
+                          onPressed: controller.removePhoto,
                         ),
                       ],
                     ],

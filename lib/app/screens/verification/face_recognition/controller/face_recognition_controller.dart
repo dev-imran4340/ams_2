@@ -533,15 +533,16 @@ class FaceRecognitionController extends GetxController
     final face = faces.first;
     final box = face.boundingBox;
 
-    // Check 2: Eyes Open Check (Must be awake and eyes clearly open, threshold >= 0.55)
+    // Check 2: Eyes Open Check (Responsive threshold: allows spectacles/lighting variations while maintaining alertness)
     final double leftEyeProb = face.leftEyeOpenProbability ?? 1.0;
     final double rightEyeProb = face.rightEyeOpenProbability ?? 1.0;
-    final bool eyesOpen = (leftEyeProb >= 0.55) && (rightEyeProb >= 0.55);
+    final bool eyesOpen = (leftEyeProb >= 0.25 && rightEyeProb >= 0.25) ||
+        ((leftEyeProb + rightEyeProb) / 2.0 >= 0.30);
 
-    // Check 3: Head orientation check (Yaw within 22 deg, Roll within 16 deg - facing camera straight)
+    // Check 3: Head orientation check (Yaw within 32 deg, Roll within 25 deg - comfortable natural posture)
     final double yaw = face.headEulerAngleY ?? 0.0;
     final double roll = face.headEulerAngleZ ?? 0.0;
-    final bool headStraight = yaw.abs() <= 22.0 && roll.abs() <= 16.0;
+    final bool headStraight = yaw.abs() <= 32.0 && roll.abs() <= 25.0;
 
     // In portrait orientation, camera sensor portrait dimensions:
     final double camW = math.min(frameWidth, frameHeight);
@@ -549,7 +550,7 @@ class FaceRecognitionController extends GetxController
     final bool isFront =
         activeCamera?.lensDirection == CameraLensDirection.front;
 
-    // Check 4: Centering with front-camera mirroring (Strict within +/- 0.24)
+    // Check 4: Centering with front-camera mirroring (Responsive within +/- 0.38)
     final double camFaceCenterX = box.left + (box.width / 2.0);
     final double camFaceCenterY = box.top + (box.height / 2.0);
     final double previewCenterX =
@@ -558,11 +559,11 @@ class FaceRecognitionController extends GetxController
 
     final double offsetX = (previewCenterX - (camW / 2.0)) / camW;
     final double offsetY = (previewCenterY - (camH / 2.0)) / camH;
-    final bool isCentered = offsetX.abs() <= 0.24 && offsetY.abs() <= 0.24;
+    final bool isCentered = offsetX.abs() <= 0.38 && offsetY.abs() <= 0.38;
 
-    // Check 5: Proportional distance / scale (25% to 75% of portrait width - optimal face distance)
+    // Check 5: Proportional distance / scale (15% to 85% of portrait width - optimal face distance)
     final double scaleRatio = box.width / camW;
-    final bool isScaleValid = scaleRatio >= 0.25 && scaleRatio <= 0.75;
+    final bool isScaleValid = scaleRatio >= 0.15 && scaleRatio <= 0.85;
 
     // Check 6: Full face fits inside the biometric viewfinder
     final double ovalW = 250.w;
@@ -589,11 +590,11 @@ class FaceRecognitionController extends GetxController
     bool isPointInOval(double px, double py) {
       final double dx = (px - ovalA) / ovalA;
       final double dy = (py - ovalB) / ovalB;
-      return (dx * dx + dy * dy) <= 1.20; // Strict oval boundary
+      return (dx * dx + dy * dy) <= 1.65; // Natural oval boundary
     }
 
-    final bool fitsHorizontally = fLeft >= -20.w && fRight <= (ovalW + 20.w);
-    final bool fitsVertically = fTop >= -20.h && fBottom <= (ovalH + 20.h);
+    final bool fitsHorizontally = fLeft >= -45.w && fRight <= (ovalW + 45.w);
+    final bool fitsVertically = fTop >= -45.h && fBottom <= (ovalH + 45.h);
     final bool isInsideOval = fitsHorizontally &&
         fitsVertically &&
         isPointInOval(fMidX, fMidY);
@@ -607,9 +608,9 @@ class FaceRecognitionController extends GetxController
       feedback = 'Please open your eyes to scan';
     } else if (!headStraight) {
       feedback = 'Keep head straight and face the camera';
-    } else if (scaleRatio < 0.25) {
+    } else if (scaleRatio < 0.20) {
       feedback = 'Move closer to camera';
-    } else if (scaleRatio > 0.75) {
+    } else if (scaleRatio > 0.80) {
       feedback = 'Move slightly back';
     } else if (!isInsideOval || !isCentered) {
       feedback = 'Position your face in the oval';
@@ -637,22 +638,28 @@ class FaceRecognitionController extends GetxController
     isAllChecksPassed.value = result.allPassed;
     statusText.value = feedback;
 
-    // Automated trigger when checks pass steadily
+    // Automated trigger when checks pass steadily (Ultra-fast 2-frame trigger with crisp haptic pulse)
     if (result.allPassed) {
       if (_registrationCooldown || _isMismatchCooldown) {
         _consecutivePassFrames = 0;
         matchProgress.value = 0.0;
         return;
       }
-      // Require 5 consecutive steady frames (~170ms) to ensure solid stability before capturing photo
+      // Require only 2 consecutive steady frames (~60-100ms) for lightning-fast scan
       _consecutivePassFrames++;
-      matchProgress.value = (_consecutivePassFrames / 5.0).clamp(0.0, 1.0);
+      matchProgress.value = (_consecutivePassFrames / 2.0).clamp(0.0, 1.0);
 
-      if (_consecutivePassFrames >= 5 &&
+      // Instant tactile haptic tick as face locks into the oval
+      if (_consecutivePassFrames == 1) {
+        HapticFeedback.selectionClick();
+      }
+
+      if (_consecutivePassFrames >= 2 &&
           !isVerifying.value &&
           !isSavingReference.value &&
           !isMatchSuccess.value) {
         _consecutivePassFrames = 0;
+        HapticFeedback.mediumImpact();
         if (actionMode.value == FaceActionMode.register) {
           saveReferenceFace();
         } else {
@@ -732,22 +739,10 @@ class FaceRecognitionController extends GetxController
       debugPrint(
           '>>> [AI FACE] Face captured successfully with face: ${detectedFace.boundingBox}');
 
-      // Save as reference face template locally
-      List<double>? directEnrollVector;
-      if (_lastFrame != null) {
-        if (!repo.faceNet.isModelLoaded) {
-          await repo.faceNet.loadModel();
-        }
-        directEnrollVector = repo.faceNet.extractEmbeddingFromCameraImage(
-          _lastFrame!,
-          detectedFace,
-        );
-      }
-
+      // Save as reference face template locally using the face detected on captured photo
       await repo.saveReferenceFace(
         capturedFile,
         detectedFace: detectedFace,
-        enrolledVectorDirect: directEnrollVector,
       );
 
       // If in Punch Mode:
@@ -890,24 +885,10 @@ class FaceRecognitionController extends GetxController
         return;
       }
 
-      // Extract direct live vector embedding if stream frame is available
-      List<double>? directLiveVector;
-      if (_lastFrame != null && _lastDetectedFace != null) {
-        if (!repo.faceNet.isModelLoaded) {
-          await repo.faceNet.loadModel();
-        }
-        directLiveVector = repo.faceNet.extractEmbeddingFromCameraImage(
-          _lastFrame!,
-          _lastDetectedFace!,
-        );
-      }
-
       // Compare decoded live selfie face directly with server reference face
       report = await repo.compareFaces(
         referenceFile: refFile,
         liveSelfieFile: selfieFile,
-        liveDetectedFace: _lastDetectedFace,
-        liveVectorDirect: directLiveVector,
       );
 
       comparisonReport.value = report;
@@ -924,6 +905,9 @@ class FaceRecognitionController extends GetxController
         matchProgress.value = 1.0;
         statusText.value = 'Face Verified Successfully';
         HapticFeedback.heavyImpact();
+        Future.delayed(const Duration(milliseconds: 100), () {
+          HapticFeedback.mediumImpact();
+        });
         pulseAnimationController.stop();
 
         if (isPunchMode.value) {
@@ -979,7 +963,7 @@ class FaceRecognitionController extends GetxController
         _consecutivePassFrames = 0;
         _isMismatchCooldown = true;
         statusText.value = 'Face Not Recognized • Please try again';
-        HapticFeedback.mediumImpact();
+        HapticFeedback.vibrate();
 
         // In punch mode: Never show blocking snackbar overlay that traps Get.back()
         if (!isPunchMode.value) {
@@ -992,8 +976,8 @@ class FaceRecognitionController extends GetxController
 
         await _ensureImageStreamRunning();
 
-        // Enforce 2-second cooldown to let camera native buffer queue drain completely
-        Future.delayed(const Duration(milliseconds: 2000), () {
+        // Quick 1-second cooldown to let camera native buffer queue drain completely
+        Future.delayed(const Duration(milliseconds: 1000), () {
           if (!isClosed && !isMatchSuccess.value) {
             _isMismatchCooldown = false;
             statusText.value = 'Align face inside oval to Verify';

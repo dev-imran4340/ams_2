@@ -5,8 +5,10 @@ import 'package:get/get.dart';
 import '../../../../core/utils/app_colors.dart';
 import '../../../../core/utils/app_spaces.dart';
 import '../../../../core/utils/app_text_styles.dart';
+import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/widgets/custom_card.dart';
 import '../../../../core/widgets/custom_state_view.dart';
+import '../../../../routes/app_routes.dart';
 import '../../controller/profile_controller.dart';
 
 class ProfileJobTab extends GetView<ProfileController> {
@@ -180,6 +182,63 @@ class ProfileJobTab extends GetView<ProfileController> {
               ),
             ),
           ],
+
+          // 3. Official Job Description & Scope (Phase 18)
+          AppSpaces.vSpace14,
+          CustomCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 32.r,
+                      height: 32.r,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.08),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.assignment_outlined,
+                        size: 16.sp,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    AppSpaces.hSpace8,
+                    Expanded(
+                      child: Text(
+                        'Role Responsibilities & Scope',
+                        style: AppTextStyles.text14.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textColor,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                AppSpaces.vSpace10,
+                Text(
+                  'View official terms of reference, key competencies, and job description document.',
+                  style: AppTextStyles.text12.copyWith(
+                    color: AppColors.subTextColor,
+                  ),
+                ),
+                AppSpaces.vSpace14,
+                CustomButton(
+                  text: 'View Job Description',
+                  isGradient: true,
+                  icon: Icon(
+                    Icons.visibility_outlined,
+                    color: Colors.white,
+                    size: 18.sp,
+                  ),
+                  onPressed: () {
+                    Get.toNamed(Routes.JOB_DESCRIPTION);
+                  },
+                ),
+              ],
+            ),
+          ),
         ],
       );
     });

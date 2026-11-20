@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -68,6 +70,7 @@ class SupportTicketController extends GetxController {
   // Scroll Controllers
   final scrollController = ScrollController();
   final threadScrollController = ScrollController();
+  Timer? _threadPollingTimer;
 
   // New Ticket Form State
   final selectedCategory = 'technical'.obs;
@@ -83,6 +86,8 @@ class SupportTicketController extends GetxController {
 
   @override
   void onClose() {
+    _threadPollingTimer?.cancel();
+    _threadPollingTimer = null;
     subjectController.dispose();
     bodyController.dispose();
     replyController.dispose();
@@ -278,7 +283,46 @@ class SupportTicketController extends GetxController {
     }
   }
 
-  /// Sends reply message on the open ticket thread
+  /// Starts real-time periodic thread polling while discussion sheet is open
+  void startThreadPolling(String ticketId) {
+    _threadPollingTimer?.cancel();
+    _threadPollingTimer = Timer.periodic(const Duration(seconds: 4), (_) {
+      syncThreadSilently(ticketId);
+    });
+  }
+
+  /// Stops real-time periodic thread polling
+  void stopThreadPolling() {
+    _threadPollingTimer?.cancel();
+    _threadPollingTimer = null;
+  }
+
+  /// Silently checks for new incoming support agent messages
+  Future<void> syncThreadSilently(String ticketId) async {
+    if (isReplying.value) return;
+
+    try {
+      final details = await repo.fetchTicketDetails(ticketId);
+      if (details != null) {
+        final currentCount = selectedTicket.value?.messages.length ?? 0;
+        final hasNewMessages = details.messages.length > currentCount;
+        selectedTicket.value = details;
+
+        if (hasNewMessages) {
+          if (threadScrollController.hasClients) {
+            threadScrollController.animateTo(
+              threadScrollController.position.maxScrollExtent + 120,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOut,
+            );
+          }
+          HapticFeedback.lightImpact();
+        }
+      }
+    } catch (_) {}
+  }
+
+  /// Sends reply message on the open ticket thread with Optimistic UI update
   Future<bool> sendReply() async {
     if (!canRaise) {
       CustomSnackbar.showError(
@@ -296,34 +340,61 @@ class SupportTicketController extends GetxController {
       return false;
     }
 
+    // 1. Optimistic UI update: Immediately append message to thread
+    final tempId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
+    String currentUserName = 'You';
+    try {
+      currentUserName = AppPreferences.getUser()?.name ?? 'You';
+    } catch (_) {}
+    final tempMsg = SupportMessageModel(
+      id: tempId,
+      fromUs: false,
+      author: currentUserName,
+      body: body,
+      at: DateTime.now().toIso8601String(),
+      attachments: [],
+    );
+    final previousTicket = ticket;
+    final optimisticMessages = List<SupportMessageModel>.from(ticket.messages)..add(tempMsg);
+    selectedTicket.value = ticket.copyWith(messages: optimisticMessages);
+
+    final sentAttachments = replyAttachments.isNotEmpty
+        ? List<File>.from(replyAttachments)
+        : null;
+
+    replyController.clear();
+    replyAttachments.clear();
+
+    if (threadScrollController.hasClients) {
+      threadScrollController.animateTo(
+        threadScrollController.position.maxScrollExtent + 120,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
+    HapticFeedback.lightImpact();
+
     try {
       isReplying.value = true;
       final updated = await repo.replyTicket(
         ticket.id,
         body: body,
-        attachments: replyAttachments.isNotEmpty
-            ? List<File>.from(replyAttachments)
-            : null,
+        attachments: sentAttachments,
       );
 
-      if (updated != null) {
+      final fresh = await repo.fetchTicketDetails(ticket.id);
+      if (fresh != null) {
+        selectedTicket.value = fresh;
+      } else if (updated != null) {
         selectedTicket.value = updated;
-        replyController.clear();
-        replyAttachments.clear();
-
-        // Scroll thread to bottom
-        if (threadScrollController.hasClients) {
-          threadScrollController.animateTo(
-            threadScrollController.position.maxScrollExtent + 120,
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeOut,
-          );
-        }
-
-        // Refresh background tickets list
-        loadTickets(isRefresh: true);
-        return true;
       }
+
+      loadTickets(isRefresh: true);
+      return true;
+    } catch (e) {
+      // Revert optimistic message on failure
+      selectedTicket.value = previousTicket;
+      replyController.text = body;
       return false;
     } finally {
       isReplying.value = false;

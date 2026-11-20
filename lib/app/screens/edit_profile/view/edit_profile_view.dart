@@ -129,18 +129,17 @@ class EditProfileView extends GetView<EditProfileController> {
 
                               // 7. Secondary Action: Discard & Return
                               Center(
-                                child: TextButton(
+                                child: CustomButton(
+                                  text: 'Discard & Return',
+                                  isOutlined: true,
+                                  borderColor: AppColors.borderColor,
+                                  textColor: AppColors.subTextColor,
+                                  borderRadius: 10.r,
+                                  padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
                                   onPressed: () {
                                     HapticFeedback.lightImpact();
                                     Get.back();
                                   },
-                                  child: Text(
-                                    'Discard & Return',
-                                    style: AppTextStyles.text12.copyWith(
-                                      color: AppColors.subTextColor,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
                                 ),
                               ),
 

@@ -203,28 +203,27 @@ class TwoFactorSheet extends StatelessWidget {
                   // Toggle between TOTP and Recovery Code
                   Align(
                     alignment: Alignment.centerRight,
-                    child: TextButton(
-                      onPressed: () {
+                    child: InkWell(
+                      onTap: () {
                         controller.isRecoveryCode.value =
                             !controller.isRecoveryCode.value;
                         controller.twoFactorCodeController.clear();
                         controller.twoFactorError.value = null;
                       },
-                      style: TextButton.styleFrom(
+                      borderRadius: BorderRadius.circular(6.r),
+                      child: Padding(
                         padding: EdgeInsets.symmetric(
                           horizontal: 4.w,
-                          vertical: 2.h,
+                          vertical: 4.h,
                         ),
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                      child: Text(
-                        controller.isRecoveryCode.value
-                            ? 'Use Authenticator App TOTP code'
-                            : 'Lost access? Use Recovery Code',
-                        style: AppTextStyles.text12.copyWith(
-                          color: AppColors.secondary,
-                          fontWeight: FontWeight.w600,
+                        child: Text(
+                          controller.isRecoveryCode.value
+                              ? 'Use Authenticator App TOTP code'
+                              : 'Lost access? Use Recovery Code',
+                          style: AppTextStyles.text12.copyWith(
+                            color: AppColors.secondary,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ),

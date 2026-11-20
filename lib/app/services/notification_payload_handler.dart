@@ -179,6 +179,45 @@ class NotificationPayloadHandler {
       return;
     }
 
+    // 2.9 HR Helpdesk & Support Tickets
+    if (cleanScreen == 'helpdesk_ticket' || cleanScreen == 'helpdesk') {
+      Get.log('🧭 [$_tag] Navigating to Helpdesk Ticket: $cleanId');
+      if (cleanId != null && cleanId.isNotEmpty) {
+        await Get.toNamed(Routes.HELPDESK_TICKET, arguments: cleanId);
+      } else {
+        await Get.toNamed(Routes.HELPDESK);
+      }
+      return;
+    }
+
+    // 2.10 Tasks (Onboarding / General)
+    if (cleanScreen == 'task' || cleanScreen == 'tasks') {
+      Get.log('🧭 [$_tag] Navigating to Tasks: $cleanId');
+      await Get.toNamed(Routes.TASKS);
+      return;
+    }
+
+    // 2.11 Training & Certifications
+    if (cleanScreen == 'training') {
+      Get.log('🧭 [$_tag] Navigating to Training: $cleanId');
+      await Get.toNamed(Routes.TRAINING);
+      return;
+    }
+
+    // 2.12 Company Assets
+    if (cleanScreen == 'asset' || cleanScreen == 'assets') {
+      Get.log('🧭 [$_tag] Navigating to Assets: $cleanId');
+      await Get.toNamed(Routes.ASSETS);
+      return;
+    }
+
+    // 2.13 Checklists
+    if (cleanScreen == 'checklist' || cleanScreen == 'checklists') {
+      Get.log('🧭 [$_tag] Navigating to Checklists: $cleanId');
+      await Get.toNamed(Routes.CHECKLISTS);
+      return;
+    }
+
     // 3. Fallback for Unknown Screen Values -> Open Notifications List
     Get.log('🧭 [$_tag] Screen "$screen" unknown or general notification. Opening Notifications View.');
     if (Get.currentRoute != Routes.NOTIFICATIONS) {

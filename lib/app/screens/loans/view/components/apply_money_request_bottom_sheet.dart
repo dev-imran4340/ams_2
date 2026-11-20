@@ -606,20 +606,13 @@ class _ApplyMoneyRequestBottomSheetState
                 ),
               ),
 
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8.r)),
-                  padding:
-                      EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
-                ),
-                onPressed: _addCurrentLine,
+              CustomButton(
+                text: 'Add Line',
+                isGradient: true,
+                borderRadius: 8.r,
+                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
                 icon: const Icon(Icons.add, color: Colors.white, size: 16),
-                label: Text(
-                  'Add Line',
-                  style: AppTextStyles.text12.copyWith(color: Colors.white),
-                ),
+                onPressed: _addCurrentLine,
               ),
             ],
           ),

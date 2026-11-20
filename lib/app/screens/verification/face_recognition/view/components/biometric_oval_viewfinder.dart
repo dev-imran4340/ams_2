@@ -93,7 +93,7 @@ class BiometricOvalViewfinder extends GetView<FaceRecognitionController> {
                 } else if (isPassed) {
                   borderColor = AppColors.secondary;
                 } else if (hasFace) {
-                  borderColor = AppColors.error;
+                  borderColor = AppColors.warning;
                 } else {
                   borderColor = AppColors.liteSecondary.withValues(alpha: 0.5);
                 }

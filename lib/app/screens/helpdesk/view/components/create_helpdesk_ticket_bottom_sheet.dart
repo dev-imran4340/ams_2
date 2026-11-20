@@ -6,6 +6,7 @@ import '../../../../core/utils/app_colors.dart';
 import '../../../../core/utils/app_spaces.dart';
 import '../../../../core/utils/app_text_styles.dart';
 import '../../../../core/widgets/custom_button.dart';
+import '../../../../core/widgets/custom_text_field.dart';
 import '../../controller/helpdesk_controller.dart';
 
 class CreateHelpdeskTicketBottomSheet extends StatelessWidget {
@@ -152,29 +153,14 @@ class CreateHelpdeskTicketBottomSheet extends StatelessWidget {
                     // 3. Subject Field
                     _buildFieldLabel('Subject'),
                     AppSpaces.vSpace6,
-                    TextFormField(
+                    CustomTextField(
                       controller: controller.subjectController,
                       focusNode: controller.subjectFocusNode,
-                      style: AppTextStyles.text12.copyWith(color: AppColors.textColor),
-                      decoration: InputDecoration(
-                        hintText: 'Brief summary of the issue or inquiry',
-                        hintStyle: AppTextStyles.text12.copyWith(color: AppColors.subTextColor),
-                        filled: true,
-                        fillColor: AppColors.cardBackground,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10.r),
-                          borderSide: BorderSide(color: AppColors.borderColor, width: 0.8.w),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10.r),
-                          borderSide: BorderSide(color: AppColors.borderColor, width: 0.8.w),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10.r),
-                          borderSide: BorderSide(color: AppColors.secondary, width: 1.2.w),
-                        ),
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
-                      ),
+                      hintText: 'Brief summary of the issue or inquiry',
+                      fillColor: AppColors.cardBackground,
+                      borderColor: AppColors.borderColor,
+                      borderRadius: 10.r,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
                       validator: (val) {
                         if (val == null || val.trim().isEmpty) {
                           return 'Subject is required';
@@ -188,30 +174,15 @@ class CreateHelpdeskTicketBottomSheet extends StatelessWidget {
                     // 4. Message / Description Field
                     _buildFieldLabel('Detailed Description'),
                     AppSpaces.vSpace6,
-                    TextFormField(
+                    CustomTextField(
                       controller: controller.descriptionController,
                       focusNode: controller.descriptionFocusNode,
                       maxLines: 5,
-                      style: AppTextStyles.text12.copyWith(color: AppColors.textColor),
-                      decoration: InputDecoration(
-                        hintText: 'Provide full details, background context, or instructions...',
-                        hintStyle: AppTextStyles.text12.copyWith(color: AppColors.subTextColor),
-                        filled: true,
-                        fillColor: AppColors.cardBackground,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10.r),
-                          borderSide: BorderSide(color: AppColors.borderColor, width: 0.8.w),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10.r),
-                          borderSide: BorderSide(color: AppColors.borderColor, width: 0.8.w),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10.r),
-                          borderSide: BorderSide(color: AppColors.secondary, width: 1.2.w),
-                        ),
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
-                      ),
+                      hintText: 'Provide full details, background context, or instructions...',
+                      fillColor: AppColors.cardBackground,
+                      borderColor: AppColors.borderColor,
+                      borderRadius: 10.r,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
                       validator: (val) {
                         if (val == null || val.trim().isEmpty) {
                           return 'Description is required';

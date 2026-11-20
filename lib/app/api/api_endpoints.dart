@@ -138,5 +138,13 @@ class ApiEndpoints {
   static String helpdeskTicketDetails(String id) => '/helpdesk/tickets/$id';
   static String helpdeskTicketMessages(String id) => '/helpdesk/tickets/$id/messages';
   static String helpdeskTicketCancel(String id) => '/helpdesk/tickets/$id/cancel';
+
+  // 21. Hardware Tablet Kiosk Mode & PIN Setup (Phase 10 Live Engine)
+  static const String meKioskPin = '/me/kiosk-pin';
+  static const String kiosks = '/kiosks';
+  static const String kiosk = '/kiosk';
+  static const String kioskIdentify = '/kiosk/identify';
+  static String kioskFace(String ticket) => '/kiosk/face?ticket=$ticket';
+  static const String kioskPunches = '/kiosk/punches';
 }
 

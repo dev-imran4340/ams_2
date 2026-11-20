@@ -24,7 +24,7 @@ class FaceRecognitionRepo {
   final String _tag = 'FaceRecognitionRepo / FaceScreen';
   static const String referenceFileName = 'enrolled_reference_face.jpg';
   static const String referenceEmbeddingFileName = 'enrolled_face_embedding.json';
-  static const double defaultMatchThreshold = 0.50; // Calibrated for facial landmark geometry & MobileFaceNet cosine similarity
+  static const double defaultMatchThreshold = 0.42; // Calibrated for facial landmark geometry & MobileFaceNet cosine similarity
   double matchThreshold = defaultMatchThreshold;
   static const int targetFaceSize = 112;
   static const double cropPaddingRatio = 0.0; // 0% padding: Strictly face only (zero background)
@@ -50,18 +50,42 @@ class FaceRecognitionRepo {
 
   /// Robust multi-pass face detector for profile and captured photos
   Future<List<Face>> detectProfilePhotoFaces(Uint8List rawBytes) async {
-    // Pass 1: Try primary fast detector on orientation-normalized image
     final tempDir = await getTemporaryDirectory();
     final tempFile = File(
       '${tempDir.path}/mlkit_face_${DateTime.now().millisecondsSinceEpoch}.jpg',
     );
 
+    // Pass 1: Hardware-native pass directly on raw bytes (zero Dart decode/encode overhead)
+    try {
+      await tempFile.writeAsBytes(rawBytes, flush: true);
+      final inputImage = InputImage.fromFilePath(tempFile.absolute.path);
+
+      final fastFaces = await detector.processImage(inputImage);
+      if (fastFaces.isNotEmpty) {
+        debugPrint('>>> [AI FACE] Face detected on native Pass 1 (${fastFaces.length} faces)');
+        return fastFaces;
+      }
+
+      final accurateFaces = await accurateDetector.processImage(inputImage);
+      if (accurateFaces.isNotEmpty) {
+        debugPrint('>>> [AI FACE] Face detected on accurate Pass 1 (${accurateFaces.length} faces)');
+        return accurateFaces;
+      }
+    } catch (e) {
+      debugPrint('>>> [AI FACE] Native Pass 1 detection error: $e');
+    } finally {
+      try {
+        if (tempFile.existsSync()) await tempFile.delete();
+      } catch (_) {}
+    }
+
+    // Pass 2: Software orientation-normalized fallback if native pass yielded 0 faces
     Uint8List bytesForMl = rawBytes;
     try {
       final decoded = img.decodeImage(rawBytes);
       if (decoded != null) {
         final upright = img.bakeOrientation(decoded);
-        bytesForMl = img.encodeJpg(upright, quality: 92);
+        bytesForMl = img.encodeJpg(upright, quality: 90);
       }
     } catch (e) {
       debugPrint('>>> [AI FACE] detectProfilePhotoFaces decode/bakeOrientation: $e');
@@ -71,21 +95,19 @@ class FaceRecognitionRepo {
       await tempFile.writeAsBytes(bytesForMl, flush: true);
       final inputImage = InputImage.fromFilePath(tempFile.absolute.path);
 
-      // Try fast detector first
       final fastFaces = await detector.processImage(inputImage);
       if (fastFaces.isNotEmpty) {
-        debugPrint('>>> [AI FACE] Face detected on Pass 1 (fast detector, ${fastFaces.length} faces)');
+        debugPrint('>>> [AI FACE] Face detected on Pass 2 (${fastFaces.length} faces)');
         return fastFaces;
       }
 
-      // Try accurate detector second
       final accurateFaces = await accurateDetector.processImage(inputImage);
       if (accurateFaces.isNotEmpty) {
-        debugPrint('>>> [AI FACE] Face detected on Pass 1 (accurate detector, ${accurateFaces.length} faces)');
+        debugPrint('>>> [AI FACE] Face detected on accurate Pass 2 (${accurateFaces.length} faces)');
         return accurateFaces;
       }
     } catch (e) {
-      debugPrint('>>> [AI FACE] Pass 1 detection error: $e');
+      debugPrint('>>> [AI FACE] Pass 2 detection error: $e');
     } finally {
       try {
         if (tempFile.existsSync()) await tempFile.delete();
@@ -181,16 +203,16 @@ class FaceRecognitionRepo {
     ];
   }
 
-  /// Real-time detector for camera stream (fast)
+  /// Real-time detector for camera stream (ultra-fast)
   FaceDetector get detector {
     _detector ??= FaceDetector(
       options: FaceDetectorOptions(
-        enableLandmarks: true,
+        enableLandmarks: false,
         enableContours: false,
         enableClassification: true,
         enableTracking: true,
         performanceMode: FaceDetectorMode.fast,
-        minFaceSize: 0.10,
+        minFaceSize: 0.15,
       ),
     );
     return _detector!;
@@ -1094,9 +1116,9 @@ class FaceRecognitionRepo {
 
       // 1. Retrieve enrolled reference embedding (from JSON or referenceFile)
       List<double>? refVector = await getSavedFaceEmbedding();
-      final refBytes = await referenceFile.readAsBytes();
 
       if (refVector == null || refVector.length != 192) {
+        final refBytes = await referenceFile.readAsBytes();
         final refFaces = await detectProfilePhotoFaces(refBytes);
 
         if (refFaces.isEmpty) {
@@ -1136,12 +1158,13 @@ class FaceRecognitionRepo {
       List<double>? liveVector = (liveVectorDirect != null && liveVectorDirect.length == 192)
           ? liveVectorDirect
           : null;
+      List<double>? liveFlippedVector;
 
       if (liveVector == null) {
         final liveBytes = await liveSelfieFile.readAsBytes();
-        final List<Face> liveFaces = liveDetectedFace != null
-            ? [liveDetectedFace]
-            : await detectProfilePhotoFaces(liveBytes);
+        // Always run profile face detection directly on liveBytes so bounding boxes
+        // perfectly match liveSelfieFile's dimensions and orientation.
+        final List<Face> liveFaces = await detectProfilePhotoFaces(liveBytes);
 
         if (liveFaces.isEmpty) {
           debugPrint('>>> [AI FACE] No face detected in live captured selfie');
@@ -1154,10 +1177,19 @@ class FaceRecognitionRepo {
           );
         }
 
+        final liveFace = liveFaces.first;
+
         if (faceNet.isModelLoaded) {
           try {
-            liveVector = faceNet.extractEmbeddingFromUint8List(liveBytes, liveFaces.first);
-          } catch (_) {}
+            liveVector = faceNet.extractEmbeddingFromUint8List(liveBytes, liveFace);
+            liveFlippedVector = faceNet.extractEmbeddingFromUint8List(
+              liveBytes,
+              liveFace,
+              flipHorizontal: true,
+            );
+          } catch (e) {
+            debugPrint('>>> [AI FaceNet] Live vector extraction failed: $e');
+          }
         }
 
         if (liveVector == null || liveVector.length != 192) {
@@ -1166,13 +1198,13 @@ class FaceRecognitionRepo {
 
           final croppedLive = cropFaceFromImage(
             sourceImage: liveDecoded ?? img.Image(width: targetFaceSize, height: targetFaceSize),
-            boundingBox: liveFaces.first.boundingBox,
-            detectedFace: liveFaces.first,
+            boundingBox: liveFace.boundingBox,
+            detectedFace: liveFace,
           );
 
           liveVector = extract192DimEmbedding(
             croppedFace112: croppedLive,
-            detectedFace: liveFaces.first,
+            detectedFace: liveFace,
           );
         }
       }
@@ -1182,9 +1214,18 @@ class FaceRecognitionRepo {
       bool isMatch = false;
       double score = 0.0;
       if (faceNet.isModelLoaded) {
-        final dist = faceNet.euclideanDistance(refVector, liveVector);
+        final distNormal = faceNet.euclideanDistance(refVector, liveVector);
+        double dist = distNormal;
+        if (liveFlippedVector != null) {
+          final distFlipped = faceNet.euclideanDistance(refVector, liveFlippedVector);
+          dist = math.min(distNormal, distFlipped);
+          debugPrint('>>> [AI FaceNet Comparison] Normal: ${distNormal.toStringAsFixed(4)}, Flipped: ${distFlipped.toStringAsFixed(4)} -> Best: ${dist.toStringAsFixed(4)}, Threshold: ${faceNet.threshold}');
+        } else {
+          debugPrint('>>> [AI FaceNet Comparison] Euclidean: ${dist.toStringAsFixed(4)}, Threshold: ${faceNet.threshold}');
+        }
+
         final bool faceNetMatched = dist <= faceNet.threshold;
-        debugPrint('>>> [AI FaceNet Comparison] Euclidean: $dist, Threshold: ${faceNet.threshold}, Match: $faceNetMatched');
+        debugPrint('>>> [AI FaceNet Comparison] Match: $faceNetMatched');
         if (faceNetMatched) {
           isMatch = true;
           score = (1.0 - (dist / 2.0)).clamp(0.50, 1.0);
@@ -1192,7 +1233,12 @@ class FaceRecognitionRepo {
       }
 
       // Also compute Cosine Similarity as secondary/fallback assurance
-      final double cosineScore = computeCosineSimilarity(refVector, liveVector);
+      final double cosineNormal = computeCosineSimilarity(refVector, liveVector);
+      double cosineScore = cosineNormal;
+      if (liveFlippedVector != null) {
+        final double cosineFlipped = computeCosineSimilarity(refVector, liveFlippedVector);
+        cosineScore = math.max(cosineNormal, cosineFlipped);
+      }
       if (!isMatch && cosineScore >= matchThreshold) {
         isMatch = true;
         score = cosineScore;

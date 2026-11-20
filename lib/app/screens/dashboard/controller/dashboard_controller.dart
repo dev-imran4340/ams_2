@@ -66,9 +66,14 @@ class DashboardController extends GetxController {
   /// Starts 1-second periodic timer for real-time clock & running shift duration
   void _startLiveClock() {
     _updateClock();
+    _clockTimer?.cancel();
     _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      _updateClock();
-      _updateRunningShiftTimer();
+      try {
+        _updateClock();
+        _updateRunningShiftTimer();
+      } catch (e) {
+        debugPrint('>>> [DASHBOARD TIMER ERROR] $e');
+      }
     });
   }
 
@@ -129,11 +134,13 @@ class DashboardController extends GetxController {
       // Collect all break intervals for mathematically precise deduction
       final List<_TimeInterval> breakIntervals = [];
       for (final s in today.segments) {
-        if (s.kind.toLowerCase() == 'break' && s.startsAt != null) {
-          final bStart = s.startsAt!;
-          final bEnd = s.endsAt ?? (today.isOnBreak ? now : bStart);
-          if (bEnd.isAfter(bStart)) {
-            breakIntervals.add(_TimeInterval(bStart, bEnd));
+        if (s.kind.toLowerCase() == 'break') {
+          final bStart = s.startsAt ?? _parseTimeToday(s.starts ?? '');
+          if (bStart != null) {
+            final bEnd = s.endsAt ?? _parseTimeToday(s.ends ?? '') ?? (today.isOnBreak ? now : bStart);
+            if (bEnd.isAfter(bStart)) {
+              breakIntervals.add(_TimeInterval(bStart, bEnd));
+            }
           }
         }
       }
@@ -142,15 +149,15 @@ class DashboardController extends GetxController {
       bool hasActiveWorkSegment = false;
 
       for (final s in today.segments) {
-        if (s.kind.toLowerCase() != 'work' || s.startsAt == null) continue;
+        if (s.kind.toLowerCase() != 'work') continue;
 
-        final wStart = s.startsAt!;
-        if (s.endsAt == null) {
+        final wStart = s.startsAt ?? _parseTimeToday(s.starts ?? '');
+        if (wStart == null) continue;
+
+        if (s.endsAt == null && (s.ends == null || s.ends == '--:--')) {
           hasActiveWorkSegment = true;
         }
-        // When actively checked in (whether working or on break), open work session extends to 'now'.
-        // Any overlapping break interval (including active break) is subtracted below, perfectly freezing the timer if on break!
-        final wEnd = s.endsAt ?? (today.isCheckedIn ? now : wStart);
+        final wEnd = s.endsAt ?? _parseTimeToday(s.ends ?? '') ?? (today.isCheckedIn ? now : wStart);
         if (!wEnd.isAfter(wStart)) continue;
 
         final int grossWork = wEnd.difference(wStart).inSeconds;
@@ -171,7 +178,7 @@ class DashboardController extends GetxController {
 
       // Fallback: If checked in but no open work segment was marked, add elapsed time from checkInDateTime
       if (!hasActiveWorkSegment && today.isCheckedIn) {
-        final activeStart = today.checkInDateTime;
+        final activeStart = today.checkInDateTime ?? today.firstInDateTime;
         if (activeStart != null && now.isAfter(activeStart)) {
           int activeGross = now.difference(activeStart).inSeconds;
           int activeBreakDeduction = 0;
@@ -186,27 +193,48 @@ class DashboardController extends GetxController {
         }
       }
 
-      // Ensure timer never drops below the server's official validated baseline
-      return math.max(totalNetWorkSeconds, today.workedMinutes * 60);
+      // When live total is calculated:
+      // If server baseline workedMinutes is significantly higher (e.g. earlier unlisted historical sessions),
+      // we maintain the baseline while ensuring the live seconds tick seamlessly!
+      if (totalNetWorkSeconds > 0) {
+        if (today.workedMinutes * 60 > totalNetWorkSeconds + 120) {
+          return (today.workedMinutes * 60) + (totalNetWorkSeconds % 60);
+        }
+        return totalNetWorkSeconds;
+      }
     }
 
-    // 2. Fallback Strategy: If server response did not provide segments array
+    // 2. Direct Strategy: If server response did not provide segments array or segments calculation yielded 0
     final int baseSeconds = today.workedMinutes * 60;
-    final int breakSec = today.breakMinutes * 60;
+    final int breakSec = _calculateShiftBreakSeconds(today);
 
-    if (today.isCheckedIn && !today.isOnBreak) {
+    if (today.isCheckedIn) {
+      if (today.isOnBreak) {
+        // Paused at worked time before break
+        final start = today.firstInDateTime ?? today.checkInDateTime;
+        final bStart = today.breakStartDateTime ?? (today.breakSince != null ? _parseTimeToday(today.breakSince!) : null);
+        if (start != null && bStart != null && bStart.isAfter(start)) {
+          final gross = bStart.difference(start).inSeconds;
+          return math.max(baseSeconds, gross - (today.breakMinutes * 60));
+        }
+        return baseSeconds;
+      }
+
       final start = today.firstInDateTime ?? today.checkInDateTime;
-      if (start != null) {
+      if (start != null && now.isAfter(start)) {
         final grossDiff = now.difference(start).inSeconds;
         final netDiff = math.max(0, grossDiff - breakSec);
         if (netDiff > 0) {
-          return math.max(baseSeconds, netDiff);
+          if (baseSeconds > netDiff + 120) {
+            return baseSeconds + (netDiff % 60);
+          }
+          return netDiff;
         }
       }
       return baseSeconds;
     }
 
-    // On break or checked out
+    // Checked out
     return baseSeconds;
   }
 
@@ -220,14 +248,18 @@ class DashboardController extends GetxController {
     // 1. Calculate from individual attendance timeline segments (Precision standard)
     if (today.segments.isNotEmpty) {
       int totalBreakSeconds = 0;
+      bool hasActiveBreakSegment = false;
 
       for (final segment in today.segments) {
         final isBreak = segment.kind.toLowerCase() == 'break';
         if (!isBreak) continue;
 
-        if (segment.startsAt != null) {
-          final start = segment.startsAt!;
-          final end = segment.endsAt ?? (today.isOnBreak ? now : start);
+        final start = segment.startsAt ?? _parseTimeToday(segment.starts ?? '');
+        if (start != null) {
+          if (segment.endsAt == null && (segment.ends == null || segment.ends == '--:--')) {
+            hasActiveBreakSegment = true;
+          }
+          final end = segment.endsAt ?? _parseTimeToday(segment.ends ?? '') ?? (today.isOnBreak ? now : start);
           final diff = end.difference(start).inSeconds;
           if (diff > 0) {
             totalBreakSeconds += diff;
@@ -235,18 +267,38 @@ class DashboardController extends GetxController {
         }
       }
 
-      return math.max(totalBreakSeconds, today.breakMinutes * 60);
-    }
-
-    // 2. Fallback Strategy: If segments array is not provided
-    final int baseBreakSeconds = today.breakMinutes * 60;
-    if (today.isOnBreak && today.checkInDateTime != null) {
-      final diff = now.difference(today.checkInDateTime!).inSeconds;
-      if (diff > 0) {
-        return baseBreakSeconds + diff;
+      if (totalBreakSeconds > 0) {
+        if (!hasActiveBreakSegment && today.isOnBreak) {
+          final breakStart = today.breakStartDateTime ??
+              (today.breakSince != null ? _parseTimeToday(today.breakSince!) : null);
+          if (breakStart != null && now.isAfter(breakStart)) {
+            totalBreakSeconds += now.difference(breakStart).inSeconds;
+          }
+        }
+        if (today.breakMinutes * 60 > totalBreakSeconds + 120) {
+          return (today.breakMinutes * 60) + (totalBreakSeconds % 60);
+        }
+        return totalBreakSeconds;
       }
     }
+
+    // 2. Direct Fallback Strategy: If segments array is not provided
+    final int baseBreakSeconds = today.breakMinutes * 60;
+    if (today.isOnBreak) {
+      final breakStart = today.breakStartDateTime ??
+          (today.breakSince != null ? _parseTimeToday(today.breakSince!) : null) ??
+          today.checkInDateTime;
+      if (breakStart != null && now.isAfter(breakStart)) {
+        final diff = now.difference(breakStart).inSeconds;
+        return baseBreakSeconds + diff;
+      }
+      return baseBreakSeconds;
+    }
     return baseBreakSeconds;
+  }
+
+  DateTime? _parseTimeToday(String timeStr) {
+    return parseFlexibleDateTime(timeStr);
   }
 
   /// Calculates and updates active shift elapsed time if checked in

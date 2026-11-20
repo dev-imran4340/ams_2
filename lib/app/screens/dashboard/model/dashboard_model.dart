@@ -1,6 +1,44 @@
 // Models for the AMS 2 Attendance Engine (/me/attendance/today & /me/attendance/summary)
 // Strictly adhering to Phase 9 & 10 live API responses with ZERO dummy fallback data.
 
+/// Bulletproof helper to parse any date-time format from the backend:
+/// 1. ISO-8601 (e.g. "2026-11-20T09:30:00.000000Z")
+/// 2. SQL datetime (e.g. "2026-11-20 09:30:00")
+/// 3. Time-only format (e.g. "09:30:00", "09:30", "9:30 AM") converted to today's DateTime
+DateTime? parseFlexibleDateTime(dynamic value) {
+  if (value == null) return null;
+  final str = value.toString().trim();
+  if (str.isEmpty || str == '--:--') return null;
+
+  // 1. Standard ISO-8601 or SQL Datetime
+  final parsed = DateTime.tryParse(str);
+  if (parsed != null) {
+    return parsed.toLocal();
+  }
+
+  // 2. Time-only format (e.g. "09:30:00", "09:30", "9:30 AM")
+  try {
+    String clean = str.toUpperCase().replaceAll('AM', '').replaceAll('PM', '').trim();
+    final bool isPm = str.toUpperCase().contains('PM');
+    final bool isAm = str.toUpperCase().contains('AM');
+
+    final parts = clean.split(':');
+    if (parts.length >= 2) {
+      int h = int.parse(parts[0].trim());
+      final int m = int.parse(parts[1].trim());
+      final int s = parts.length > 2 ? int.tryParse(parts[2].trim()) ?? 0 : 0;
+
+      if (isPm && h < 12) h += 12;
+      if (isAm && h == 12) h = 0;
+
+      final now = DateTime.now();
+      return DateTime(now.year, now.month, now.day, h, m, s);
+    }
+  } catch (_) {}
+
+  return null;
+}
+
 class AttendanceRefusalModel {
   final String code;
   final String message;
@@ -158,16 +196,17 @@ class AttendanceSegmentModel {
   });
 
   factory AttendanceSegmentModel.fromJson(Map<String, dynamic> json) {
+    final String? startsStr = json['starts']?.toString();
+    final String? endsStr = json['ends']?.toString();
+    final startsDt = parseFlexibleDateTime(json['starts_at']) ?? parseFlexibleDateTime(startsStr);
+    final endsDt = parseFlexibleDateTime(json['ends_at']) ?? parseFlexibleDateTime(endsStr);
+
     return AttendanceSegmentModel(
       kind: json['kind']?.toString() ?? 'work',
-      starts: json['starts']?.toString(),
-      ends: json['ends']?.toString(),
-      startsAt: json['starts_at'] != null
-          ? DateTime.tryParse(json['starts_at'].toString())?.toLocal()
-          : null,
-      endsAt: json['ends_at'] != null
-          ? DateTime.tryParse(json['ends_at'].toString())?.toLocal()
-          : null,
+      starts: startsStr,
+      ends: endsStr,
+      startsAt: startsDt,
+      endsAt: endsDt,
       paid: json['paid'] as bool? ?? false,
     );
   }
@@ -197,6 +236,7 @@ class TodayAttendanceModel {
   final String shiftName;
   final DateTime? checkInDateTime;
   final DateTime? firstInDateTime;
+  final DateTime? breakStartDateTime;
   final List<String> allowed;
   final Map<String, AttendanceRefusalModel> refusals;
   final AttendanceRequiresModel? requires;
@@ -238,6 +278,7 @@ class TodayAttendanceModel {
     required this.shiftName,
     this.checkInDateTime,
     this.firstInDateTime,
+    this.breakStartDateTime,
     this.allowed = const [],
     this.refusals = const {},
     this.requires,
@@ -346,6 +387,7 @@ class TodayAttendanceModel {
     String? shiftName,
     DateTime? checkInDateTime,
     DateTime? firstInDateTime,
+    DateTime? breakStartDateTime,
     List<String>? allowed,
     Map<String, AttendanceRefusalModel>? refusals,
     AttendanceRequiresModel? requires,
@@ -382,6 +424,7 @@ class TodayAttendanceModel {
       shiftName: shiftName ?? this.shiftName,
       checkInDateTime: checkInDateTime ?? this.checkInDateTime,
       firstInDateTime: firstInDateTime ?? this.firstInDateTime,
+      breakStartDateTime: breakStartDateTime ?? this.breakStartDateTime,
       allowed: allowed ?? this.allowed,
       refusals: refusals ?? this.refusals,
       requires: requires ?? this.requires,
@@ -481,26 +524,45 @@ class TodayAttendanceModel {
 
     final bool isCheckedIn = rawStateCheckedIn || isSessionActive;
 
+    final DateTime? sinceDt = parseFlexibleDateTime(state['since_at']) ?? parseFlexibleDateTime(since);
+    final DateTime? firstInDt = parseFlexibleDateTime(day?['first_in_at']) ?? parseFlexibleDateTime(firstIn);
+    final DateTime? punchDt = parseFlexibleDateTime(punchMap?['at']) ?? parseFlexibleDateTime(punchMap?['time']);
+
     DateTime? checkInDt;
-    DateTime? firstInDt;
-    if (day?['first_in_at'] != null) {
-      firstInDt = DateTime.tryParse(day!['first_in_at'].toString())?.toLocal();
-    }
-    if (state['since_at'] != null) {
-      checkInDt = DateTime.tryParse(state['since_at'].toString())?.toLocal();
-    } else if (punchMap?['at'] != null && punchRole == 'check_in') {
-      checkInDt = DateTime.tryParse(punchMap!['at'].toString())?.toLocal();
-    } else if (day?['segments'] is List) {
-      for (final s in (day!['segments'] as List).reversed) {
-        if (s is Map &&
-            s['kind']?.toString().toLowerCase() == 'work' &&
-            s['starts_at'] != null) {
-          checkInDt = DateTime.tryParse(s['starts_at'].toString())?.toLocal();
-          break;
+    DateTime? breakStartDt;
+
+    if (isOnBreak) {
+      breakStartDt = sinceDt ??
+          (punchRole == 'break_start' ? punchDt : null) ??
+          parseFlexibleDateTime(effectiveBreakSince);
+
+      if (breakStartDt == null && day?['segments'] is List) {
+        for (final s in (day!['segments'] as List).reversed) {
+          if (s is Map && s['kind']?.toString().toLowerCase() == 'break') {
+            breakStartDt = parseFlexibleDateTime(s['starts_at']) ?? parseFlexibleDateTime(s['starts']);
+            if (breakStartDt != null) break;
+          }
         }
       }
-    } else if (day?['first_in_at'] != null) {
-      checkInDt = DateTime.tryParse(day!['first_in_at'].toString())?.toLocal();
+    } else {
+      if (rawStateCheckedIn || isSessionActive) {
+        checkInDt = sinceDt;
+      }
+    }
+
+    if (checkInDt == null) {
+      if (punchRole == 'check_in') {
+        checkInDt = punchDt;
+      } else if (firstInDt != null) {
+        checkInDt = firstInDt;
+      } else if (day?['segments'] is List) {
+        for (final s in (day!['segments'] as List).reversed) {
+          if (s is Map && s['kind']?.toString().toLowerCase() == 'work') {
+            checkInDt = parseFlexibleDateTime(s['starts_at']) ?? parseFlexibleDateTime(s['starts']);
+            if (checkInDt != null) break;
+          }
+        }
+      }
     }
 
     final effectiveCheckIn = (firstIn != null && firstIn.isNotEmpty)
@@ -602,6 +664,7 @@ class TodayAttendanceModel {
       shiftName: shiftObj?.name ?? 'General Shift',
       checkInDateTime: checkInDt,
       firstInDateTime: firstInDt,
+      breakStartDateTime: breakStartDt,
       allowed: allowedList,
       refusals: refusalsMap,
       requires: requiresMap != null
@@ -644,6 +707,7 @@ class TodayAttendanceModel {
       'shift_timing': shiftTiming,
       'shift_name': shiftName,
       'check_in_timestamp': checkInDateTime?.toIso8601String(),
+      'break_start_timestamp': breakStartDateTime?.toIso8601String(),
       'allowed': allowed,
       'refusals': refusals.map((k, v) => MapEntry(k, v.toJson())),
       'requires': requires?.toJson(),

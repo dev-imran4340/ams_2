@@ -8,6 +8,7 @@ import '../../../../core/utils/app_spaces.dart';
 import '../../../../core/utils/app_text_styles.dart';
 import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/widgets/custom_card.dart';
+import '../../../../core/widgets/custom_text_field.dart';
 import '../../controller/correction_controller.dart';
 
 /// Modern, to-the-point Attendance Correction Form
@@ -486,55 +487,18 @@ class MissedPunchFormCard extends GetView<CorrectionController> {
 
   /// Clean, focused multi-line text input
   Widget _buildReasonInput() {
-    return TextFormField(
+    return CustomTextField(
       controller: controller.remarksController,
       focusNode: controller.remarksFocusNode,
       maxLines: 3,
       maxLength: 500,
-      buildCounter: (_, {required currentLength, required isFocused, maxLength}) =>
-          const SizedBox.shrink(),
-      style: AppTextStyles.text12.copyWith(
-        color: AppColors.textColor,
-      ),
-      decoration: InputDecoration(
-        hintText: 'Briefly explain why this punch was missed or adjusted...',
-        hintStyle: AppTextStyles.text10.copyWith(
-          color: AppColors.subTextColor,
-        ),
-        filled: true,
-        fillColor: AppColors.inputFill,
-        contentPadding: EdgeInsets.symmetric(
-          horizontal: 12.w,
-          vertical: 10.h,
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10.r),
-          borderSide: BorderSide(
-            color: AppColors.borderColor,
-            width: 1.w,
-          ),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10.r),
-          borderSide: BorderSide(
-            color: AppColors.borderColor,
-            width: 1.w,
-          ),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10.r),
-          borderSide: BorderSide(
-            color: AppColors.primary,
-            width: 1.2.w,
-          ),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10.r),
-          borderSide: BorderSide(
-            color: AppColors.error,
-            width: 1.w,
-          ),
-        ),
+      hintText: 'Briefly explain why this punch was missed or adjusted...',
+      fillColor: AppColors.inputFill,
+      borderColor: AppColors.borderColor,
+      borderRadius: 10.r,
+      contentPadding: EdgeInsets.symmetric(
+        horizontal: 12.w,
+        vertical: 10.h,
       ),
       validator: (value) {
         if (value == null || value.trim().isEmpty) {

@@ -9,6 +9,8 @@ import '../../../../core/widgets/network_boundary_wrapper.dart';
 import '../controller/employee_terminal_controller.dart';
 import 'components/attendance_success_overlay.dart';
 import 'components/biometric_kiosk_viewfinder.dart';
+import 'components/kiosk_pin_clock_in_sheet.dart';
+import 'components/provision_kiosk_sheet.dart';
 import 'components/recent_punch_activity_list.dart';
 import 'components/terminal_card_qr_viewfinder.dart';
 import 'components/terminal_live_stats_strip.dart';
@@ -195,42 +197,82 @@ class EmployeeTerminalView extends GetView<EmployeeTerminalController> {
                         ),
                       ),
 
-                      // Station Badge
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 8.w,
-                          vertical: 4.h,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.white.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(8.r),
-                          border: Border.all(
-                            color: AppColors.white.withValues(alpha: 0.2),
-                            width: 1.w,
+                      // Kiosk Station Badges & Action Controls
+                      Row(
+                        children: [
+                          // 1. PIN Clock-In Fallback Button (POST /kiosk/identify via PIN)
+                          IconButton(
+                            icon: Icon(
+                              Icons.pin_rounded,
+                              color: AppColors.white,
+                              size: 19.sp,
+                            ),
+                            tooltip: 'PIN Clock-In Fallback',
+                            onPressed: () => KioskPinClockInSheet.show(
+                              context,
+                              controller: controller,
+                            ),
                           ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              width: 6.r,
-                              height: 6.r,
-                              decoration: const BoxDecoration(
-                                color: AppColors.successMint,
-                                shape: BoxShape.circle,
+
+                          // 2. Kiosk Setup / Provisioning Button (POST /kiosks)
+                          IconButton(
+                            icon: Icon(
+                              Icons.settings_suggest_rounded,
+                              color: AppColors.white,
+                              size: 19.sp,
+                            ),
+                            tooltip: 'Provision Kiosk Terminal',
+                            onPressed: () => ProvisionKioskSheet.show(
+                              context,
+                              controller: controller,
+                            ),
+                          ),
+
+                          AppSpaces.hSpace4,
+
+                          // 3. Station Badge
+                          Obx(
+                            () => Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 8.w,
+                                vertical: 4.h,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.white.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(8.r),
+                                border: Border.all(
+                                  color: AppColors.white.withValues(alpha: 0.2),
+                                  width: 1.w,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 6.r,
+                                    height: 6.r,
+                                    decoration: BoxDecoration(
+                                      color: controller.isKioskConfigured.value
+                                          ? AppColors.successMint
+                                          : AppColors.warning,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  AppSpaces.hSpace4,
+                                  Text(
+                                    controller.kioskConfig.value?.name.toUpperCase() ??
+                                        'KIOSK GATEWAY',
+                                    style: AppTextStyles.text8.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.white,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                            AppSpaces.hSpace4,
-                            Text(
-                              'GATE GATEWAY 01',
-                              style: AppTextStyles.text8.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.white,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ],
                   ),

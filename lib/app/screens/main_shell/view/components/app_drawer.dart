@@ -132,10 +132,11 @@ class AppDrawer extends StatelessWidget {
                       sessionController.hasMenuItem('support') ||
                       sessionController.hasPermission('support.view');
 
-                  final bool hasHelpdesk =
-                      sessionController.hasMenuItem('helpdesk') ||
-                      sessionController.hasModule('onboarding');
-                  final int helpdeskBadges = sessionController.getBadge('helpdesk');
+                  // HR Helpdesk module is temporarily hidden as per user request (kept intact, dormant)
+                  // final bool hasHelpdesk =
+                  //     sessionController.hasMenuItem('helpdesk') ||
+                  //     sessionController.hasModule('onboarding');
+                  // final int helpdeskBadges = sessionController.getBadge('helpdesk');
 
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -294,6 +295,15 @@ class AppDrawer extends StatelessWidget {
                           onTap: () => _navigateToRoute(Routes.CHECKLISTS),
                         ),
 
+                      // Card 8e: Job Description (Phase 18)
+                      DrawerModuleCard(
+                        title: 'Job Description',
+                        subtitle: 'Role overview, duties & scope',
+                        icon: Icons.assignment_outlined,
+                        accentTint: AppColors.secondary,
+                        onTap: () => _navigateToRoute(Routes.JOB_DESCRIPTION),
+                      ),
+
                       // Card 9: Staff Onboarding (Manager/HR with department/company scope)
                       if (hasOnboarding)
                         DrawerModuleCard(
@@ -304,7 +314,26 @@ class AppDrawer extends StatelessWidget {
                           onTap: () => _navigateToRoute(Routes.ADD_EMPLOYEE),
                         ),
 
-                      // Card 10a: HR Helpdesk (Corporate Service Desk & Inquiries)
+                      // Card 9b: Enterprise Kiosk Terminal Station (Phase 10)
+                      DrawerModuleCard(
+                        title: 'Kiosk Terminal Station',
+                        subtitle: 'Dual AI facial recognition & QR card gate terminal',
+                        icon: Icons.tablet_mac_rounded,
+                        accentTint: AppColors.secondary,
+                        onTap: () => _navigateToRoute(Routes.EMPLOYEE_TERMINAL),
+                      ),
+
+                      // Card 9c: Organization Mode Portal
+                      DrawerModuleCard(
+                        title: 'Organization Portal',
+                        subtitle: 'Company dashboard, visitors & operations',
+                        icon: Icons.domain_rounded,
+                        accentTint: AppColors.primary,
+                        onTap: () => _navigateToRoute(Routes.ORG_MODE_SELECTION),
+                      ),
+
+                      // Card 10a: HR Helpdesk (Temporarily hidden as per user request — kept intact, easily re-enabled)
+                      /*
                       if (hasHelpdesk)
                         DrawerModuleCard(
                           title: 'HR Helpdesk',
@@ -314,6 +343,7 @@ class AppDrawer extends StatelessWidget {
                           badgeCount: helpdeskBadges,
                           onTap: () => _navigateToRoute(Routes.HELPDESK),
                         ),
+                      */
 
                       // Card 10b: App Support & Guides (App Technical Issues & Videos)
                       if (hasSupport)

@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -232,10 +233,10 @@ class LiveShiftClockCard extends GetView<DashboardController> {
                         isOnBreak
                             ? '${controller.elapsedBreakHoursMinutes.value} Active'
                             : (today != null && today.breakMinutes > 0
-                                ? '${today.breakMinutes}m Logged'
-                                : (today?.usesBreaks == true
-                                    ? 'Allowed'
-                                    : 'Disabled')),
+                                  ? '${today.breakMinutes}m Logged'
+                                  : (today?.usesBreaks == true
+                                        ? 'Allowed'
+                                        : 'Disabled')),
                         style: AppTextStyles.text12.copyWith(
                           fontWeight: FontWeight.bold,
                           color: isOnBreak
@@ -354,8 +355,11 @@ class LiveShiftClockCard extends GetView<DashboardController> {
     } else if (isCheckedIn) {
       activeTimerColor = AppColors.onTimeColor;
       final latestIn = today?.latestCheckInTime;
-      if (latestIn != null && latestIn != today?.checkInTime && today?.checkInTime != '--:--') {
-        statusSubtitle = 'Active since $latestIn • First in: ${today?.checkInTime}';
+      if (latestIn != null &&
+          latestIn != today?.checkInTime &&
+          today?.checkInTime != '--:--') {
+        statusSubtitle =
+            'Active since $latestIn • First in: ${today?.checkInTime}';
       } else {
         statusSubtitle = 'Started at ${today?.checkInTime}';
       }
@@ -461,63 +465,90 @@ class LiveShiftClockCard extends GetView<DashboardController> {
             );
           }),
 
-          // Foreground: Perfectly Centered Timer Display (Hours : Minutes)
+          // Foreground: Perfectly Centered Timer Display (Hours : Minutes : Seconds)
           Positioned(
-            top: 95.h,
-            left: 35.w,
-
+            top: 86.h,
+            left: 14.w,
+            right: (today != null && today.usesBreaks ? 98.w : 14.w),
             child: Center(
-              child: Column(
-                children: [
-                  // Micro Live Real-Time Wall Clock & Date header
+              child: Obx(() {
+                final hm = controller.elapsedHoursMinutes.value;
+                final s = controller.elapsedSeconds.value;
 
-                  // Prominent Centered Hours & Minutes Timer Display
-                  Text(
-                    controller.elapsedHoursMinutes.value,
-
-                    style: AppTextStyles.text28.copyWith(
-                      fontSize: 60.sp,
-                      fontWeight: FontWeight.w800,
-                      height: 0.8,
-                      color: isCheckedIn || isOnBreak
-                          ? (isOnBreak
-                                ? AppColors.warning
-                                : AppColors.secondary)
-                          : AppColors.secondary,
-                      letterSpacing: 1.5,
-                      fontFeatures: const [FontFeature.tabularFigures()],
-                    ),
-                  ),
-
-                  // Shift Status Subtitle
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 5.r,
-                        height: 5.r,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: activeTimerColor,
-                        ),
-                      ),
-                      AppSpaces.hSpace6,
-                      Flexible(
-                        child: Text(
-                          statusSubtitle,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppTextStyles.text10.copyWith(
-                            color: activeTimerColor,
-                            fontWeight: FontWeight.w600,
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Prominent Centered Timer with Live Seconds
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                      textBaseline: TextBaseline.alphabetic,
+                      children: [
+                        Text(
+                          hm,
+                          style: AppTextStyles.text28.copyWith(
+                            fontSize: 54.sp,
+                            fontWeight: FontWeight.w800,
+                            height: 0.9,
+                            color: isCheckedIn || isOnBreak
+                                ? (isOnBreak
+                                      ? AppColors.warning
+                                      : AppColors.secondary)
+                                : AppColors.subTextColor,
+                            letterSpacing: 1.2,
+                            fontFeatures: const [FontFeature.tabularFigures()],
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                        // Text(
+                        //   ':$s',
+                        //   style: AppTextStyles.text20.copyWith(
+                        //     fontSize: 32.sp,
+                        //     fontWeight: FontWeight.w700,
+                        //     height: 0.9,
+                        //     color: (isCheckedIn || isOnBreak
+                        //             ? (isOnBreak
+                        //                 ? AppColors.warning
+                        //                 : AppColors.secondary)
+                        //             : AppColors.subTextColor)
+                        //         .withValues(alpha: (isCheckedIn || isOnBreak) ? 0.9 : 0.4),
+                        //     fontFeatures: const [FontFeature.tabularFigures()],
+                        //   ),
+                        // ),
+                      ],
+                    ),
+
+                    AppSpaces.vSpace6,
+
+                    // Shift Status Subtitle
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 5.r,
+                          height: 5.r,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: activeTimerColor,
+                          ),
+                        ),
+                        AppSpaces.hSpace6,
+                        Flexible(
+                          child: Text(
+                            statusSubtitle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTextStyles.text10.copyWith(
+                              color: activeTimerColor,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                );
+              }),
             ),
           ),
 
@@ -547,13 +578,18 @@ class LiveShiftClockCard extends GetView<DashboardController> {
     required bool isOnBreak,
   }) {
     // Check if server specifically allows starting or ending break
-    final bool isPermittedByServer =
-        isOnBreak ? (today?.canEndBreak ?? false) : (today?.canStartBreak ?? false);
+    final bool isPermittedByServer = isOnBreak
+        ? (today?.canEndBreak ?? false)
+        : (today?.canStartBreak ?? false);
     final bool canInteract = (isCheckedIn || isOnBreak) && isPermittedByServer;
 
     final Color ringColor = isOnBreak
-        ? (canInteract ? AppColors.warning : AppColors.warning.withValues(alpha: 0.4))
-        : (canInteract ? AppColors.secondary : AppColors.subTextColor.withValues(alpha: 0.4));
+        ? (canInteract
+              ? AppColors.warning
+              : AppColors.warning.withValues(alpha: 0.4))
+        : (canInteract
+              ? AppColors.secondary
+              : AppColors.subTextColor.withValues(alpha: 0.4));
     final String label = isOnBreak ? 'STOP' : 'BREAK';
     final IconData icon = isOnBreak ? Icons.stop_rounded : Icons.coffee_rounded;
 
@@ -573,9 +609,9 @@ class LiveShiftClockCard extends GetView<DashboardController> {
               } else {
                 final refusalMsg = isOnBreak
                     ? (today?.refusals['break_end']?.message ??
-                        'Ending break is not allowed right now.')
+                          'Ending break is not allowed right now.')
                     : (today?.refusals['break_start']?.message ??
-                        'Taking a break is not allowed right now.');
+                          'Taking a break is not allowed right now.');
                 CustomSnackbar.showInfo(message: refusalMsg);
               }
               return;
@@ -608,114 +644,117 @@ class LiveShiftClockCard extends GetView<DashboardController> {
                     ),
                   ),
 
-                // 2. Intermediate Translucent Disc
-                Container(
-                  width: 62.r,
-                  height: 62.r,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: !canInteract
-                        ? AppColors.cardBackground.withValues(alpha: 0.3)
-                        : ringColor.withValues(alpha: 0.10),
-                    border: Border.all(
+                  // 2. Intermediate Translucent Disc
+                  Container(
+                    width: 62.r,
+                    height: 62.r,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
                       color: !canInteract
-                          ? AppColors.borderColor.withValues(alpha: 0.25)
-                          : ringColor.withValues(alpha: 0.25),
-                      width: 1.w,
+                          ? AppColors.cardBackground.withValues(alpha: 0.3)
+                          : ringColor.withValues(alpha: 0.10),
+                      border: Border.all(
+                        color: !canInteract
+                            ? AppColors.borderColor.withValues(alpha: 0.25)
+                            : ringColor.withValues(alpha: 0.25),
+                        width: 1.w,
+                      ),
                     ),
                   ),
-                ),
 
-                // 3. Inner Solid Core Action Disc (with high-tech gradient & depth)
-                Container(
-                  width: 50.r,
-                  height: 50.r,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: canInteract
-                        ? (isOnBreak
-                            ? const LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  Color(0xFFFF9100),
-                                  Color(0xFFE65100),
-                                ],
-                              )
-                            : LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  AppColors.secondary,
-                                  AppColors.accentNavy,
-                                ],
-                              ))
-                        : null,
-                    color: !canInteract
-                        ? AppColors.subTextColor.withValues(alpha: 0.15)
-                        : null,
-                    boxShadow: canInteract
-                        ? [
-                            BoxShadow(
-                              color: ringColor.withValues(
-                                  alpha: isOnBreak ? 0.4 : 0.25),
-                              blurRadius: 10.r,
-                              spreadRadius: 1.r,
-                            ),
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.25),
-                              blurRadius: 6.r,
-                              offset: Offset(0, 2.h),
-                            ),
-                          ]
-                        : null,
-                  ),
-                  child: isLoading
-                      ? Center(
-                          child: SizedBox(
-                            width: 16.r,
-                            height: 16.r,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2.2.w,
-                              color: Colors.white,
-                            ),
-                          ),
-                        )
-                      : Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              icon,
-                              size: 15.sp,
-                              color: canInteract
-                                  ? Colors.white
-                                  : AppColors.subTextColor
-                                      .withValues(alpha: 0.45),
-                            ),
-                            AppSpaces.vSpace2,
-                            Text(
-                              label,
-                              style: TextStyle(
-                                fontFamily: AppTextStyles.fontFamily,
-                                fontSize: 8.5.sp,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 1.1,
-                                color: canInteract
-                                    ? Colors.white
-                                    : AppColors.subTextColor
-                                        .withValues(alpha: 0.45),
+                  // 3. Inner Solid Core Action Disc (with high-tech gradient & depth)
+                  Container(
+                    width: 50.r,
+                    height: 50.r,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: canInteract
+                          ? (isOnBreak
+                                ? const LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [
+                                      Color(0xFFFF9100),
+                                      Color(0xFFE65100),
+                                    ],
+                                  )
+                                : LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [
+                                      AppColors.secondary,
+                                      AppColors.accentNavy,
+                                    ],
+                                  ))
+                          : null,
+                      color: !canInteract
+                          ? AppColors.subTextColor.withValues(alpha: 0.15)
+                          : null,
+                      boxShadow: canInteract
+                          ? [
+                              BoxShadow(
+                                color: ringColor.withValues(
+                                  alpha: isOnBreak ? 0.4 : 0.25,
+                                ),
+                                blurRadius: 10.r,
+                                spreadRadius: 1.r,
+                              ),
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.25),
+                                blurRadius: 6.r,
+                                offset: Offset(0, 2.h),
+                              ),
+                            ]
+                          : null,
+                    ),
+                    child: isLoading
+                        ? Center(
+                            child: SizedBox(
+                              width: 16.r,
+                              height: 16.r,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.2.w,
+                                color: Colors.white,
                               ),
                             ),
-                          ],
-                        ),
-                ),
-              ],
+                          )
+                        : Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                icon,
+                                size: 15.sp,
+                                color: canInteract
+                                    ? Colors.white
+                                    : AppColors.subTextColor.withValues(
+                                        alpha: 0.45,
+                                      ),
+                              ),
+                              AppSpaces.vSpace2,
+                              Text(
+                                label,
+                                style: TextStyle(
+                                  fontFamily: AppTextStyles.fontFamily,
+                                  fontSize: 8.5.sp,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 1.1,
+                                  color: canInteract
+                                      ? Colors.white
+                                      : AppColors.subTextColor.withValues(
+                                          alpha: 0.45,
+                                        ),
+                                ),
+                              ),
+                            ],
+                          ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
-      ),
-    );
-  });
+      );
+    });
   }
 }
 
@@ -726,10 +765,7 @@ class _CyberRadarArcPainter extends CustomPainter {
   final Color color;
   final bool isActive;
 
-  const _CyberRadarArcPainter({
-    required this.color,
-    required this.isActive,
-  });
+  const _CyberRadarArcPainter({required this.color, required this.isActive});
 
   @override
   void paint(Canvas canvas, Size size) {
