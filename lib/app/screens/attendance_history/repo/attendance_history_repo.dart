@@ -1,5 +1,6 @@
 import '../../../api/api_client.dart';
 import '../../../api/api_endpoints.dart';
+import '../../../api/app_preferences.dart';
 import '../../../api/exception_handler.dart';
 import '../model/attendance_history_model.dart';
 
@@ -13,6 +14,7 @@ class AttendanceHistoryRepo {
     String? from,
     String? to,
   }) async {
+    if (AppPreferences.isCompanyMode) return null;
     try {
       final queryParams = <String, dynamic>{};
       if (from != null && from.isNotEmpty) queryParams['from'] = from;

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
+import 'package:ams_2/app/api/app_preferences.dart';
 import 'package:ams_2/app/core/utils/app_colors.dart';
 import 'package:ams_2/app/core/utils/app_spaces.dart';
 import 'package:ams_2/app/core/utils/app_text_styles.dart';
@@ -40,7 +41,9 @@ class DepartmentEmployeesView extends GetView<DepartmentEmployeesController> {
                     padding: AppSpaces.horizontalPadding,
                     child: CustomScreenHeader(
                       title: 'Department Directory',
-                      subtitle: 'SCOPE: DEPARTMENT',
+                      subtitle: AppPreferences.hasPermission('employees.view', 'company')
+                          ? 'SCOPE: COMPANY'
+                          : 'SCOPE: DEPARTMENT',
                       actions: [
                         if (controller.canExport)
                           CustomScreenHeader.actionButton(

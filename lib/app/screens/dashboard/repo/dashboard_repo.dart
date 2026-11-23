@@ -16,6 +16,9 @@ class DashboardRepo {
   /// Fetches live today attendance state and monthly summary in parallel.
   /// Strict Invariant: Returns null on complete failure. ZERO fallback or dummy data injection.
   Future<DashboardDataModel?> fetchDashboardData() async {
+    // Company users do not have individual attendance records
+    if (AppPreferences.isCompanyMode) return null;
+
     try {
       final results = await Future.wait([
         fetchTodayAttendance(),
@@ -65,6 +68,7 @@ class DashboardRepo {
 
   /// Fetches live punch state, allowed buttons, requirements, and day stats from GET /me/attendance/today
   Future<TodayAttendanceModel?> fetchTodayAttendance() async {
+    if (AppPreferences.isCompanyMode) return null;
     try {
       dynamic response = await ApiClient.request(
         endpoint: ApiEndpoints.attendanceToday,
@@ -101,6 +105,7 @@ class DashboardRepo {
 
   /// Fetches monthly attendance analytics breakdown from GET /me/attendance/summary
   Future<MonthlySummaryModel?> fetchMonthlySummary() async {
+    if (AppPreferences.isCompanyMode) return null;
     try {
       final response = await ApiClient.request(
         endpoint: ApiEndpoints.attendanceSummary,

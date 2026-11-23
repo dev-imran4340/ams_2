@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/utils/app_colors.dart';
 import '../../../../core/utils/app_spaces.dart';
 import '../../../../core/utils/app_text_styles.dart';
+import '../../../../core/widgets/custom_card.dart';
 import '../../model/approval_model.dart';
 
 class ApprovalRequestTile extends StatelessWidget {
@@ -40,29 +41,16 @@ class ApprovalRequestTile extends StatelessWidget {
         item.decidedAt != null && item.decidedAt!.trim().isNotEmpty;
     final hasBottomRow = hasWaitingOn || hasSubmittedAgo || hasDecidedAt;
 
-    return Container(
+    return CustomCard(
+      onTap: onTap,
       margin: EdgeInsets.only(bottom: 12.h),
-      decoration: BoxDecoration(
-        color: AppColors.cardBackground,
-        borderRadius: BorderRadius.circular(15.r),
-        border: Border.all(color: AppColors.borderColor, width: 0.8.w),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.1),
-            blurRadius: 10.r,
-            offset: Offset(0, 3.h),
-          ),
-        ],
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(15.r),
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Top Row: Type Tag & ULID vs Server Status Pill
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 14.h),
+      accentColor: AppColors.secondary,
+      accentWidth: 3.w,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Top Row: Type Tag & ULID vs Server Status Pill
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -297,8 +285,6 @@ class ApprovalRequestTile extends StatelessWidget {
               ],
             ],
           ),
-        ),
-      ),
-    );
+        );
   }
 }

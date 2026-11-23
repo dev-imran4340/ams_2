@@ -66,6 +66,7 @@ class AppPreferences {
     String? refreshToken,
     UserModel? user,
     Map<String, dynamic>? userData,
+    bool? isCompany,
   }) async {
     await setToken(token);
     if (refreshToken != null) {
@@ -75,6 +76,9 @@ class AppPreferences {
       await _box.write(_keyUser, user.toJson());
     } else if (userData != null) {
       await setUser(userData);
+    }
+    if (isCompany != null) {
+      await setIsCompanyMode(isCompany);
     }
     await setIsLoggedIn(true);
   }
@@ -110,6 +114,7 @@ class AppPreferences {
     await _box.remove(_keyTodayAttendance);
     await clearEnrolledFace();
     await _box.write(_keyIsLoggedIn, false);
+    await _box.remove(_keyIsCompanyMode);
     await _box.erase();
     if (kDebugMode) {
       Get.log('User logged out successfully : Clean All from local');
@@ -618,6 +623,12 @@ class AppPreferences {
     } else {
       await _box.write(_keyKioskToken, token);
     }
+  }
+
+  /// Clears stored kiosk authorization token and active configuration cache
+  static Future<void> clearKioskToken() async {
+    await _box.remove(_keyKioskToken);
+    await _box.remove(_keyKioskConfig);
   }
 
   /// Checks if active device is provisioned as an enterprise kiosk terminal

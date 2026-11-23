@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../api/app_preferences.dart';
 import '../../../core/widgets/custom_snackbar.dart';
 import '../model/employee_card_model.dart';
 import '../repo/employee_card_repo.dart';
@@ -46,6 +47,7 @@ class EmployeeCardController extends GetxController
 
   /// Loads official digital ID card credentials from repository
   Future<void> loadCardData() async {
+    if (AppPreferences.isCompanyMode) return;
     try {
       isLoading.value = true;
       final result = await repo.fetchCardDetails();

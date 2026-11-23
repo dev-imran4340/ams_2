@@ -56,6 +56,7 @@ void main() {
         'data': {
           'two_factor_required': false,
           'token': '01jb2x9k4m7q8r3t5v6w8y0z1a_jwt_token',
+          'company': true,
         }
       };
 
@@ -63,6 +64,22 @@ void main() {
       expect(response.twoFactorRequired, isFalse);
       expect(response.token, '01jb2x9k4m7q8r3t5v6w8y0z1a_jwt_token');
       expect(response.challenge, isNull);
+      expect(response.isCompany, isTrue);
+    });
+
+    test('LoginResponseModel parses employee login (company: false)', () {
+      final json = {
+        'data': {
+          'two_factor_required': false,
+          'token': 'ams_emp_token_123',
+          'company': false,
+        }
+      };
+
+      final response = LoginResponseModel.fromJson(json);
+      expect(response.twoFactorRequired, isFalse);
+      expect(response.token, 'ams_emp_token_123');
+      expect(response.isCompany, isFalse);
     });
 
     test('LoginResponseModel parses 2FA Challenge requirement', () {

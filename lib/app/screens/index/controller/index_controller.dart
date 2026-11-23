@@ -168,8 +168,9 @@ class IndexController extends GetxController {
             );
           }
         } else if (item.key == 'attendance') {
-          // Strictly verify attendance module and attendance.view permission
-          if (AppPreferences.hasModule('attendance') &&
+          // Strictly verify: Hide personal attendance tab from bottom nav for company/admin mode
+          if (!AppPreferences.isCompanyMode &&
+              AppPreferences.hasModule('attendance') &&
               AppPreferences.hasPermission('attendance.view')) {
             tabs.add(
               DynamicNavTab(

@@ -18,6 +18,7 @@ class CustomCard extends StatelessWidget {
   final Color? borderColor;
   final List<BoxShadow>? boxShadow;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
 
   const CustomCard({
     super.key,
@@ -32,6 +33,7 @@ class CustomCard extends StatelessWidget {
     this.borderColor,
     this.boxShadow,
     this.onTap,
+    this.onLongPress,
   });
 
   @override
@@ -84,11 +86,12 @@ class CustomCard extends StatelessWidget {
 
     Widget result = cardBody;
 
-    if (onTap != null) {
+    if (onTap != null || onLongPress != null) {
       result = Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
+          onLongPress: onLongPress,
           borderRadius: BorderRadius.circular(radius),
           child: result,
         ),

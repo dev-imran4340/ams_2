@@ -149,6 +149,7 @@ class ProfileController extends GetxController {
 
   /// Loads authenticated employee profile via GET /me/profile
   Future<void> loadProfile() async {
+    if (AppPreferences.isCompanyMode) return;
     try {
       isLoading.value = true;
       final result = await repo.fetchProfile();

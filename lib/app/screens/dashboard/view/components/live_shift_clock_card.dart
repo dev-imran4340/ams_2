@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -473,7 +474,6 @@ class LiveShiftClockCard extends GetView<DashboardController> {
             child: Center(
               child: Obx(() {
                 final hm = controller.elapsedHoursMinutes.value;
-                final s = controller.elapsedSeconds.value;
 
                 return Column(
                   mainAxisSize: MainAxisSize.min,
@@ -600,6 +600,11 @@ class LiveShiftClockCard extends GetView<DashboardController> {
         color: Colors.transparent,
         child: InkWell(
           onTap: () {
+            if (kDebugMode) {
+              debugPrint(
+                '>>> [LiveShiftClockCard -> BreakButton] TAPPED | isPermittedByServer: $isPermittedByServer, isCheckedIn: $isCheckedIn, isOnBreak: $isOnBreak, isLoading: $isLoading',
+              );
+            }
             HapticFeedback.lightImpact();
             if (!isPermittedByServer) {
               if (isCheckedIn && !isOnBreak) {

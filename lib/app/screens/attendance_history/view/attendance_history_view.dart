@@ -64,6 +64,15 @@ class AttendanceHistoryView extends GetView<AttendanceHistoryController> {
                           title: title,
                           subtitle: subtitle,
                           actions: [
+                            if (!isAudit)
+                              CustomScreenHeader.actionButton(
+                                icon: Icons.more_time_rounded,
+                                onTap: () {
+                                  HapticFeedback.lightImpact();
+                                  Get.toNamed(Routes.CORRECTION);
+                                },
+                                tooltip: 'Request Correction',
+                              ),
                             if (AppPreferences.hasModule('attendance') &&
                                 AppPreferences.hasPermission('attendance.view'))
                               CustomScreenHeader.actionButton(
@@ -303,32 +312,36 @@ class AttendanceHistoryView extends GetView<AttendanceHistoryController> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              CustomButton(
-                text: 'Change Date Range',
-                isOutlined: true,
-                borderColor: AppColors.secondary,
-                textColor: AppColors.secondary,
-                icon: Icon(
-                  Icons.date_range_rounded,
-                  size: 14.sp,
-                  color: AppColors.secondary,
+              Expanded(
+                child: CustomButton(
+                  text: 'Change Date Range',
+                  isOutlined: true,
+                  borderColor: AppColors.secondary,
+                  textColor: AppColors.secondary,
+                  icon: Icon(
+                    Icons.date_range_rounded,
+                    size: 14.sp,
+                    color: AppColors.secondary,
+                  ),
+                  padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 9.h),
+                  borderRadius: 10.r,
+                  onPressed: () => controller.openCustomDateRangeSheet(context),
                 ),
-                padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 9.h),
-                borderRadius: 10.r,
-                onPressed: () => controller.openCustomDateRangeSheet(context),
               ),
               AppSpaces.hSpace10,
-              CustomButton(
-                text: 'Retry',
-                isGradient: true,
-                icon: Icon(
-                  Icons.refresh_rounded,
-                  size: 14.sp,
-                  color: AppColors.white,
+              Expanded(
+                child: CustomButton(
+                  text: 'Retry',
+                  isGradient: true,
+                  icon: Icon(
+                    Icons.refresh_rounded,
+                    size: 14.sp,
+                    color: AppColors.white,
+                  ),
+                  padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 9.h),
+                  borderRadius: 10.r,
+                  onPressed: controller.loadTimesheet,
                 ),
-                padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 9.h),
-                borderRadius: 10.r,
-                onPressed: controller.loadTimesheet,
               ),
             ],
           ),

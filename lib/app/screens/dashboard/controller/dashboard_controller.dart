@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -49,6 +50,10 @@ class DashboardController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    // Strict Invariant: Company/Organization users do not call individual employee attendance endpoints
+    if (AppPreferences.isCompanyMode) {
+      return;
+    }
     _startLiveClock();
     loadDashboard();
 
@@ -56,7 +61,7 @@ class DashboardController extends GetxController {
     if (Get.isRegistered<SessionMeController>()) {
       final session = Get.find<SessionMeController>();
       _permissionWorker = ever(session.permissions, (_) {
-        if (dashboardData.value == null && !isLoading.value) {
+        if (!AppPreferences.isCompanyMode && dashboardData.value == null && !isLoading.value) {
           loadDashboard();
         }
       });
@@ -386,6 +391,12 @@ class DashboardController extends GetxController {
   /// If permissions are already cached and attendance is explicitly absent, skips fetch.
   /// On initial login (before /me arrives), does NOT block; triggers server fetch immediately.
   Future<void> loadDashboard() async {
+    // If logged in as Company / Organization, do not call employee personal attendance endpoints
+    if (AppPreferences.isCompanyMode) {
+      dashboardData.value = null;
+      return;
+    }
+
     final cachedPerms = AppPreferences.permissions;
     if (cachedPerms != null && cachedPerms.isNotEmpty) {
       final bool hasAttendance = AppPreferences.hasModule('attendance') &&
@@ -583,10 +594,20 @@ class DashboardController extends GetxController {
 
   /// Action method to trigger start_break / end_break based on state.allowed and state.on_break
   Future<void> handleBreakAction() async {
+    if (kDebugMode) {
+      debugPrint(
+        '>>> [DashboardController -> handleBreakAction()] Triggered. isBreakLoading: ${isBreakLoading.value}, isPunching: ${isPunching.value}, isLoading: ${isLoading.value}',
+      );
+    }
     if (isBreakLoading.value || isPunching.value || isLoading.value) return;
 
     final currentAttendance = dashboardData.value?.todayAttendance;
     if (currentAttendance == null) {
+      if (kDebugMode) {
+        debugPrint(
+          '>>> [DashboardController -> handleBreakAction()] Aborted: todayAttendance is null',
+        );
+      }
       CustomSnackbar.showError(message: 'Attendance data is unavailable.');
       return;
     }
@@ -594,6 +615,12 @@ class DashboardController extends GetxController {
     final isOnBreak = currentAttendance.isOnBreak;
     final allowed = currentAttendance.allowed;
     final String punchKind = isOnBreak ? 'break_end' : 'break_start';
+
+    if (kDebugMode) {
+      debugPrint(
+        '>>> [DashboardController -> handleBreakAction()] State: isOnBreak=$isOnBreak, punchKind=$punchKind, allowed=$allowed, requires=${currentAttendance.requires?.position}',
+      );
+    }
 
     if (!allowed.contains(punchKind)) {
       if (currentAttendance.isCheckedIn && !isOnBreak) {
@@ -617,9 +644,24 @@ class DashboardController extends GetxController {
     if (requires?.position == true) {
       try {
         isBreakLoading.value = true;
+        if (kDebugMode) {
+          debugPrint(
+            '>>> [DashboardController -> handleBreakAction()] GPS required by server. Acquiring location...',
+          );
+        }
         locationResult = await _acquireLocationIfRequired(requires);
         if (locationResult == null) {
+          if (kDebugMode) {
+            debugPrint(
+              '>>> [DashboardController -> handleBreakAction()] GPS acquisition failed or was cancelled.',
+            );
+          }
           return;
+        }
+        if (kDebugMode) {
+          debugPrint(
+            '>>> [DashboardController -> handleBreakAction()] GPS acquired successfully: (${locationResult.latitude}, ${locationResult.longitude}), acc: ${locationResult.accuracyMeters}m',
+          );
         }
       } finally {
         isBreakLoading.value = false;
@@ -788,8 +830,19 @@ class DashboardController extends GetxController {
     }
 
     try {
+      if (kDebugMode) {
+        debugPrint(
+          '>>> [DashboardController -> _acquireLocationIfRequired()] Requesting LocationService.getCurrentLocation()...',
+        );
+      }
       final locService = LocationService();
       final result = await locService.getCurrentLocation();
+
+      if (kDebugMode) {
+        debugPrint(
+          '>>> [DashboardController -> _acquireLocationIfRequired()] Received result: status=${result.status}, isSuccess=${result.isSuccess}, error="${result.errorMessage}"',
+        );
+      }
 
       // Case 1: Device Location Services (GPS) are turned off -> Interactive Dialog with Direct Settings link
       if (result.status == LocationResultStatus.serviceDisabled) {
@@ -821,6 +874,21 @@ class DashboardController extends GetxController {
         return null;
       }
 
+      // Case 2b: Approximate selected instead of Precise -> Interactive Dialog to enable in App Settings
+      if (result.status == LocationResultStatus.preciseRequired) {
+        final confirmed = await _showLocationDialog(
+          title: 'Precise Location Required',
+          message:
+              'Company policy requires accurate GPS to verify your attendance within office geofence. Please turn on "Use precise location" in App Settings.',
+          buttonText: 'Enable in Settings',
+          icon: Icons.my_location_rounded,
+        );
+        if (confirmed) {
+          await locService.openAppSettings();
+        }
+        return null;
+      }
+
       // Case 3: Permission denied by user on in-app prompt
       if (result.status == LocationResultStatus.permissionDenied) {
         CustomSnackbar.showError(
@@ -833,8 +901,30 @@ class DashboardController extends GetxController {
 
       // Case 4: Weak accuracy (> 150m), Mock location, or Timeout
       if (!result.isSuccess) {
+        final String title;
+        switch (result.status) {
+          case LocationResultStatus.timeout:
+            title = 'GPS Timeout';
+            break;
+          case LocationResultStatus.accuracyTooLow:
+            title = 'Weak GPS Signal';
+            break;
+          case LocationResultStatus.mocked:
+            title = 'Mock Location Detected';
+            break;
+          case LocationResultStatus.preciseRequired:
+            title = 'Precise Location Required';
+            break;
+          case LocationResultStatus.permissionDenied:
+          case LocationResultStatus.permissionDeniedForever:
+            title = 'Location Permission Required';
+            break;
+          default:
+            title = 'Location Required';
+        }
+
         CustomSnackbar.showError(
-          title: 'Location Required',
+          title: title,
           message: result.errorMessage ??
               'Your position is needed to punch. Allow location access and try again.',
         );

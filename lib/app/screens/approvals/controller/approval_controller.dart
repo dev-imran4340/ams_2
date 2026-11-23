@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
+import '../../../api/app_preferences.dart';
 import '../../../core/utils/app_colors.dart';
 import '../../../core/widgets/custom_snackbar.dart';
 import '../../index/controller/index_controller.dart';
@@ -20,7 +21,8 @@ class ApprovalController extends GetxController {
   final RxBool isActionLoading = false.obs;
 
   /// Active Approvals Box filter ('waiting', 'mine', 'pending', 'decided')
-  final RxString selectedBox = 'waiting'.obs;
+  /// Company/Managers start on 'waiting' (approver queue); Employees start on 'mine'
+  final RxString selectedBox = (AppPreferences.isCompanyMode ? 'waiting' : 'mine').obs;
 
   // Collections
   final RxList<ApprovalItemModel> approvalsList = <ApprovalItemModel>[].obs;
@@ -37,15 +39,15 @@ class ApprovalController extends GetxController {
   void onInit() {
     super.onInit();
     final args = Get.arguments;
-    if (args is Map) {
-      if (args['box'] != null) {
-        selectedBox.value = args['box'].toString();
-      }
-      if (args['openId'] != null) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          openApprovalDetailsById(args['openId'].toString());
-        });
-      }
+    if (args is Map && args['box'] != null) {
+      selectedBox.value = args['box'].toString();
+    } else {
+      selectedBox.value = AppPreferences.isCompanyMode ? 'waiting' : 'mine';
+    }
+    if (args is Map && args['openId'] != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        openApprovalDetailsById(args['openId'].toString());
+      });
     }
     fetchApprovals();
   }

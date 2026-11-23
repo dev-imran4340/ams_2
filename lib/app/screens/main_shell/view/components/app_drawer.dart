@@ -122,12 +122,6 @@ class AppDrawer extends StatelessWidget {
                       sessionController.hasPermission('checklists.view') ||
                       sessionController.hasModule('onboarding');
 
-                  // Staff Onboarding is strictly for Manager/HR/Admin with department or company scope
-                  final bool hasOnboarding =
-                      sessionController.hasModule('onboarding') &&
-                      (sessionController.hasPermission('employees.view', 'department') ||
-                          sessionController.hasPermission('employees.view', 'company'));
-
                   final bool hasSupport =
                       sessionController.hasMenuItem('support') ||
                       sessionController.hasPermission('support.view');
@@ -304,32 +298,15 @@ class AppDrawer extends StatelessWidget {
                         onTap: () => _navigateToRoute(Routes.JOB_DESCRIPTION),
                       ),
 
-                      // Card 9: Staff Onboarding (Manager/HR with department/company scope)
-                      if (hasOnboarding)
-                        DrawerModuleCard(
-                          title: 'Staff Onboarding',
-                          subtitle: 'Register new staff & capture AI face',
-                          icon: Icons.person_add_alt_1_outlined,
-                          accentTint: AppColors.primary,
-                          onTap: () => _navigateToRoute(Routes.ADD_EMPLOYEE),
-                        ),
-
-                      // Card 9b: Enterprise Kiosk Terminal Station (Phase 10)
+                      // Card 9b: Enterprise Kiosk & Terminal PIN (Phase 10)
                       DrawerModuleCard(
-                        title: 'Kiosk Terminal Station',
-                        subtitle: 'Dual AI facial recognition & QR card gate terminal',
+                        title: 'Kiosk & Backup PIN',
+                        subtitle: sessionController.hasPermission('kiosks.manage')
+                            ? 'Tablet terminal station & backup PIN'
+                            : 'Self-service terminal clock-in PIN',
                         icon: Icons.tablet_mac_rounded,
                         accentTint: AppColors.secondary,
-                        onTap: () => _navigateToRoute(Routes.EMPLOYEE_TERMINAL),
-                      ),
-
-                      // Card 9c: Organization Mode Portal
-                      DrawerModuleCard(
-                        title: 'Organization Portal',
-                        subtitle: 'Company dashboard, visitors & operations',
-                        icon: Icons.domain_rounded,
-                        accentTint: AppColors.primary,
-                        onTap: () => _navigateToRoute(Routes.ORG_MODE_SELECTION),
+                        onTap: () => _navigateToRoute(Routes.KIOSK),
                       ),
 
                       // Card 10a: HR Helpdesk (Temporarily hidden as per user request — kept intact, easily re-enabled)

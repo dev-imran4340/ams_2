@@ -116,6 +116,21 @@ void main() {
       );
       expect(faceOutsideOval.allPassed, isFalse);
 
+      // Check: Face covered with mask
+      const maskedFace = FaceCheckResult(
+        hasExactlyOneFace: true,
+        faceCount: 1,
+        eyesOpen: true,
+        headStraight: true,
+        isCentered: true,
+        isScaleValid: true,
+        scaleRatio: 0.50,
+        isInsideOval: true,
+        isMaskOrCovered: true,
+        statusMessage: 'Face covered • Remove mask',
+      );
+      expect(maskedFace.allPassed, isFalse);
+
       // Check: All 6 validation checks pass (full face fits inside oval at ideal distance)
       const perfectFace = FaceCheckResult(
         hasExactlyOneFace: true,

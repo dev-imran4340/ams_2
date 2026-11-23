@@ -288,6 +288,7 @@ class AuthController extends GetxController {
           token: response.token!,
           refreshToken: response.refreshToken,
           user: response.user,
+          isCompany: response.isCompany,
         );
 
         if (rememberMe.value) {
@@ -308,13 +309,11 @@ class AuthController extends GetxController {
         // Register FCM device push token with AMS 2 backend
         PushNotificationService.instance.registerDevicePushToken();
 
-        // Decode whether Employee or Company/Organization user signed in
-        final bool isEmpMode = isEmployeeNumberMode.value;
-        await AppPreferences.setIsCompanyMode(!isEmpMode);
         Get.log(
-          '🎯 [AuthController -> login()] Decoded user identity type: ${isEmpMode ? "Employee" : "Company/Organization User"}',
+          '🎯 [AuthController -> login()] Decoded user identity type: ${response.isCompany ? "Company/Organization User" : "Employee"}',
         );
 
+        // Route smoothly to unified Main Shell (Index) where permissions & modules drive views
         Get.offAllNamed(Routes.INDEX);
       } else {
         loginError.value = response.message ?? 'Authentication failed. Please verify your credentials.';
@@ -376,7 +375,10 @@ class AuthController extends GetxController {
       );
 
       if (response.token != null && response.token!.isNotEmpty) {
-        await AppPreferences.saveAuthData(token: response.token!);
+        await AppPreferences.saveAuthData(
+          token: response.token!,
+          isCompany: response.isCompany,
+        );
         await AppPreferences.setTwoFactorChallenge(null);
 
         if (rememberMe.value) {
@@ -399,13 +401,11 @@ class AuthController extends GetxController {
         // Register FCM device push token with AMS 2 backend
         PushNotificationService.instance.registerDevicePushToken();
 
-        // Decode whether Employee or Company/Organization user signed in
-        final bool isEmpMode = isEmployeeNumberMode.value;
-        await AppPreferences.setIsCompanyMode(!isEmpMode);
         Get.log(
-          '🎯 [AuthController -> login()] Decoded user identity type: ${isEmpMode ? "Employee" : "Company/Organization User"}',
+          '🎯 [AuthController -> verifyTwoFactor()] Decoded user identity type: ${response.isCompany ? "Company/Organization User" : "Employee"}',
         );
 
+        // Route smoothly to unified Main Shell (Index) where permissions & modules drive views
         Get.offAllNamed(Routes.INDEX);
       }
     } catch (e) {
@@ -458,24 +458,23 @@ class AuthController extends GetxController {
     try {
       isBiometricLoading.value = true;
       final response = await repo.authenticateWithBiometrics();
-      if (response != null && response.token != null) {
+      if (response != null && response.token != null && response.token!.isNotEmpty) {
         authResponse.value = response;
         await AppPreferences.saveAuthData(
           token: response.token!,
           refreshToken: response.refreshToken,
           user: response.user,
+          isCompany: response.isCompany,
         );
 
         // Register FCM device push token with AMS 2 backend
         PushNotificationService.instance.registerDevicePushToken();
 
-        // Decode whether Employee or Company/Organization user signed in
-        final bool isEmpMode = isEmployeeNumberMode.value;
-        await AppPreferences.setIsCompanyMode(!isEmpMode);
         Get.log(
-          '🎯 [AuthController -> login()] Decoded user identity type: ${isEmpMode ? "Employee" : "Company/Organization User"}',
+          '🎯 [AuthController -> loginWithBiometrics()] Decoded user identity type: ${response.isCompany ? "Company/Organization User" : "Employee"}',
         );
 
+        // Route smoothly to unified Main Shell (Index) where permissions & modules drive views
         Get.offAllNamed(Routes.INDEX);
       }
     } catch (e) {

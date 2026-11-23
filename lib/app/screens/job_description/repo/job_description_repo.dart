@@ -1,5 +1,6 @@
 import '../../../api/api_client.dart';
 import '../../../api/api_endpoints.dart';
+import '../../../api/app_preferences.dart';
 import '../../../api/exception_handler.dart';
 import '../model/job_description_model.dart';
 
@@ -15,6 +16,7 @@ class JobDescriptionRepo {
   /// GET /me/job-description
   /// Returns the current job description of employee's designation or null.
   Future<JobDescriptionModel?> fetchJobDescription() async {
+    if (AppPreferences.isCompanyMode) return null;
     final methodTag = '$_originTag -> fetchJobDescription()';
     try {
       final response = await ApiClient.request(

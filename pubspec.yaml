@@ -2,7 +2,7 @@ name: ams_2
 description: "A new Flutter project for AMS 2."
 publish_to: 'none'
 
-version: 1.0.0+1
+version: 4.0.0+10
 
 environment:
   sdk: ^3.13.2

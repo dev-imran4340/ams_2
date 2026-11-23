@@ -122,11 +122,13 @@ class AttendanceHistoryController extends GetxController {
           from: from ?? (fromDate.value.isNotEmpty ? fromDate.value : null),
           to: to ?? (toDate.value.isNotEmpty ? toDate.value : null),
         );
-      } else {
+      } else if (!AppPreferences.isCompanyMode) {
         result = await repo.fetchAttendanceHistory(
           from: from ?? (fromDate.value.isNotEmpty ? fromDate.value : null),
           to: to ?? (toDate.value.isNotEmpty ? toDate.value : null),
         );
+      } else {
+        result = null;
       }
       timesheetResponse.value = result;
     } finally {

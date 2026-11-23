@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../api/app_preferences.dart';
 import '../../../core/widgets/custom_snackbar.dart';
 import '../model/job_description_model.dart';
 import '../repo/job_description_repo.dart';
@@ -20,6 +21,7 @@ class JobDescriptionController extends GetxController {
   }
 
   Future<void> loadJobDescription() async {
+    if (AppPreferences.isCompanyMode) return;
     try {
       isLoading.value = true;
       errorMessage.value = '';

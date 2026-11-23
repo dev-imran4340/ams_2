@@ -6,6 +6,7 @@ import '../../../../core/utils/app_colors.dart';
 import '../../../../core/utils/app_spaces.dart';
 import '../../../../core/utils/app_text_styles.dart';
 import '../../../../core/widgets/custom_button.dart';
+import '../../../../core/widgets/custom_card.dart';
 import '../../controller/task_controller.dart';
 import '../../model/task_model.dart';
 
@@ -19,34 +20,16 @@ class TaskCardTile extends GetView<TaskController> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.cardBackground,
-        borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(
-          color: AppColors.borderColor,
-          width: 1.w,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.05),
-            blurRadius: 16.r,
-            offset: Offset(0, 4.h),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16.r),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: () => controller.openTaskDetails(task),
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 1. Header Row: Title & Priority Pill Badge
+    return CustomCard(
+      onTap: () => controller.openTaskDetails(task),
+      margin: EdgeInsets.only(bottom: 12.h),
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 14.h),
+      accentColor: AppColors.secondary,
+      accentWidth: 3.w,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 1. Header Row: Title & Priority Pill Badge
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -167,11 +150,7 @@ class TaskCardTile extends GetView<TaskController> {
                   ),
                 ],
               ),
-            ),
-          ),
-        ),
-      ),
-    );
+            );
   }
 
   Widget _buildPriorityPill(String priority) {

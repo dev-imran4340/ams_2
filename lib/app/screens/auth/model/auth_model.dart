@@ -81,6 +81,7 @@ class LoginResponseModel {
   final String? refreshToken;
   final UserModel? user;
   final String? message;
+  final bool isCompany;
 
   LoginResponseModel({
     this.twoFactorRequired = false,
@@ -89,6 +90,7 @@ class LoginResponseModel {
     this.refreshToken,
     this.user,
     this.message,
+    this.isCompany = false,
   });
 
   factory LoginResponseModel.fromJson(Map<String, dynamic> json) {
@@ -102,6 +104,8 @@ class LoginResponseModel {
         : ((json['user'] is Map)
             ? Map<String, dynamic>.from(json['user'] as Map)
             : null);
+
+    final bool isCompany = data['company'] == true || json['company'] == true;
 
     return LoginResponseModel(
       twoFactorRequired: data['two_factor_required'] == true ||
@@ -117,6 +121,7 @@ class LoginResponseModel {
           json['refresh_token']?.toString(),
       user: userData != null ? UserModel.fromJson(userData) : null,
       message: data['message']?.toString() ?? json['message']?.toString(),
+      isCompany: isCompany,
     );
   }
 
@@ -128,6 +133,7 @@ class LoginResponseModel {
       'refresh_token': refreshToken,
       'user': user?.toJson(),
       'message': message,
+      'company': isCompany,
     };
   }
 }
@@ -155,21 +161,30 @@ class TwoFactorRequestModel {
 
 class TwoFactorResponseModel {
   final String? token;
+  final bool isCompany;
 
-  TwoFactorResponseModel({this.token});
+  TwoFactorResponseModel({
+    this.token,
+    this.isCompany = false,
+  });
 
   factory TwoFactorResponseModel.fromJson(Map<String, dynamic> json) {
     final data = (json['data'] is Map<String, dynamic>)
         ? json['data'] as Map<String, dynamic>
-        : json;
+        : (json['data'] is Map
+            ? Map<String, dynamic>.from(json['data'] as Map)
+            : json);
+    final bool isCompany = data['company'] == true || json['company'] == true;
     return TwoFactorResponseModel(
       token: data['token']?.toString() ?? json['token']?.toString(),
+      isCompany: isCompany,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
       'token': token,
+      'company': isCompany,
     };
   }
 }

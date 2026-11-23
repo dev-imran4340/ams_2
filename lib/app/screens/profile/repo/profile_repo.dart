@@ -12,6 +12,7 @@ class ProfileRepo {
   /// Fetches executive employee profile from GET /api/v1/me/profile.
   /// Strictly follows the Layer Flow: View -> Controller -> Repository -> ApiClient.
   Future<EmployeeProfileModel?> fetchProfile() async {
+    if (AppPreferences.isCompanyMode) return null;
     try {
       // 1. Attempt live API request
       final response = await ApiClient.request(

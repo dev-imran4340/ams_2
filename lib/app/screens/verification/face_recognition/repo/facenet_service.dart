@@ -17,7 +17,7 @@ class FaceNetService {
   }
 
   FaceNetService._internal() {
-    threshold = 1.18; // Calibrated MobileFaceNet Euclidean distance threshold for mobile cameras
+    threshold = 1.0; // Calibrated MobileFaceNet Euclidean distance threshold matching smart_attendance
   }
 
   static const String modelAssetPath = 'assets/models/mobilefacenet.tflite';
@@ -125,36 +125,20 @@ class FaceNetService {
     List output = List.generate(1, (index) => List<double>.filled(192, 0.0));
     _runInterpreter(input, output);
     output = output.reshape([192]);
-    return _l2Normalize(List<double>.from(output));
+    return List<double>.from(output);
   }
 
-  List<double> _l2Normalize(List<double> v) {
-    double sum = 0.0;
-    for (int i = 0; i < v.length; i++) {
-      sum += v[i] * v[i];
-    }
-    final norm = sqrt(sum);
-    if (norm == 0.0) return v;
-    return List<double>.generate(v.length, (i) => v[i] / norm);
-  }
-
-  /// Extracts 192-dimensional MobileFaceNet embedding directly from CameraImage stream buffer
-  List<double>? extractEmbeddingFromCameraImage(
-    CameraImage cameraImage,
-    Face face,
-  ) {
-    if (!_isModelLoaded || _interpreter == null) return null;
-
-    final input = _preProcessCameraImage(cameraImage, face);
-    if (input == null) return null;
-
-    final reshapedInput = input.reshape([1, 112, 112, 3]);
-    List output = List.generate(1, (index) => List<double>.filled(192, 0.0));
-    _runInterpreter(reshapedInput, output);
-    output = output.reshape([192]);
-    _predictedData = List<double>.from(output);
-    return _predictedData;
-  }
+  /// Alias matching smart_attendance setCurrentPredictionFromUint8List
+  List<double> setCurrentPredictionFromUint8List(
+    Uint8List imageBytes,
+    Face face, {
+    bool flipHorizontal = false,
+  }) =>
+      extractEmbeddingFromUint8List(
+        imageBytes,
+        face,
+        flipHorizontal: flipHorizontal,
+      );
 
   /// Pre-processes Uint8List image: orient upright, square crop centered on face, resize to 112x112, normalize
   List _preProcessUint8(
@@ -162,39 +146,8 @@ class FaceNetService {
     Face faceDetected, {
     bool flipHorizontal = false,
   }) {
-    final imglib.Image? decoded = imglib.decodeImage(imageBytes);
-    if (decoded == null) {
-      throw Exception('Could not decode image for FaceNet');
-    }
-    final imglib.Image convertedImage = imglib.bakeOrientation(decoded);
-
-    final double boxW = faceDetected.boundingBox.width;
-    final double boxH = faceDetected.boundingBox.height;
-    final double cx = faceDetected.boundingBox.left + boxW / 2.0;
-    final double cy = faceDetected.boundingBox.top + boxH / 2.0;
-
-    // Use a square crop with 15% margin to encompass entire face without distorting aspect ratio
-    final double side = max(boxW, boxH) * 1.15;
-
-    final int cropX = (cx - side / 2.0).clamp(0, convertedImage.width - 1).round();
-    final int cropY = (cy - side / 2.0).clamp(0, convertedImage.height - 1).round();
-    final int cropW = side.clamp(1, convertedImage.width - cropX).round();
-    final int cropH = side.clamp(1, convertedImage.height - cropY).round();
-
-    final imglib.Image croppedImage = imglib.copyCrop(
-      convertedImage,
-      x: cropX,
-      y: cropY,
-      width: cropW,
-      height: cropH,
-    );
-
-    imglib.Image img = imglib.copyResize(
-      croppedImage,
-      width: 112,
-      height: 112,
-      interpolation: imglib.Interpolation.linear,
-    );
+    imglib.Image croppedImage = _cropUint8Face(imageBytes, faceDetected);
+    imglib.Image img = imglib.copyResizeCropSquare(croppedImage, size: 112);
 
     if (flipHorizontal) {
       img = imglib.copyFlip(img, direction: imglib.FlipDirection.horizontal);
@@ -203,38 +156,31 @@ class FaceNetService {
     return imageToByteListFloat32(img);
   }
 
-  /// Pre-processes CameraImage: convert to imglib, rotate for platform, crop face, resize, normalize
-  List? _preProcessCameraImage(CameraImage image, Face faceDetected) {
-    try {
-      final imglib.Image? converted = _convertCameraImage(image);
-      if (converted == null) return null;
-
-      final double x = faceDetected.boundingBox.left - 10.0;
-      final double y = faceDetected.boundingBox.top - 10.0;
-      final double w = faceDetected.boundingBox.width + 20.0;
-      final double h = faceDetected.boundingBox.height + 20.0;
-
-      final int cropX = x.clamp(0, converted.width - 1).round();
-      final int cropY = y.clamp(0, converted.height - 1).round();
-      final int cropW = w.clamp(0, converted.width - cropX).round();
-      final int cropH = h.clamp(0, converted.height - cropY).round();
-
-      if (cropW <= 0 || cropH <= 0) return null;
-
-      final imglib.Image cropped = imglib.copyCrop(
-        converted,
-        x: cropX,
-        y: cropY,
-        width: cropW,
-        height: cropH,
-      );
-
-      final imglib.Image img = imglib.copyResizeCropSquare(cropped, size: 112);
-      return imageToByteListFloat32(img);
-    } catch (e) {
-      debugPrint('>>> [AI FaceNet] _preProcessCameraImage error: $e');
-      return null;
+  /// Crops the face from Uint8List image with +10px margins, exactly as smart_attendance
+  imglib.Image _cropUint8Face(Uint8List image, Face faceDetected) {
+    final imglib.Image? decoded = imglib.decodeImage(image);
+    if (decoded == null) {
+      throw Exception('Could not decode profile image for FaceNet');
     }
+    imglib.Image convertedImage = imglib.bakeOrientation(decoded);
+
+    double x = faceDetected.boundingBox.left - 10.0;
+    double y = faceDetected.boundingBox.top - 10.0;
+    double w = faceDetected.boundingBox.width + 20.0; // +10 left and right
+    double h = faceDetected.boundingBox.height + 20.0;
+
+    int cropX = x.clamp(0, convertedImage.width - 1).round();
+    int cropY = y.clamp(0, convertedImage.height - 1).round();
+    int cropW = w.clamp(0, convertedImage.width - cropX).round();
+    int cropH = h.clamp(0, convertedImage.height - cropY).round();
+
+    return imglib.copyCrop(
+      convertedImage,
+      x: cropX,
+      y: cropY,
+      width: cropW,
+      height: cropH,
+    );
   }
 
   /// Converts a live stream CameraImage to an imglib Image buffer
@@ -366,9 +312,9 @@ class FaceNetService {
     for (var i = 0; i < 112; i++) {
       for (var j = 0; j < 112; j++) {
         final pixel = image.getPixel(j, i);
-        buffer[pixelIndex++] = (pixel.r - 127.5) / 128.0;
-        buffer[pixelIndex++] = (pixel.g - 127.5) / 128.0;
-        buffer[pixelIndex++] = (pixel.b - 127.5) / 128.0;
+        buffer[pixelIndex++] = (pixel.r - 128) / 128;
+        buffer[pixelIndex++] = (pixel.g - 128) / 128;
+        buffer[pixelIndex++] = (pixel.b - 128) / 128;
       }
     }
 

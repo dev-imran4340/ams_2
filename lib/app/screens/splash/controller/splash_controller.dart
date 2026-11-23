@@ -47,7 +47,7 @@ class SplashController extends GetxController {
       final bool isLoggedIn = AppPreferences.isLoggedIn;
 
       if (token != null && token.trim().isNotEmpty && isLoggedIn) {
-        // Active verified session: route to authenticated Main Shell (Index)
+        // Active session: route to authenticated Main Shell (Index) for both Company & Employee
         Get.offAllNamed(Routes.INDEX);
       } else {
         // No valid token: route to Login

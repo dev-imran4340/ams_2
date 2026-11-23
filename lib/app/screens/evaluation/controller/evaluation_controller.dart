@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
+import '../../../api/app_preferences.dart';
 import '../../../core/widgets/custom_snackbar.dart';
 import '../../../routes/app_routes.dart';
 import '../model/evaluation_model.dart';
@@ -18,7 +19,14 @@ class EvaluationController extends GetxController {
   final RxBool isSubmitting = false.obs;
 
   /// Selected inbox box: 'mine' or 'to_review'
-  final RxString selectedBox = 'mine'.obs;
+  final RxString selectedBox =
+      (AppPreferences.isCompanyMode ? 'to_review' : 'mine').obs;
+
+  bool get canViewPerformance =>
+      AppPreferences.hasModule('performance') &&
+      AppPreferences.hasPermission('performance.view');
+  bool get canManagePerformance =>
+      AppPreferences.hasPermission('performance.manage', 'department');
 
   /// List of reviews for current box
   final RxList<EvaluationListItemModel> reviews =
@@ -73,6 +81,10 @@ class EvaluationController extends GetxController {
 
   /// Loads reviews list for currently selected box ('mine' or 'to_review')
   Future<void> loadReviews({bool isRefresh = false}) async {
+    if (!canViewPerformance) {
+      reviews.clear();
+      return;
+    }
     try {
       isLoading.value = true;
       final result = await repo.fetchReviews(box: selectedBox.value);

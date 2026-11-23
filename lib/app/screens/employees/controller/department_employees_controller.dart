@@ -31,6 +31,7 @@ class DepartmentEmployeesController extends GetxController {
   bool get canViewDepartment => AppPreferences.hasPermission('employees.view');
   bool get canPrintCards => AppPreferences.hasPermission('employees.cards.print', 'department');
   bool get canExport => AppPreferences.hasPermission('employees.export', 'department');
+  bool get canManageEmployees => AppPreferences.hasPermission('employees.manage', 'department');
 
   /// Strict evaluation of sensitive information visibility per employee
   bool canViewSensitiveFor(DepartmentEmployeeModel emp) {

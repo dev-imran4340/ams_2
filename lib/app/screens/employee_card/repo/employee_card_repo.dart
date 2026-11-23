@@ -18,6 +18,7 @@ class EmployeeCardRepo {
   /// Fetches authenticated employee digital ID card credentials from GET /api/v1/me/card
   /// Strictly adheres to the Layer Flow: View -> Controller -> Repository -> ApiClient.
   Future<EmployeeCardDetails?> fetchCardDetails() async {
+    if (AppPreferences.isCompanyMode) return null;
     try {
       // 1. Attempt live API request
       final response = await ApiClient.request(

@@ -2,9 +2,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../api/app_preferences.dart';
 import '../../../api/exception_handler.dart';
 import '../../../core/widgets/custom_snackbar.dart';
-import '../../main_shell/controller/session_me_controller.dart';
 import '../model/money_request_model.dart';
 import '../repo/money_request_repo.dart';
 
@@ -68,17 +68,14 @@ class MoneyRequestController extends GetxController {
 
   /// Verifies if 'loans_expenses' module is enabled in active subscription and money.view permission
   void _checkModuleGate() {
-    if (Get.isRegistered<SessionMeController>()) {
-      final session = Get.find<SessionMeController>();
-      final hasModule = session.hasModule('loans_expenses');
-      final hasPermission = session.hasPermission('money.view');
-      isLoansModuleActive.value = hasModule && hasPermission;
-      if (!isLoansModuleActive.value) {
-        isAccessRestricted.value = true;
-        accessRestrictedMessage.value = !hasModule
-            ? 'The Money Requests module is not enabled for your company.'
-            : 'You do not have permission to access Money Requests.';
-      }
+    final hasModule = AppPreferences.hasModule('loans_expenses');
+    final hasPermission = AppPreferences.hasPermission('money.view');
+    isLoansModuleActive.value = hasModule && hasPermission;
+    if (!isLoansModuleActive.value) {
+      isAccessRestricted.value = true;
+      accessRestrictedMessage.value = !hasModule
+          ? 'The Money Requests module is not enabled for your company.'
+          : 'You do not have permission to access Money Requests.';
     }
   }
 
@@ -92,9 +89,11 @@ class MoneyRequestController extends GetxController {
       isAccessRestricted.value = false;
       accessRestrictedMessage.value = '';
 
+      final isCompany = AppPreferences.isCompanyMode;
+
       final results = await Future.wait([
         repo.fetchMoneyRequestTypes(),
-        repo.fetchMoneyRequests(),
+        if (!isCompany) repo.fetchMoneyRequests() else Future.value(<MoneyRequestItemModel>[]),
       ]);
 
       final metaResponse = results[0] as MoneyRequestTypesResponse?;

@@ -82,23 +82,30 @@ class CustomButton extends StatelessWidget {
 
     return Opacity(
       opacity: isDisabled ? 0.6 : 1.0,
-      child: Container(
-        width: width ?? double.infinity,
-        height: height ?? 52.h,
-        decoration: BoxDecoration(
-          color: finalGradient == null ? finalBackgroundColor : null,
-          gradient: finalGradient,
-          borderRadius: BorderRadius.circular(borderRadius ?? 12.r),
-          border: finalBorder,
-        ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: isDisabled ? null : onPressed,
-            borderRadius: BorderRadius.circular(borderRadius ?? 12.r),
-            child: _buildChild(finalTextColor),
-          ),
-        ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final effectiveWidth =
+              width ?? (constraints.hasBoundedWidth ? double.infinity : null);
+
+          return Container(
+            width: effectiveWidth,
+            height: height ?? 52.h,
+            decoration: BoxDecoration(
+              color: finalGradient == null ? finalBackgroundColor : null,
+              gradient: finalGradient,
+              borderRadius: BorderRadius.circular(borderRadius ?? 12.r),
+              border: finalBorder,
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: isDisabled ? null : onPressed,
+                borderRadius: BorderRadius.circular(borderRadius ?? 12.r),
+                child: _buildChild(finalTextColor),
+              ),
+            ),
+          );
+        },
       ),
     );
   }

@@ -48,8 +48,67 @@ class FaceRecognitionRepo {
   FaceDetector? _detector;
   FaceDetector? _accurateDetector;
 
+  /// Robust face detector for captured camera JPEGs and profile photos
+  /// Bakes EXIF orientation upright first so ML Kit reliably detects the face on Pass 1.
+  Future<List<Face>> getFacesFromUint8(
+    Uint8List bytes, {
+    bool alreadyOrientationNormalized = false,
+  }) async {
+    final tempDir = await getTemporaryDirectory();
+    final tempFile = File(
+      '${tempDir.path}/mlkit_face_${DateTime.now().millisecondsSinceEpoch}.jpg',
+    );
+
+    Uint8List bytesForMl = bytes;
+    if (!alreadyOrientationNormalized) {
+      try {
+        final decoded = img.decodeImage(bytes);
+        if (decoded != null) {
+          final upright = img.bakeOrientation(decoded);
+          bytesForMl = img.encodeJpg(upright, quality: 92);
+        }
+      } catch (e) {
+        debugPrint('>>> [AI FACE] getFacesFromUint8 decode/bakeOrientation: $e');
+      }
+    }
+
+    await tempFile.writeAsBytes(bytesForMl, flush: true);
+    if (Platform.isIOS && !alreadyOrientationNormalized) {
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    }
+
+    try {
+      final inputImage = InputImage.fromFilePath(tempFile.absolute.path);
+      final faces = await detector.processImage(inputImage);
+      if (faces.isNotEmpty) {
+        debugPrint('>>> [AI FACE] Face detected via getFacesFromUint8 (${faces.length} faces)');
+        return faces;
+      }
+
+      final accurateFaces = await accurateDetector.processImage(inputImage);
+      if (accurateFaces.isNotEmpty) {
+        debugPrint('>>> [AI FACE] Face detected via accurateDetector (${accurateFaces.length} faces)');
+        return accurateFaces;
+      }
+      return [];
+    } catch (e) {
+      debugPrint('>>> [AI FACE] getFacesFromUint8 error: $e');
+      return [];
+    } finally {
+      try {
+        if (tempFile.existsSync()) await tempFile.delete();
+      } catch (_) {}
+    }
+  }
+
   /// Robust multi-pass face detector for profile and captured photos
   Future<List<Face>> detectProfilePhotoFaces(Uint8List rawBytes) async {
+    // Pass 1: Try getFacesFromUint8 with orientation baked
+    final faces = await getFacesFromUint8(rawBytes);
+    if (faces.isNotEmpty) {
+      return faces;
+    }
+
     final tempDir = await getTemporaryDirectory();
     final tempFile = File(
       '${tempDir.path}/mlkit_face_${DateTime.now().millisecondsSinceEpoch}.jpg',
@@ -207,12 +266,12 @@ class FaceRecognitionRepo {
   FaceDetector get detector {
     _detector ??= FaceDetector(
       options: FaceDetectorOptions(
-        enableLandmarks: false,
+        enableLandmarks: true,
         enableContours: false,
         enableClassification: true,
         enableTracking: true,
         performanceMode: FaceDetectorMode.fast,
-        minFaceSize: 0.15,
+        minFaceSize: 0.10,
       ),
     );
     return _detector!;

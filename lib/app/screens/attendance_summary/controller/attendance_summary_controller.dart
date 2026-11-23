@@ -24,6 +24,11 @@ class AttendanceSummaryController extends GetxController {
 
   /// Loads attendance summary telemetry for the selected month
   Future<void> loadSummary(DateTime month) async {
+    if (AppPreferences.isCompanyMode) {
+      summary.value = null;
+      return;
+    }
+
     final bool hasAttendance = AppPreferences.hasModule('attendance') &&
         AppPreferences.hasPermission('attendance.view');
     if (!hasAttendance) {

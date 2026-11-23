@@ -88,6 +88,7 @@ class ScheduleRepo {
         endpoint: ApiEndpoints.holidays,
         queryParameters: queryParams.isNotEmpty ? queryParams : null,
         tag: '$_tag -> fetchHolidays()',
+        showToastOnError: false,
       );
 
       if (response == null || response is! Map<String, dynamic>) {

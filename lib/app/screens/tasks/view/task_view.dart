@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
@@ -46,9 +47,19 @@ class TaskView extends GetView<TaskController> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Top Bar: Back Pill, Title/Subtitle Capsule
-                      const CustomScreenHeader(
+                      CustomScreenHeader(
                         title: 'Task Operations',
                         subtitle: 'Tasks, deliverables & checklists',
+                        actions: [
+                          CustomScreenHeader.actionButton(
+                            icon: Icons.add_task_rounded,
+                            onTap: () {
+                              HapticFeedback.lightImpact();
+                              controller.openCreateTaskModal(context);
+                            },
+                            tooltip: 'New Task',
+                          ),
+                        ],
                       ),
 
                       AppSpaces.vSpace14,

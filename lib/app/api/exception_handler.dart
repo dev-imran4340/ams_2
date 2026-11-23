@@ -260,9 +260,12 @@ class ExceptionHandler {
       errorCode = 'too_many_requests';
     }
 
-    // Auto-clear auth on 401 unauthenticated session expiry or disabled account and redirect to login
-    // Note: Do NOT clear auth or treat as session expiry if the error is invalid_credentials during login attempt
-    if ((statusCode == 401 && errorCode != 'invalid_credentials') ||
+    // Kiosk requests (Authorization: Bearer <kiosk_token>) returning 401 mean the kiosk tablet
+    // was revoked on the web. Clear kiosk credentials only, per doc/api.md spec, without logging out the mobile user.
+    final bool isKioskTokenRequest = tag.contains('KioskRepo') && !tag.contains('setKioskPin');
+    if (isKioskTokenRequest && statusCode == 401) {
+      AppPreferences.clearKioskToken();
+    } else if ((statusCode == 401 && errorCode != 'invalid_credentials') ||
         (statusCode == 403 && errorCode == 'account_unavailable')) {
       AppPreferences.clearAuth();
       if (Get.currentRoute.isNotEmpty &&

@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import '../../../../core/utils/app_colors.dart';
 import '../../../../core/utils/app_spaces.dart';
 import '../../../../core/utils/app_text_styles.dart';
+import '../../../../core/widgets/custom_card.dart';
 import '../../controller/leave_controller.dart';
 import '../../model/leave_model.dart';
 
@@ -47,29 +48,18 @@ class LeaveBalanceCardStrip extends GetView<LeaveController> {
       icon = Icons.local_hospital_rounded;
     }
 
-    return Container(
+    return SizedBox(
       width: 190.w,
-      padding: EdgeInsets.all(12.r),
-      decoration: BoxDecoration(
-        color: AppColors.cardBackground,
-        borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(
-          color: AppColors.borderColor,
-          width: 1.w,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.04),
-            blurRadius: 12.r,
-            offset: Offset(0, 3.h),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          // Top Row: Category Icon & Remaining/Total Ratio Pill
+      child: CustomCard(
+        margin: EdgeInsets.zero,
+        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 14.h),
+        accentColor: accent,
+        accentWidth: 3.w,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            // Top Row: Category Icon & Remaining/Total Ratio Pill
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -157,6 +147,7 @@ class LeaveBalanceCardStrip extends GetView<LeaveController> {
           ),
         ],
       ),
-    );
+    ),
+  );
   }
 }

@@ -32,11 +32,15 @@ class DashboardView extends GetView<DashboardController> {
     final user = AppPreferences.getUser();
 
     return NetworkBoundaryWrapper(
-      onRetry: controller.loadDashboard,
+      onRetry: () async {
+        await controller.loadDashboard();
+      },
       child: Scaffold(
         backgroundColor: AppColors.backgroundColor,
         body: Obx(() {
-          if (controller.isLoading.value) {
+          final isCurrentlyLoading = controller.isLoading.value;
+
+          if (isCurrentlyLoading) {
             return Center(
               child: CircularProgressIndicator(
                 color: AppColors.primary,
@@ -45,8 +49,7 @@ class DashboardView extends GetView<DashboardController> {
             );
           }
 
-          final hasAttendance =
-              (sessionController.hasModule('attendance') ||
+          final hasAttendance = (sessionController.hasModule('attendance') ||
                   AppPreferences.hasModule('attendance')) &&
               (sessionController.hasPermission('attendance.view') ||
                   AppPreferences.hasPermission('attendance.view'));
@@ -71,8 +74,7 @@ class DashboardView extends GetView<DashboardController> {
 
           final meUser = sessionController.user.value;
           final String userName = meUser?.name ?? user?.name ?? 'Employee';
-          final String designation =
-              AppPreferences.getProfileData()?['designation']?.toString() ??
+          final String designation = AppPreferences.getProfileData()?['designation']?.toString() ??
               user?.designation ??
               'Staff';
 
@@ -84,10 +86,12 @@ class DashboardView extends GetView<DashboardController> {
               // 2. Main Scrollable Content Overlapping the Header
               SafeArea(
                 child: RefreshIndicator(
-                  onRefresh: controller.loadDashboard,
+                  onRefresh: () async {
+                    await controller.loadDashboard();
+                  },
                   color: AppColors.primary,
                   child: SingleChildScrollView(
-                    physics: ScrollPhysics(
+                    physics: const ScrollPhysics(
                       parent: AlwaysScrollableScrollPhysics(),
                     ),
                     padding: EdgeInsets.symmetric(
@@ -102,7 +106,7 @@ class DashboardView extends GetView<DashboardController> {
 
                         AppSpaces.vSpace12,
 
-                        // 1. Floating Live Shift & Running Clock Hero Card (Overlaps curved header)
+                        // Employee Personal Overview
                         if (hasAttendance) ...[
                           const LiveShiftClockCard(),
                           AppSpaces.vSpace12,
@@ -114,89 +118,17 @@ class DashboardView extends GetView<DashboardController> {
                         // 3. Section: Today's Metrics Overview
                         if (hasAttendance) ...[
                           AppSpaces.vSpace12,
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Expanded(
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      width: 4.w,
-                                      height: 16.h,
-                                      decoration: BoxDecoration(
-                                        color: AppColors.secondary,
-                                        borderRadius: BorderRadius.circular(
-                                          2.r,
-                                        ),
-                                      ),
-                                    ),
-                                    AppSpaces.hSpace8,
-                                    Expanded(
-                                      child: Text(
-                                        "Today's Overview",
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: AppTextStyles.text16.copyWith(
-                                          fontWeight: FontWeight.bold,
-                                          color: AppColors.textColor,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              AppSpaces.hSpace8,
-                              Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 10.w,
-                                  vertical: 4.h,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.secondary.withValues(
-                                    alpha: 0.1,
-                                  ),
-                                  borderRadius: BorderRadius.circular(12.r),
-                                  border: Border.all(
-                                    color: AppColors.secondary.withValues(
-                                      alpha: 0.25,
-                                    ),
-                                    width: 1.w,
-                                  ),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Container(
-                                      width: 6.r,
-                                      height: 6.r,
-                                      decoration: const BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: AppColors.secondary,
-                                      ),
-                                    ),
-                                    AppSpaces.hSpace6,
-                                    Text(
-                                      'Live Metrics',
-                                      style: AppTextStyles.text10.copyWith(
-                                        fontWeight: FontWeight.w600,
-                                        color: AppColors.secondary,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
+                          _buildTodayOverviewHeader(),
                           AppSpaces.vSpace12,
 
-                          // 4-Card Mini Grid
-                          const TodayStatsGrid(),
+                            // 4-Card Mini Grid
+                            const TodayStatsGrid(),
 
-                          AppSpaces.vSpace20,
+                            AppSpaces.vSpace20,
 
-                          // 4. Section: Today's Punch Activity Log
-                          const RecentActivityTimeline(),
-                        ],
+                            // 4. Section: Today's Punch Activity Log
+                            const RecentActivityTimeline(),
+                          ],
 
                         AppSpaces.vSpace24,
 
@@ -211,6 +143,73 @@ class DashboardView extends GetView<DashboardController> {
           );
         }),
       ),
+    );
+  }
+
+  Widget _buildTodayOverviewHeader() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Expanded(
+          child: Row(
+            children: [
+              Container(
+                width: 4.w,
+                height: 16.h,
+                decoration: BoxDecoration(
+                  color: AppColors.secondary,
+                  borderRadius: BorderRadius.circular(2.r),
+                ),
+              ),
+              AppSpaces.hSpace8,
+              Expanded(
+                child: Text(
+                  "Today's Overview",
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.text16.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        AppSpaces.hSpace8,
+        Container(
+          padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+          decoration: BoxDecoration(
+            color: AppColors.secondary.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(12.r),
+            border: Border.all(
+              color: AppColors.secondary.withValues(alpha: 0.25),
+              width: 1.w,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 6.r,
+                height: 6.r,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.secondary,
+                ),
+              ),
+              AppSpaces.hSpace6,
+              Text(
+                'Live Metrics',
+                style: AppTextStyles.text10.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.secondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 

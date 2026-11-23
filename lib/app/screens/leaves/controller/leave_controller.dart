@@ -103,6 +103,11 @@ class LeaveController extends GetxController {
     selectedLeaveFilter.value = filter;
   }
 
+  // Permissions
+  bool get canViewWhosOff => AppPreferences.hasPermission('leave.view');
+  bool get canManageLeave => AppPreferences.hasPermission('leave.manage', 'department');
+  bool get canAdjustLeave => AppPreferences.hasPermission('leave.adjust', 'department');
+
   /// Loads leave balances, leave types, and my leave requests (Phase 11)
   Future<void> loadLeaveData() async {
     try {
@@ -119,31 +124,35 @@ class LeaveController extends GetxController {
       }
 
       try {
-          final results = await Future.wait([
-            repo.fetchLeaveTypes(),
-            repo.fetchLeaveBalances(),
-            repo.fetchLeaveRequests(),
-          ]);
+        final isCompany = AppPreferences.isCompanyMode;
+        final results = await Future.wait([
+          repo.fetchLeaveTypes(),
+          if (!isCompany) repo.fetchLeaveBalances() else Future.value(<LeaveBalanceModel>[]),
+          if (!isCompany) repo.fetchLeaveRequests() else Future.value(<LeaveRequestItemModel>[]),
+          if (canViewWhosOff) repo.fetchWhosOff() else Future.value(<WhosOffItemModel>[]),
+        ]);
 
-          final types = results[0] as List<LeaveTypeModel>;
-          final bList = results[1] as List<LeaveBalanceModel>;
-          final rList = results[2] as List<LeaveRequestItemModel>;
+        final types = results[0] as List<LeaveTypeModel>;
+        final bList = results[1] as List<LeaveBalanceModel>;
+        final rList = results[2] as List<LeaveRequestItemModel>;
+        final wList = results[3] as List<WhosOffItemModel>;
 
-          leaveTypes.assignAll(types);
-          balances.assignAll(bList);
-          leaveRequests.assignAll(rList);
+        leaveTypes.assignAll(types);
+        balances.assignAll(bList);
+        leaveRequests.assignAll(rList);
+        whosOffList.assignAll(wList);
 
-          if (types.isNotEmpty && selectedLeaveTypeModel.value == null) {
-            selectedLeaveTypeModel.value = types.first;
-            selectedLeaveType.value = types.first.name;
-          }
-        } on ApiException catch (e) {
-          if (e.statusCode == 403 || e.errorCode == 'forbidden') {
-            isAccessRestricted.value = true;
-            accessRestrictedMessage.value =
-                e.message.isNotEmpty ? e.message : 'This action is not allowed.';
-          }
-        } catch (_) {}
+        if (types.isNotEmpty && selectedLeaveTypeModel.value == null) {
+          selectedLeaveTypeModel.value = types.first;
+          selectedLeaveType.value = types.first.name;
+        }
+      } on ApiException catch (e) {
+        if (e.statusCode == 403 || e.errorCode == 'forbidden') {
+          isAccessRestricted.value = true;
+          accessRestrictedMessage.value =
+              e.message.isNotEmpty ? e.message : 'This action is not allowed.';
+        }
+      } catch (_) {}
     } finally {
       isLoading.value = false;
     }

@@ -328,8 +328,8 @@ class FaceMatchingTelemetryCard extends GetView<FaceRecognitionController> {
                             AppSpaces.hSpace6,
                             Expanded(
                               child: _buildQualityChip(
-                                label: 'In Oval',
-                                passed: res.isInsideOval,
+                                label: res.isMaskOrCovered ? 'Remove Mask' : 'In Oval',
+                                passed: res.isInsideOval && !res.isMaskOrCovered,
                               ),
                             ),
                           ],
