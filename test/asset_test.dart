@@ -1,8 +1,12 @@
+import 'package:ams_2/app/api/app_preferences.dart';
+import 'package:ams_2/app/core/services/permission_service.dart';
 import 'package:ams_2/app/screens/assets/controller/asset_controller.dart';
 import 'package:ams_2/app/screens/assets/model/asset_model.dart';
 import 'package:ams_2/app/screens/assets/repo/asset_repo.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 
 class MockAssetRepo extends AssetRepo {
   final List<AssetAssignmentModel> mockAssignments = [
@@ -71,6 +75,16 @@ class MockAssetRepo extends AssetRepo {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  setUpAll(() async {
+    const MethodChannel channel =
+        MethodChannel('plugins.flutter.io/path_provider');
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+      return '.';
+    });
+    await GetStorage.init();
+  });
+
   group('Phase 18 (Part 2) Asset Model & Schema Tests', () {
     test('AssetAssignmentModel parses live API JSON correctly', () {
       final json = {
@@ -132,8 +146,11 @@ void main() {
     late MockAssetRepo mockRepo;
     late AssetController controller;
 
-    setUp(() {
+    setUp(() async {
       Get.testMode = true;
+      await AppPreferences.setPermissions({
+        AppPermissions.assetsView: ['own'],
+      });
       mockRepo = MockAssetRepo();
       controller = AssetController(repo: mockRepo);
     });

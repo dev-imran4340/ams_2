@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
+import '../../../api/app_preferences.dart';
+import '../../../core/services/permission_service.dart';
 import '../../../core/widgets/custom_snackbar.dart';
 import '../model/schedule_model.dart';
 import '../repo/schedule_repo.dart';
@@ -17,6 +19,18 @@ class ScheduleController extends GetxController {
   final RxString errorMessage = ''.obs;
   final Rxn<ScheduleResponseModel> scheduleResponse = Rxn<ScheduleResponseModel>();
   final RxList<HolidayModel> holidays = <HolidayModel>[].obs;
+
+  bool get canViewSchedule {
+    final empId = targetEmployeeId.value;
+    if (empId != null && empId.isNotEmpty) {
+      return AppPreferences.hasPermission(
+        AppPermissions.schedulesView,
+        AppPermissionScopes.department,
+      );
+    }
+    return AppPreferences.hasPermission(AppPermissions.schedulesView) ||
+        AppPreferences.hasPermission(AppPermissions.attendanceView);
+  }
 
   // Active Filter Observable ('all', 'working', 'rest', 'holidays')
   final RxString selectedFilter = 'all'.obs;
@@ -61,6 +75,14 @@ class ScheduleController extends GetxController {
 
   /// Loads live schedule records from GET /me/schedule (or GET /employees/{id}/schedule)
   Future<void> loadSchedule({String? from, String? to}) async {
+    if (!canViewSchedule) {
+      errorMessage.value = targetEmployeeId.value != null &&
+              targetEmployeeId.value!.isNotEmpty
+          ? 'You do not have department or company permission to audit this employee’s work schedule.'
+          : 'You do not have permission to view your work schedule.';
+      return;
+    }
+
     try {
       isLoading.value = true;
       errorMessage.value = '';

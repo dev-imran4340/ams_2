@@ -2,6 +2,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:ams_2/app/screens/attendance_history/model/attendance_history_model.dart';
+import 'package:ams_2/app/api/app_preferences.dart';
 import 'package:ams_2/app/screens/attendance_history/controller/attendance_history_controller.dart';
 import 'package:ams_2/app/screens/attendance_history/repo/attendance_history_repo.dart';
 
@@ -183,6 +184,8 @@ void main() {
       late AttendanceHistoryController controller;
 
       setUp(() {
+        AppPreferences.setModules(['attendance']);
+        AppPreferences.setPermissions({'attendance.view': null});
         controller = AttendanceHistoryController(repo: AttendanceHistoryRepo());
         controller.onInit();
       });

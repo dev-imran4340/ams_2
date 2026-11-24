@@ -185,6 +185,20 @@ class AssetsView extends GetView<AssetController> {
 
   Widget _buildAssetsList(BuildContext context) {
     return Obx(() {
+      if (controller.isAccessRestricted.value) {
+        return Container(
+          padding: EdgeInsets.symmetric(vertical: 40.h),
+          child: Center(
+            child: CustomStateView.error(
+              title: 'Access Restricted',
+              message: controller.accessRestrictedMessage.value.isNotEmpty
+                  ? controller.accessRestrictedMessage.value
+                  : 'You do not have permission to view company assets.',
+            ),
+          ),
+        );
+      }
+
       if (controller.isLoading.value) {
         return Container(
           padding: EdgeInsets.symmetric(vertical: 40.h),

@@ -1,8 +1,12 @@
+import 'package:ams_2/app/api/app_preferences.dart';
+import 'package:ams_2/app/core/services/permission_service.dart';
 import 'package:ams_2/app/screens/training/controller/training_controller.dart';
 import 'package:ams_2/app/screens/training/model/training_model.dart';
 import 'package:ams_2/app/screens/training/repo/training_repo.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 
 class MockTrainingRepo extends TrainingRepo {
   final TrainingDataModel mockData = const TrainingDataModel(
@@ -101,6 +105,16 @@ class MockTrainingRepo extends TrainingRepo {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  setUpAll(() async {
+    const MethodChannel channel =
+        MethodChannel('plugins.flutter.io/path_provider');
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+      return '.';
+    });
+    await GetStorage.init();
+  });
+
   group('Phase 18 (Part 3) Training Model & Schema Tests', () {
     test('TrainingDataModel parses live API structure correctly', () {
       final json = {
@@ -160,8 +174,11 @@ void main() {
     late MockTrainingRepo mockRepo;
     late TrainingController controller;
 
-    setUp(() {
+    setUp(() async {
       Get.testMode = true;
+      await AppPreferences.setPermissions({
+        AppPermissions.trainingView: ['own'],
+      });
       mockRepo = MockTrainingRepo();
       controller = TrainingController(repo: mockRepo);
     });

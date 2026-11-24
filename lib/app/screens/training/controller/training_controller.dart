@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
+import '../../../api/app_preferences.dart';
+import '../../../core/services/permission_service.dart';
 import '../model/training_model.dart';
 import '../repo/training_repo.dart';
 import '../view/components/training_details_bottom_sheet.dart';
@@ -13,6 +15,13 @@ class TrainingController extends GetxController {
 
   // State Observables
   final RxBool isLoading = false.obs;
+  final RxBool isAccessRestricted = false.obs;
+  final RxString accessRestrictedMessage = ''.obs;
+
+  bool get canViewTraining =>
+      AppPreferences.hasPermission(AppPermissions.trainingView);
+  bool get canManageTraining =>
+      AppPreferences.hasPermission(AppPermissions.trainingManage);
 
   /// Main View Tab: 'Required' or 'Records' (matching backend JSON keys)
   final RxString selectedViewTab = 'Required'.obs;
@@ -79,6 +88,13 @@ class TrainingController extends GetxController {
 
   /// Loads training and certifications data from repository
   Future<void> loadTraining({bool isRefresh = false}) async {
+    if (!canViewTraining) {
+      isAccessRestricted.value = true;
+      accessRestrictedMessage.value =
+          'You do not have permission to view training records.';
+      return;
+    }
+    isAccessRestricted.value = false;
     try {
       isLoading.value = true;
       final result = await repo.fetchTraining();

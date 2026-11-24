@@ -27,8 +27,27 @@ class SessionMeController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    AppPreferences.onSessionCleared = resetSession;
     hydrateFromPreferences();
     refreshSession();
+  }
+
+  @override
+  void onClose() {
+    if (AppPreferences.onSessionCleared == resetSession) {
+      AppPreferences.onSessionCleared = null;
+    }
+    super.onClose();
+  }
+
+  /// Completely clears in-memory session observables to eliminate state bleed across accounts
+  void resetSession() {
+    user.value = null;
+    company.value = null;
+    modules.clear();
+    permissions.clear();
+    menu.clear();
+    badges.clear();
   }
 
   /// Hydrates session observables instantly from local persistent storage
@@ -76,19 +95,7 @@ class SessionMeController extends GetxController {
     if (cachedMods != null && cachedMods.isNotEmpty) {
       modules.assignAll(cachedMods.map((e) => e.toString()).toList());
     } else {
-      // Default authorized modules baseline from server contract
-      modules.assignAll([
-        'core',
-        'attendance',
-        'devices',
-        'leave',
-        'payroll',
-        'loans_expenses',
-        'performance',
-        'documents',
-        'onboarding',
-        'reports',
-      ]);
+      modules.clear();
     }
 
     final cachedPerms = AppPreferences.permissions;
@@ -156,9 +163,9 @@ class SessionMeController extends GetxController {
   }
 
   /// Checks whether a menu key is enabled in server's dynamic menu.
-  /// If menu is empty (offline or legacy), returns true so safe fallback applies.
+  /// When menu is empty, strictly returns false.
   bool hasMenuItem(String key) {
-    if (menu.isEmpty) return true;
+    if (menu.isEmpty) return false;
     return menu.any((item) => item.key == key);
   }
 
@@ -178,8 +185,9 @@ class SessionMeController extends GetxController {
       // 1. Dispatch POST /auth/logout API call
       await activeRepo.logout();
 
-      // 2. Clear local storage session
+      // 2. Clear local storage session & in-memory state
       await AppPreferences.clearSession();
+      resetSession();
 
       // 3. Dismiss any active dialogs/sheets
       if (Get.isDialogOpen == true) {

@@ -149,6 +149,8 @@ class AttendanceHistoryController extends GetxController {
 
     final fromIso = formatIsoDate(startOfMonth);
     final toIso = formatIsoDate(endOfMonth);
+    fromDate.value = fromIso;
+    toDate.value = toIso;
 
     final monthName = monthNames[now.month - 1];
     final shortMonth = monthName.substring(0, 3);
@@ -167,6 +169,8 @@ class AttendanceHistoryController extends GetxController {
     activeDateRangeFilter.value = 'today';
     final now = DateTime.now();
     final todayIso = formatIsoDate(now);
+    fromDate.value = todayIso;
+    toDate.value = todayIso;
 
     filterLabel.value = 'Today (${formatReadableDate(now)})';
     filterSubtitle.value = 'Daily punch records for today';
@@ -187,6 +191,8 @@ class AttendanceHistoryController extends GetxController {
 
     final fromIso = formatIsoDate(start);
     final toIso = formatIsoDate(end);
+    fromDate.value = fromIso;
+    toDate.value = toIso;
 
     final monthName = monthNames[lastMonth.month - 1];
     final shortMonth = monthName.substring(0, 3);
@@ -322,7 +328,10 @@ class AttendanceHistoryController extends GetxController {
 
   void navigateToLeaveApply() {
     if (Get.isRegistered<IndexController>()) {
-      Get.find<IndexController>().changeTab(2);
+      final indexCtrl = Get.find<IndexController>();
+      if (!indexCtrl.openTabByKey('requests')) {
+        Get.toNamed(Routes.LEAVE);
+      }
       Get.back();
     } else {
       Get.toNamed(Routes.LEAVE);

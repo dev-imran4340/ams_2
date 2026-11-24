@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:open_filex/open_filex.dart';
 
+import '../../../api/app_preferences.dart';
+import '../../../core/services/permission_service.dart';
 import '../../../core/widgets/custom_snackbar.dart';
 import '../../../routes/app_routes.dart';
 import '../model/document_model.dart';
@@ -19,6 +21,15 @@ class DocumentController extends GetxController {
   final RxBool isDetailsLoading = false.obs;
   final RxBool isLetterDetailsLoading = false.obs;
   final RxBool isSubmitting = false.obs;
+  final RxBool isAccessRestricted = false.obs;
+  final RxString accessRestrictedMessage = ''.obs;
+
+  bool get canViewDocuments =>
+      AppPreferences.hasPermission(AppPermissions.documentsView);
+  bool get canManageDocuments =>
+      AppPreferences.hasPermission(AppPermissions.documentsManage);
+  bool get canIssueLetters =>
+      AppPreferences.hasPermission(AppPermissions.lettersIssue);
 
   /// Selected tab: 0 = Policies, 1 = My Files, 2 = Letters
   final RxInt selectedTabIndex = 0.obs;
@@ -74,6 +85,13 @@ class DocumentController extends GetxController {
 
   /// Loads both /me/documents and /company-documents concurrently
   Future<void> loadAllDocuments({bool isRefresh = false}) async {
+    if (!canViewDocuments) {
+      isAccessRestricted.value = true;
+      accessRestrictedMessage.value =
+          'You do not have permission to view documents and policies.';
+      return;
+    }
+    isAccessRestricted.value = false;
     try {
       isLoading.value = true;
       final results = await Future.wait([
@@ -172,6 +190,13 @@ class DocumentController extends GetxController {
 
   /// Submits a request for an official letter
   Future<bool> submitLetterRequest() async {
+    if (!PermissionService.verifyAction(
+      AppPermissions.documentsView,
+      actionName: 'request official letters',
+    )) {
+      return false;
+    }
+
     final template = selectedTemplate.value;
     final purpose = purposeController.text.trim();
 

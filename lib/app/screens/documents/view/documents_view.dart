@@ -98,6 +98,17 @@ class DocumentsView extends GetView<DocumentController> {
                               // Tab Content (Expands to vertically center empty & loading states)
                               Expanded(
                                 child: Obx(() {
+                                  if (controller.isAccessRestricted.value) {
+                                    return Center(
+                                      child: CustomStateView.error(
+                                        title: 'Access Restricted',
+                                        message: controller.accessRestrictedMessage.value.isNotEmpty
+                                            ? controller.accessRestrictedMessage.value
+                                            : 'You do not have permission to view documents and policies.',
+                                      ),
+                                    );
+                                  }
+
                                   if (controller.isLoading.value) {
                                     return Center(
                                       child: CircularProgressIndicator(

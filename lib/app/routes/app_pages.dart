@@ -2,6 +2,8 @@
 
 import 'package:get/get.dart';
 import 'app_routes.dart';
+import 'auth_guard_middleware.dart';
+import '../core/services/permission_service.dart';
 
 import '../screens/splash/view/splash_view.dart';
 import '../screens/splash/controller/splash_controller.dart';
@@ -75,6 +77,7 @@ import '../screens/edit_profile/repo/edit_profile_repo.dart';
 
 import '../screens/employees/controller/department_employees_controller.dart';
 import '../screens/employees/repo/department_employees_repo.dart';
+import '../screens/employees/view/employees_view.dart';
 import '../screens/main_shell/controller/session_me_controller.dart';
 
 import '../screens/notifications/view/notifications_view.dart';
@@ -129,6 +132,12 @@ import '../screens/job_description/view/job_description_view.dart';
 import '../screens/job_description/controller/job_description_controller.dart';
 import '../screens/job_description/repo/job_description_repo.dart';
 
+import '../screens/company/dashboard/view/company_dashboard_view.dart';
+import '../screens/company/dashboard/controller/company_dashboard_controller.dart';
+import '../screens/company/dashboard/repo/company_dashboard_repo.dart';
+import '../screens/company/kiosk_setup/view/kiosk_setup_view.dart';
+import '../screens/kiosk/view/kiosk_main_view.dart';
+
 class AppPages {
   // Initial Entry Route
   static const INITIAL = Routes.SPLASH;
@@ -167,6 +176,7 @@ class AppPages {
     GetPage(
       name: Routes.INDEX,
       page: () => const IndexView(),
+      middlewares: [AuthGuardMiddleware()],
       binding: BindingsBuilder(() {
         Get.lazyPut(() => IndexRepo(), fenix: true);
         Get.lazyPut(() => IndexController(repo: Get.find()), fenix: true);
@@ -235,6 +245,7 @@ class AppPages {
     GetPage(
       name: Routes.DASHBOARD,
       page: () => const DashboardView(),
+      middlewares: [AuthGuardMiddleware()],
       binding: BindingsBuilder(() {
         Get.lazyPut(() => DashboardRepo(), fenix: true);
         Get.lazyPut(() => DashboardController(repo: Get.find()), fenix: true);
@@ -246,6 +257,12 @@ class AppPages {
     GetPage(
       name: Routes.ATTENDANCE_HISTORY,
       page: () => const AttendanceHistoryView(),
+      middlewares: [
+        AuthGuardMiddleware(
+          requiredModule: 'attendance',
+          requiredPermission: 'attendance.view',
+        ),
+      ],
       binding: BindingsBuilder(() {
         Get.lazyPut(() => AttendanceHistoryRepo(), fenix: true);
         Get.lazyPut(
@@ -259,6 +276,12 @@ class AppPages {
     GetPage(
       name: Routes.ATTENDANCE_SUMMARY,
       page: () => const AttendanceSummaryView(),
+      middlewares: [
+        AuthGuardMiddleware(
+          requiredModule: 'attendance',
+          requiredPermission: 'attendance.view',
+        ),
+      ],
       binding: BindingsBuilder(() {
         Get.lazyPut(() => AttendanceSummaryRepo(), fenix: true);
         Get.lazyPut(
@@ -272,6 +295,12 @@ class AppPages {
     GetPage(
       name: Routes.CORRECTION,
       page: () => const CorrectionView(),
+      middlewares: [
+        AuthGuardMiddleware(
+          requiredModule: 'attendance',
+          requiredPermission: AppPermissions.attendanceView,
+        ),
+      ],
       binding: BindingsBuilder(() {
         Get.lazyPut(() => CorrectionRepo(), fenix: true);
         Get.lazyPut(
@@ -285,6 +314,7 @@ class AppPages {
     GetPage(
       name: Routes.QR_SCANNER,
       page: () => const QRScannerView(),
+      middlewares: [AuthGuardMiddleware()],
       binding: BindingsBuilder(() {
         Get.lazyPut(() => QRScanRepo(), fenix: true);
         Get.lazyPut(
@@ -298,6 +328,7 @@ class AppPages {
     GetPage(
       name: Routes.FACE_RECOGNITION,
       page: () => const FaceRecognitionView(),
+      middlewares: [AuthGuardMiddleware()],
       binding: BindingsBuilder(() {
         Get.lazyPut(() => FaceRecognitionRepo(), fenix: true);
         Get.lazyPut(
@@ -311,6 +342,7 @@ class AppPages {
     GetPage(
       name: Routes.TASKS,
       page: () => const TaskView(),
+      middlewares: [AuthGuardMiddleware(requiredModule: 'onboarding')],
       binding: BindingsBuilder(() {
         Get.lazyPut(() => TaskRepo(), fenix: true);
         Get.lazyPut(
@@ -324,6 +356,12 @@ class AppPages {
     GetPage(
       name: Routes.EVALUATION,
       page: () => const EvaluationView(),
+      middlewares: [
+        AuthGuardMiddleware(
+          requiredModule: 'performance',
+          requiredPermission: 'performance.view',
+        ),
+      ],
       binding: BindingsBuilder(() {
         Get.lazyPut(() => EvaluationRepo(), fenix: true);
         Get.lazyPut(
@@ -338,6 +376,12 @@ class AppPages {
       name: Routes.EVALUATION_DETAILS,
       page: () => const EvaluationDetailsView(),
       transition: Transition.rightToLeftWithFade,
+      middlewares: [
+        AuthGuardMiddleware(
+          requiredModule: 'performance',
+          requiredPermission: 'performance.view',
+        ),
+      ],
       binding: BindingsBuilder(() {
         Get.lazyPut(() => EvaluationRepo(), fenix: true);
         Get.lazyPut(
@@ -351,6 +395,9 @@ class AppPages {
     GetPage(
       name: Routes.EMPLOYEE_CARD,
       page: () => const EmployeeCardView(),
+      middlewares: [
+        AuthGuardMiddleware(requiredPermission: 'employees.cards.print'),
+      ],
       binding: BindingsBuilder(() {
         Get.lazyPut(() => EmployeeCardRepo(), fenix: true);
         Get.lazyPut(
@@ -377,6 +424,7 @@ class AppPages {
     GetPage(
       name: Routes.ATTENDANCE_ACTIONS,
       page: () => const AttendanceHistoryView(),
+      middlewares: [AuthGuardMiddleware(requiredModule: 'attendance')],
       binding: BindingsBuilder(() {
         Get.lazyPut(() => AttendanceHistoryRepo(), fenix: true);
         Get.lazyPut(
@@ -390,6 +438,7 @@ class AppPages {
     GetPage(
       name: Routes.EDIT_PROFILE,
       page: () => const EditProfileView(),
+      middlewares: [AuthGuardMiddleware()],
       binding: BindingsBuilder(() {
         Get.lazyPut(() => EditProfileRepo(), fenix: true);
         Get.lazyPut(
@@ -403,6 +452,7 @@ class AppPages {
     GetPage(
       name: Routes.PROFILE,
       page: () => const ProfileView(),
+      middlewares: [AuthGuardMiddleware()],
       binding: BindingsBuilder(() {
         Get.lazyPut(() => ProfileRepo(), fenix: true);
         Get.lazyPut(
@@ -416,6 +466,7 @@ class AppPages {
     GetPage(
       name: Routes.PROFILE_DETAILS,
       page: () => const ProfileDetailsView(),
+      middlewares: [AuthGuardMiddleware()],
       binding: BindingsBuilder(() {
         Get.lazyPut(() => ProfileRepo(), fenix: true);
         Get.lazyPut(
@@ -429,6 +480,12 @@ class AppPages {
     GetPage(
       name: Routes.LEAVE,
       page: () => const LeaveManagementView(),
+      middlewares: [
+        AuthGuardMiddleware(
+          requiredModule: 'leave',
+          requiredPermission: 'leave.view',
+        ),
+      ],
       binding: BindingsBuilder(() {
         Get.lazyPut(() => LeaveRepo(), fenix: true);
         Get.lazyPut(
@@ -442,6 +499,7 @@ class AppPages {
     GetPage(
       name: Routes.APPROVALS,
       page: () => const ApprovalsInboxView(),
+      middlewares: [AuthGuardMiddleware()],
       binding: BindingsBuilder(() {
         Get.lazyPut(() => ApprovalRepo(), fenix: true);
         Get.lazyPut(
@@ -457,6 +515,7 @@ class AppPages {
       page: () => const NotificationsView(),
       transition: Transition.cupertino,
       transitionDuration: const Duration(milliseconds: 250),
+      middlewares: [AuthGuardMiddleware()],
       binding: BindingsBuilder(() {
         Get.lazyPut(() => NotificationRepo(), fenix: true);
         Get.lazyPut(
@@ -472,6 +531,7 @@ class AppPages {
       page: () => const NotificationPreferencesView(),
       transition: Transition.cupertino,
       transitionDuration: const Duration(milliseconds: 250),
+      middlewares: [AuthGuardMiddleware()],
       binding: BindingsBuilder(() {
         if (!Get.isRegistered<NotificationRepo>()) {
           Get.lazyPut(() => NotificationRepo(), fenix: true);
@@ -491,6 +551,11 @@ class AppPages {
       page: () => const ScheduleView(),
       transition: Transition.cupertino,
       transitionDuration: const Duration(milliseconds: 250),
+      middlewares: [
+        AuthGuardMiddleware(
+          requiredPermission: 'schedules.view',
+        ),
+      ],
       binding: BindingsBuilder(() {
         Get.lazyPut(() => ScheduleRepo(), fenix: true);
         Get.lazyPut(
@@ -506,6 +571,12 @@ class AppPages {
       page: () => const PayrollView(),
       transition: Transition.cupertino,
       transitionDuration: const Duration(milliseconds: 250),
+      middlewares: [
+        AuthGuardMiddleware(
+          requiredModule: 'payroll',
+          requiredPermission: 'pay.view',
+        ),
+      ],
       binding: BindingsBuilder(() {
         Get.lazyPut(() => PayrollRepo(), fenix: true);
         Get.lazyPut(
@@ -521,6 +592,12 @@ class AppPages {
       page: () => const MoneyRequestsView(),
       transition: Transition.cupertino,
       transitionDuration: const Duration(milliseconds: 250),
+      middlewares: [
+        AuthGuardMiddleware(
+          requiredModule: 'loans_expenses',
+          requiredPermission: 'money.view',
+        ),
+      ],
       binding: BindingsBuilder(() {
         Get.lazyPut(() => MoneyRequestRepo(), fenix: true);
         Get.lazyPut(
@@ -536,6 +613,11 @@ class AppPages {
       page: () => const SupportTicketsView(),
       transition: Transition.cupertino,
       transitionDuration: const Duration(milliseconds: 250),
+      middlewares: [
+        AuthGuardMiddleware(
+          requiredPermission: AppPermissions.supportView,
+        ),
+      ],
       binding: BindingsBuilder(() {
         Get.lazyPut(() => SupportTicketRepo(), fenix: true);
         Get.lazyPut(
@@ -551,6 +633,12 @@ class AppPages {
       page: () => const DocumentsView(),
       transition: Transition.cupertino,
       transitionDuration: const Duration(milliseconds: 250),
+      middlewares: [
+        AuthGuardMiddleware(
+          requiredModule: 'documents',
+          requiredPermission: 'documents.view',
+        ),
+      ],
       binding: BindingsBuilder(() {
         Get.lazyPut(() => DocumentRepo(), fenix: true);
         Get.lazyPut(
@@ -566,6 +654,12 @@ class AppPages {
       page: () => const PolicyDetailsView(),
       transition: Transition.cupertino,
       transitionDuration: const Duration(milliseconds: 250),
+      middlewares: [
+        AuthGuardMiddleware(
+          requiredModule: 'documents',
+          requiredPermission: AppPermissions.documentsView,
+        ),
+      ],
       binding: BindingsBuilder(() {
         Get.lazyPut(() => DocumentRepo(), fenix: true);
         Get.lazyPut(
@@ -579,6 +673,7 @@ class AppPages {
     GetPage(
       name: Routes.NEWS,
       page: () => const NewsView(),
+      middlewares: [AuthGuardMiddleware(requiredModule: 'documents')],
       binding: BindingsBuilder(() {
         Get.lazyPut(() => NewsRepo(), fenix: true);
         Get.lazyPut(
@@ -593,6 +688,7 @@ class AppPages {
       name: Routes.ANNOUNCEMENT_DETAILS,
       page: () => const AnnouncementDetailsView(),
       transition: Transition.rightToLeftWithFade,
+      middlewares: [AuthGuardMiddleware(requiredModule: 'documents')],
       binding: BindingsBuilder(() {
         Get.lazyPut(() => NewsRepo(), fenix: true);
         Get.lazyPut(
@@ -607,6 +703,12 @@ class AppPages {
       name: Routes.ASSETS,
       page: () => const AssetsView(),
       transition: Transition.rightToLeftWithFade,
+      middlewares: [
+        AuthGuardMiddleware(
+          requiredModule: 'onboarding',
+          requiredPermission: AppPermissions.assetsView,
+        ),
+      ],
       binding: BindingsBuilder(() {
         Get.lazyPut(() => AssetRepo(), fenix: true);
         Get.lazyPut(
@@ -621,6 +723,12 @@ class AppPages {
       name: Routes.TRAINING,
       page: () => const TrainingView(),
       transition: Transition.rightToLeftWithFade,
+      middlewares: [
+        AuthGuardMiddleware(
+          requiredModule: 'onboarding',
+          requiredPermission: AppPermissions.trainingView,
+        ),
+      ],
       binding: BindingsBuilder(() {
         Get.lazyPut(() => TrainingRepo(), fenix: true);
         Get.lazyPut(
@@ -635,6 +743,12 @@ class AppPages {
       name: Routes.CHECKLISTS,
       page: () => const ChecklistsView(),
       transition: Transition.rightToLeftWithFade,
+      middlewares: [
+        AuthGuardMiddleware(
+          requiredModule: 'onboarding',
+          requiredPermission: AppPermissions.onboardingManage,
+        ),
+      ],
       binding: BindingsBuilder(() {
         Get.lazyPut(() => ChecklistRepo(), fenix: true);
         Get.lazyPut(
@@ -649,6 +763,7 @@ class AppPages {
       name: Routes.HELPDESK,
       page: () => const HelpdeskView(),
       transition: Transition.rightToLeftWithFade,
+      middlewares: [AuthGuardMiddleware(requiredModule: 'onboarding')],
       binding: BindingsBuilder(() {
         Get.lazyPut(() => HelpdeskRepo(), fenix: true);
         Get.lazyPut(
@@ -663,6 +778,7 @@ class AppPages {
       name: Routes.HELPDESK_TICKET,
       page: () => const HelpdeskTicketView(),
       transition: Transition.rightToLeftWithFade,
+      middlewares: [AuthGuardMiddleware(requiredModule: 'onboarding')],
       binding: BindingsBuilder(() {
         Get.lazyPut(() => HelpdeskRepo(), fenix: true);
         Get.lazyPut(
@@ -677,10 +793,80 @@ class AppPages {
       name: Routes.JOB_DESCRIPTION,
       page: () => const JobDescriptionView(),
       transition: Transition.rightToLeftWithFade,
+      middlewares: [AuthGuardMiddleware()],
       binding: BindingsBuilder(() {
         Get.lazyPut(() => JobDescriptionRepo(), fenix: true);
         Get.lazyPut(
           () => JobDescriptionController(repo: Get.find()),
+          fenix: true,
+        );
+      }),
+    ),
+
+    // 40. Company Dedicated Dashboard
+    GetPage(
+      name: Routes.COMPANY_DASHBOARD,
+      page: () => const CompanyDashboardView(),
+      middlewares: [AuthGuardMiddleware()],
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => CompanyDashboardRepo(), fenix: true);
+        Get.lazyPut(
+          () => CompanyDashboardController(repo: Get.find()),
+          fenix: true,
+        );
+      }),
+    ),
+
+    // 41. Company Employees Directory (Reuses EmployeesView with company mode)
+    GetPage(
+      name: Routes.COMPANY_EMPLOYEES,
+      page: () => const EmployeesView(),
+      middlewares: [AuthGuardMiddleware(requiredPermission: 'employees.view')],
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => DepartmentEmployeesRepo(), fenix: true);
+        Get.lazyPut(
+          () => DepartmentEmployeesController(repo: Get.find()),
+          fenix: true,
+        );
+      }),
+    ),
+
+    // 42. Kiosk Setup & Provisioning
+    GetPage(
+      name: Routes.KIOSK_SETUP,
+      page: () => const KioskSetupView(),
+      middlewares: [AuthGuardMiddleware(requiredPermission: 'kiosks.manage')],
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => CompanyDashboardRepo(), fenix: true);
+        Get.lazyPut(
+          () => CompanyDashboardController(repo: Get.find()),
+          fenix: true,
+        );
+      }),
+    ),
+
+    // 43. Kiosk Main Shared Tablet Screen
+    GetPage(
+      name: Routes.KIOSK_MAIN,
+      page: () => const KioskMainView(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => KioskRepo(), fenix: true);
+        Get.lazyPut(
+          () => KioskController(repo: Get.find()),
+          fenix: true,
+        );
+      }),
+    ),
+
+    // 44. Department Employees Directory
+    GetPage(
+      name: Routes.EMPLOYEES,
+      page: () => const DepartmentEmployeesView(),
+      middlewares: [AuthGuardMiddleware(requiredPermission: 'employees.view')],
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => DepartmentEmployeesRepo(), fenix: true);
+        Get.lazyPut(
+          () => DepartmentEmployeesController(repo: Get.find()),
           fenix: true,
         );
       }),

@@ -1,5 +1,7 @@
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:ams_2/app/screens/job_description/model/job_description_model.dart';
 import 'package:ams_2/app/screens/job_description/repo/job_description_repo.dart';
 import 'package:ams_2/app/screens/job_description/controller/job_description_controller.dart';
@@ -21,6 +23,16 @@ class MockJobDescriptionRepo extends JobDescriptionRepo {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUpAll(() async {
+    const MethodChannel channel =
+        MethodChannel('plugins.flutter.io/path_provider');
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+      return '.';
+    });
+    await GetStorage.init();
+  });
 
   group('JobDescriptionModel Tests', () {
     test('Correctly deserializes valid JSON envelope', () {

@@ -5,6 +5,7 @@ import 'package:open_filex/open_filex.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../api/app_preferences.dart';
+import '../../../core/services/permission_service.dart';
 import '../../../core/widgets/custom_snackbar.dart';
 import '../model/employee_card_model.dart';
 import '../repo/employee_card_repo.dart';
@@ -21,6 +22,9 @@ class EmployeeCardController extends GetxController
   final RxBool isPdfLoading = false.obs;
   final Rxn<EmployeeCardDetails> cardData = Rxn<EmployeeCardDetails>();
   final RxString pdfPath = ''.obs;
+
+  bool get canPrintCard =>
+      AppPreferences.hasPermission(AppPermissions.employeesCardsPrint);
 
   // 3D Flip Animation Controller
   late final AnimationController flipAnimationController;
@@ -48,6 +52,9 @@ class EmployeeCardController extends GetxController
   /// Loads official digital ID card credentials from repository
   Future<void> loadCardData() async {
     if (AppPreferences.isCompanyMode) return;
+    if (!canPrintCard) {
+      return;
+    }
     try {
       isLoading.value = true;
       final result = await repo.fetchCardDetails();
@@ -74,6 +81,13 @@ class EmployeeCardController extends GetxController
   /// directly in the Android or iOS native system PDF viewer.
   Future<void> downloadCardPdf() async {
     HapticFeedback.mediumImpact();
+    if (!PermissionService.verifyAction(
+      AppPermissions.employeesCardsPrint,
+      actionName: 'print or download digital ID cards',
+    )) {
+      return;
+    }
+
     final card = cardData.value;
     if (card == null) {
       CustomSnackbar.showError(

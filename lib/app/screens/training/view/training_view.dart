@@ -281,6 +281,20 @@ class TrainingView extends GetView<TrainingController> {
 
   Widget _buildContentList(BuildContext context) {
     return Obx(() {
+      if (controller.isAccessRestricted.value) {
+        return Container(
+          padding: EdgeInsets.symmetric(vertical: 40.h),
+          child: Center(
+            child: CustomStateView.error(
+              title: 'Access Restricted',
+              message: controller.accessRestrictedMessage.value.isNotEmpty
+                  ? controller.accessRestrictedMessage.value
+                  : 'You do not have permission to view training records.',
+            ),
+          ),
+        );
+      }
+
       if (controller.isLoading.value) {
         return Container(
           padding: EdgeInsets.symmetric(vertical: 40.h),

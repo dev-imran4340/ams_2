@@ -20,6 +20,7 @@ class DepartmentEmployeesController extends GetxController {
   final RxList<DepartmentEmployeeModel> allStaff = <DepartmentEmployeeModel>[].obs;
   final RxList<DepartmentEmployeeModel> filteredStaff = <DepartmentEmployeeModel>[].obs;
   final RxBool isAccessRestricted = false.obs;
+  final RxBool isCompanyMode = false.obs;
   final TextEditingController searchController = TextEditingController();
 
   // Observables for Employee Leave Audit (GET /employees/{id}/leave)
@@ -73,6 +74,12 @@ class DepartmentEmployeesController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    final args = Get.arguments;
+    if (args is Map) {
+      isCompanyMode.value = args['isCompanyMode'] == true || args['fromCompany'] == true;
+    } else if (AppPreferences.isCompanyMode) {
+      isCompanyMode.value = true;
+    }
     loadDepartmentStaff();
   }
 

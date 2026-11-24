@@ -1,4 +1,7 @@
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:get_storage/get_storage.dart';
+import 'package:ams_2/app/api/app_preferences.dart';
 import 'package:ams_2/app/screens/loans/model/money_request_model.dart';
 import 'package:ams_2/app/screens/loans/controller/money_request_controller.dart';
 import 'package:ams_2/app/screens/loans/repo/money_request_repo.dart';
@@ -66,6 +69,20 @@ class MockMoneyRequestRepo extends MoneyRequestRepo {
 }
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUpAll(() async {
+    const MethodChannel channel =
+        MethodChannel('plugins.flutter.io/path_provider');
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+      return '.';
+    });
+    await GetStorage.init();
+    await AppPreferences.setModules(['core', 'loans_expenses']);
+    await AppPreferences.setPermissions({'money.view': ['own']});
+    await AppPreferences.setIsCompanyMode(false);
+  });
   group('Money Request Models Tests (Phase 13)', () {
     test('MoneyRequestTypeModel deserializes correctly', () {
       final json = {

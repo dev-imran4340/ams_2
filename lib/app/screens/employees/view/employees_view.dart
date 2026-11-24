@@ -29,7 +29,23 @@ class DepartmentEmployeesView extends GetView<DepartmentEmployeesController> {
         body: Stack(
           children: [
             // 1. Signature Curved Ambient Gradient Header
-            EmployeeAmbientHeader(height: 230.h),
+            Obx(
+              () => EmployeeAmbientHeader(
+                height: controller.isCompanyMode.value ? 240.h : 230.h,
+                borderRadius: 20.r,
+                gradientColors: controller.isCompanyMode.value
+                    ? const [
+                        AppColors.primary,
+                        AppColors.primary,
+                        AppColors.primary,
+                        AppColors.primary,
+                        AppColors.primary,
+                        AppColors.secondary,
+                        AppColors.liteSecondary,
+                      ]
+                    : null,
+              ),
+            ),
 
             // 2. Overlapping Scrollable Body Content
             SafeArea(
@@ -39,19 +55,36 @@ class DepartmentEmployeesView extends GetView<DepartmentEmployeesController> {
                   // Top Action Bar with Title, Scope Badge, and Optional Export Action
                   Padding(
                     padding: AppSpaces.horizontalPadding,
-                    child: CustomScreenHeader(
-                      title: 'Department Directory',
-                      subtitle: AppPreferences.hasPermission('employees.view', 'company')
-                          ? 'SCOPE: COMPANY'
-                          : 'SCOPE: DEPARTMENT',
-                      actions: [
-                        if (controller.canExport)
-                          CustomScreenHeader.actionButton(
-                            icon: Icons.file_download_outlined,
-                            onTap: () => _showExportDialog(context),
-                            tooltip: 'Export Staff',
-                          ),
-                      ],
+                    child: Obx(
+                      () => CustomScreenHeader(
+                        title: controller.isCompanyMode.value
+                            ? 'Staff Directory'
+                            : 'Department Directory',
+                        subtitle: controller.isCompanyMode.value
+                            ? 'Company employees & organizational records'
+                            : (AppPreferences.hasPermission(
+                                    'employees.view',
+                                    'company',
+                                  )
+                                  ? 'SCOPE: COMPANY'
+                                  : 'SCOPE: DEPARTMENT'),
+                        showBackButton: true,
+                        titleColor: controller.isCompanyMode.value
+                            ? AppColors.white
+                            : null,
+                        subtitleColor: controller.isCompanyMode.value
+                            ? AppColors.white.withValues(alpha: 0.85)
+                            : null,
+                        actions: [
+                          if (!controller.isCompanyMode.value)
+                            if (controller.canExport)
+                              CustomScreenHeader.actionButton(
+                                icon: Icons.file_download_outlined,
+                                onTap: () => _showExportDialog(context),
+                                tooltip: 'Export Staff',
+                              ),
+                        ],
+                      ),
                     ),
                   ),
 
@@ -62,7 +95,8 @@ class DepartmentEmployeesView extends GetView<DepartmentEmployeesController> {
                     if (controller.allStaff.isEmpty) {
                       return const SizedBox.shrink();
                     }
-                    final hasFilter = controller.filteredStaff.length !=
+                    final hasFilter =
+                        controller.filteredStaff.length !=
                         controller.allStaff.length;
 
                     return Padding(
@@ -106,8 +140,7 @@ class DepartmentEmployeesView extends GetView<DepartmentEmployeesController> {
                             padding: EdgeInsets.symmetric(horizontal: 24.w),
                             child: CustomStateView.error(
                               title: 'Access Restricted',
-                              message:
-                                  'You do not have permission to view the department directory.',
+                              message: 'You do not have permission to view the department directory.',
                             ),
                           ),
                         );
@@ -148,12 +181,21 @@ class DepartmentEmployeesView extends GetView<DepartmentEmployeesController> {
                           separatorBuilder: (_, index) => AppSpaces.vSpace10,
                           itemBuilder: (context, index) {
                             final employee = staffList[index];
+                            final isCompany = controller.isCompanyMode.value;
                             return DepartmentStaffCard(
                               employee: employee,
-                              onTap: () =>
-                                  controller.showEmployeeDetails(context, employee),
-                              onLongPress: () =>
-                                  controller.openEmployeeProfile(employee),
+                              showChevron: !isCompany,
+                              onTap: isCompany
+                                  ? null
+                                  : () => controller.showEmployeeDetails(
+                                      context,
+                                      employee,
+                                    ),
+                              onLongPress: isCompany
+                                  ? null
+                                  : () => controller.openEmployeeProfile(
+                                      employee,
+                                    ),
                             );
                           },
                         ),

@@ -136,7 +136,8 @@ void main() {
       expect(controller.canAuditLeaveFor(emp), isFalse);
       expect(controller.canViewScheduleFor(emp), isFalse);
 
-      // With department-scoped permissions, audit access is granted
+      // With department-scoped permissions and subscribed modules, audit access is granted
+      AppPreferences.setModules(['attendance', 'leave', 'schedule']);
       AppPreferences.setPermissions({
         'attendance.view': ['department'],
         'leave.view': ['department'],

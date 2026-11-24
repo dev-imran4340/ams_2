@@ -5,6 +5,7 @@ import 'package:get_storage/get_storage.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../core/utils/encryption_helper.dart';
+import '../core/utils/secure_storage_service.dart';
 import '../screens/auth/model/auth_model.dart';
 
 /// Centralized local storage wrapper powered by GetStorage.
@@ -45,7 +46,11 @@ class AppPreferences {
   static const String _keyKioskToken = 'kiosk_secret_token';
   static const String _keyKioskConfig = 'kiosk_active_config';
   static const String _keyKioskPinConfigured = 'kiosk_pin_configured';
+  static const String _keySavedLoginIdentifier = 'saved_login_identifier';
   static const String _keyIsCompanyMode = 'is_company_mode';
+
+  // In-memory cache for remembered credentials
+  static Map<String, dynamic>? _cachedRememberedCredentials;
 
   /// Initialize local storage container (Must be invoked before runApp in main.dart)
   static Future<void> init() async {
@@ -56,6 +61,10 @@ class AppPreferences {
           'ams_dev_${DateTime.now().millisecondsSinceEpoch.toRadixString(36)}';
       await _box.write(_keyDeviceId, generated);
     }
+    // Migrate or purge any legacy XOR credentials
+    await _migrateOrPurgeLegacyXorCredentials();
+    // Load saved credentials into memory cache
+    await loadSavedCredentials();
   }
 
   // --- Auth Session Methods ---
@@ -97,7 +106,12 @@ class AppPreferences {
     }
   }
 
-  /// Clears active authentication session (Leaves device ID, theme, and saved email intact)
+  // Callback invoked when personal session is purged
+  static VoidCallback? onSessionCleared;
+
+  /// Clears active authentication session.
+  /// Preserves non-sensitive persistent preferences: device ID, device name, theme mode,
+  /// remember-me status, saved email/identifier, and separate kiosk terminal provision tokens.
   static Future<void> clearSession() async {
     await _box.remove(_keyToken);
     await _box.remove(_keyRefreshToken);
@@ -115,9 +129,17 @@ class AppPreferences {
     await clearEnrolledFace();
     await _box.write(_keyIsLoggedIn, false);
     await _box.remove(_keyIsCompanyMode);
-    await _box.erase();
+
+    // Notify listeners to clear in-memory state
+    try {
+      onSessionCleared?.call();
+    } catch (_) {}
+
+    // Explicitly preserved: _keyDeviceId, _keyDeviceName, _keyThemeMode,
+    // _keyRememberMe, _keySavedEmail, _keySavedLoginIdentifier,
+    // and kiosk settings (_keyKioskToken, _keyKioskConfig).
     if (kDebugMode) {
-      Get.log('User logged out successfully : Clean All from local');
+      Get.log('🔒 [AppPreferences] Personal session cleared securely.');
     }
   }
 
@@ -221,32 +243,53 @@ class AppPreferences {
     final perms = permissions;
     if (perms == null || !perms.containsKey(key)) return false;
     final value = perms[key];
-    if (value == null) {
+    if (value == false) return false;
+    if (value == null || value == true) {
       // Permission without scopes (binary allowed, e.g. support.raise: null)
       return true;
     }
+    final List<dynamic> scopesList;
     if (value is List) {
-      if (scope == null) return value.isNotEmpty;
-      final scopes = value
-          .map((e) => e.toString().toLowerCase().trim())
-          .toSet();
-      final req = scope.toLowerCase().trim();
-
-      // Exact match
-      if (scopes.contains(req)) return true;
-
-      // Hierarchical scope inheritance:
-      // company scope grants location, department, and own access
-      if (scopes.contains('company')) return true;
-      // location scope grants department and own access
-      if (req == 'own' &&
-          (scopes.contains('department') || scopes.contains('location'))) {
-        return true;
-      }
-      if (req == 'department' && scopes.contains('location')) return true;
-
+      scopesList = value;
+    } else if (value is String) {
+      scopesList = [value];
+    } else {
       return false;
     }
+
+    if (scopesList.isEmpty) {
+      // Scoped permission with empty list -> Denied (no scopes assigned)
+      return false;
+    }
+    if (scope == null || scope.trim().isEmpty) return true;
+    final normalizedScopes = scopesList
+        .map((e) => e.toString().toLowerCase().trim())
+        .toSet();
+    final req = scope.toLowerCase().trim();
+
+    // Exact match
+    if (normalizedScopes.contains(req)) return true;
+
+    // Hierarchical scope inheritance from permissions master matrix:
+    // company (or all) scope grants location, department, and own access
+    if (normalizedScopes.contains('company') || normalizedScopes.contains('all')) {
+      return true;
+    }
+    // location scope grants department and own access
+    if (normalizedScopes.contains('location') &&
+        (req == 'department' || req == 'own' || req == 'records')) {
+      return true;
+    }
+    // department scope grants own access
+    if (normalizedScopes.contains('department') &&
+        (req == 'own' || req == 'records')) {
+      return true;
+    }
+    if (normalizedScopes.contains('own') &&
+        (req == 'own' || req == 'records')) {
+      return true;
+    }
+
     return false;
   }
 
@@ -383,7 +426,7 @@ class AppPreferences {
     }
   }
 
-  // --- Remember Me & Encrypted Credentials ---
+  // --- Remember Me & Secure Platform Storage ---
 
   static bool get rememberMe => _box.read<bool>(_keyRememberMe) ?? false;
 
@@ -401,83 +444,140 @@ class AppPreferences {
     }
   }
 
-  /// Persists encrypted login credentials when "Remember Me" is enabled
+  /// Migrates and purges legacy insecure XOR credentials from GetStorage
+  static Future<void> _migrateOrPurgeLegacyXorCredentials() async {
+    if (_box.hasData(_keyEncryptedLogin) || _box.hasData(_keyEncryptedPassword)) {
+      try {
+        final encLogin = _box.read<String>(_keyEncryptedLogin);
+        final encPass = _box.read<String>(_keyEncryptedPassword);
+        final encCode = _box.read<String>(_keyEncryptedCompanyCode);
+        final isEmp = _box.read<bool>(_keySavedIsEmployeeMode) ?? false;
+
+        final decLogin = EncryptionHelper.legacyDecrypt(encLogin, deviceId: deviceId);
+        final decPass = EncryptionHelper.legacyDecrypt(encPass, deviceId: deviceId);
+        final decCode = encCode != null
+            ? EncryptionHelper.legacyDecrypt(encCode, deviceId: deviceId)
+            : null;
+
+        if (decLogin != null && decPass != null) {
+          await SecureStorageService.write('ams_sec_login', decLogin);
+          await SecureStorageService.write('ams_sec_password', decPass);
+          if (decCode != null) {
+            await SecureStorageService.write('ams_sec_company_code', decCode);
+          }
+          await _box.write(_keySavedLoginIdentifier, decLogin);
+          await _box.write(_keySavedIsEmployeeMode, isEmp);
+          await setRememberMe(true);
+        }
+      } catch (_) {}
+
+      // Invariant: remove insecure XOR keys from GetStorage completely
+      await _box.remove(_keyEncryptedLogin);
+      await _box.remove(_keyEncryptedPassword);
+      await _box.remove(_keyEncryptedCompanyCode);
+    }
+  }
+
+  /// Asynchronously loads saved credentials from hardware secure storage into in-memory cache
+  static Future<Map<String, dynamic>?> loadSavedCredentials() async {
+    if (!rememberMe) {
+      _cachedRememberedCredentials = null;
+      return null;
+    }
+
+    try {
+      final login = await SecureStorageService.read('ams_sec_login') ??
+          _box.read<String>(_keySavedLoginIdentifier) ??
+          _box.read<String>(_keySavedEmail);
+      final pass = await SecureStorageService.read('ams_sec_password');
+      final code = await SecureStorageService.read('ams_sec_company_code');
+      final isEmp = _box.read<bool>(_keySavedIsEmployeeMode) ?? false;
+
+      if (login != null && login.isNotEmpty && pass != null && pass.isNotEmpty) {
+        _cachedRememberedCredentials = {
+          'login': login,
+          'password': pass,
+          'companyCode': code,
+          'isEmployeeNumberMode': isEmp,
+        };
+        return _cachedRememberedCredentials;
+      }
+    } catch (_) {}
+
+    return _cachedRememberedCredentials;
+  }
+
+  /// Persists credentials into platform secure storage when "Remember Me" is enabled
   static Future<void> saveRememberedCredentials({
     required String login,
     required String password,
     String? companyCode,
     required bool isEmployeeNumberMode,
   }) async {
-    final devId = deviceId;
-    final encLogin = EncryptionHelper.encrypt(login, deviceId: devId);
-    final encPass = EncryptionHelper.encrypt(password, deviceId: devId);
-    final encCode = (companyCode != null && companyCode.trim().isNotEmpty)
-        ? EncryptionHelper.encrypt(companyCode.trim(), deviceId: devId)
-        : null;
+    final cleanLogin = login.trim();
+    final cleanPass = password;
+    final cleanCode = companyCode?.trim();
 
-    if (encLogin != null && encPass != null) {
-      await _box.write(_keyEncryptedLogin, encLogin);
-      await _box.write(_keyEncryptedPassword, encPass);
-      if (encCode != null) {
-        await _box.write(_keyEncryptedCompanyCode, encCode);
-      } else {
-        await _box.remove(_keyEncryptedCompanyCode);
-      }
-      await _box.write(_keySavedIsEmployeeMode, isEmployeeNumberMode);
-      await setRememberMe(true);
-      if (!isEmployeeNumberMode) {
-        await setSavedEmail(login);
-      }
+    await SecureStorageService.write('ams_sec_login', cleanLogin);
+    await SecureStorageService.write('ams_sec_password', cleanPass);
+    if (cleanCode != null && cleanCode.isNotEmpty) {
+      await SecureStorageService.write('ams_sec_company_code', cleanCode);
+    } else {
+      await SecureStorageService.delete('ams_sec_company_code');
     }
+
+    await _box.write(_keySavedLoginIdentifier, cleanLogin);
+    await _box.write(_keySavedIsEmployeeMode, isEmployeeNumberMode);
+    await setRememberMe(true);
+    if (!isEmployeeNumberMode) {
+      await setSavedEmail(cleanLogin);
+    }
+
+    _cachedRememberedCredentials = {
+      'login': cleanLogin,
+      'password': cleanPass,
+      'companyCode': cleanCode,
+      'isEmployeeNumberMode': isEmployeeNumberMode,
+    };
   }
 
   /// Clears stored remembered credentials and resets "Remember Me"
   static Future<void> clearRememberedCredentials() async {
-    await _box.remove(_keyEncryptedLogin);
-    await _box.remove(_keyEncryptedPassword);
-    await _box.remove(_keyEncryptedCompanyCode);
+    await SecureStorageService.delete('ams_sec_login');
+    await SecureStorageService.delete('ams_sec_password');
+    await SecureStorageService.delete('ams_sec_company_code');
+    _cachedRememberedCredentials = null;
+
+    await _box.remove(_keySavedLoginIdentifier);
     await _box.remove(_keySavedIsEmployeeMode);
     await setRememberMe(false);
     await setSavedEmail(null);
+
+    // Also purge legacy keys if present
+    await _box.remove(_keyEncryptedLogin);
+    await _box.remove(_keyEncryptedPassword);
+    await _box.remove(_keyEncryptedCompanyCode);
   }
 
-  /// Verifies if valid remembered credentials exist in local storage
+  /// Verifies if valid remembered credentials exist in platform secure storage or cache
   static bool hasRememberedCredentials() {
-    return rememberMe &&
-        _box.hasData(_keyEncryptedLogin) &&
-        _box.hasData(_keyEncryptedPassword);
+    if (!rememberMe) return false;
+    if (_cachedRememberedCredentials != null) return true;
+    return _box.hasData(_keySavedLoginIdentifier) || _box.hasData(_keySavedEmail);
   }
 
-  /// Retrieves the decrypted display identifier of the remembered account (email or employee ID)
+  /// Retrieves the display identifier of the remembered account (email or employee ID)
   static String? getSavedLoginIdentifier() {
     if (!hasRememberedCredentials()) return null;
-    final encLogin = _box.read<String>(_keyEncryptedLogin);
-    return EncryptionHelper.decrypt(encLogin, deviceId: deviceId);
+    return _cachedRememberedCredentials?['login']?.toString() ??
+        _box.read<String>(_keySavedLoginIdentifier) ??
+        _box.read<String>(_keySavedEmail);
   }
 
-  /// Decrypts and retrieves stored credentials map
+  /// Retrieves decrypted stored credentials map from platform secure storage
   static Map<String, dynamic>? getDecryptedCredentials() {
     if (!hasRememberedCredentials()) return null;
-
-    final encLogin = _box.read<String>(_keyEncryptedLogin);
-    final encPass = _box.read<String>(_keyEncryptedPassword);
-    final encCode = _box.read<String>(_keyEncryptedCompanyCode);
-    final isEmpMode = _box.read<bool>(_keySavedIsEmployeeMode) ?? false;
-
-    final decLogin = EncryptionHelper.decrypt(encLogin, deviceId: deviceId);
-    final decPass = EncryptionHelper.decrypt(encPass, deviceId: deviceId);
-    final decCode = (encCode != null)
-        ? EncryptionHelper.decrypt(encCode, deviceId: deviceId)
-        : null;
-
-    if (decLogin == null || decPass == null) return null;
-
-    return {
-      'login': decLogin,
-      'password': decPass,
-      'companyCode': decCode,
-      'isEmployeeNumberMode': isEmpMode,
-    };
+    return _cachedRememberedCredentials;
   }
 
   // --- Theme Mode ---
@@ -627,8 +727,14 @@ class AppPreferences {
 
   /// Clears stored kiosk authorization token and active configuration cache
   static Future<void> clearKioskToken() async {
+    await clearKioskSession();
+  }
+
+  /// Clears enterprise kiosk session separately from personal session
+  static Future<void> clearKioskSession() async {
     await _box.remove(_keyKioskToken);
     await _box.remove(_keyKioskConfig);
+    await _box.remove(_keyKioskPinConfigured);
   }
 
   /// Checks if active device is provisioned as an enterprise kiosk terminal
@@ -673,6 +779,8 @@ class AppPreferences {
 
   static Future<void> clearAll() async {
     await clearEnrolledFace();
+    await SecureStorageService.deleteAll();
+    _cachedRememberedCredentials = null;
     await _box.erase();
   }
 }

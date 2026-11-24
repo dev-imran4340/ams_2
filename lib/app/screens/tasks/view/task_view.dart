@@ -51,14 +51,15 @@ class TaskView extends GetView<TaskController> {
                         title: 'Task Operations',
                         subtitle: 'Tasks, deliverables & checklists',
                         actions: [
-                          CustomScreenHeader.actionButton(
-                            icon: Icons.add_task_rounded,
-                            onTap: () {
-                              HapticFeedback.lightImpact();
-                              controller.openCreateTaskModal(context);
-                            },
-                            tooltip: 'New Task',
-                          ),
+                          if (controller.canManageTeamTasks)
+                            CustomScreenHeader.actionButton(
+                              icon: Icons.add_task_rounded,
+                              onTap: () {
+                                HapticFeedback.lightImpact();
+                                controller.openCreateTaskModal(context);
+                              },
+                              tooltip: 'New Task',
+                            ),
                         ],
                       ),
 

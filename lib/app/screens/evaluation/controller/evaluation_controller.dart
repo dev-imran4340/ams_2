@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 import '../../../api/app_preferences.dart';
+import '../../../core/services/permission_service.dart';
 import '../../../core/widgets/custom_snackbar.dart';
 import '../../../routes/app_routes.dart';
 import '../model/evaluation_model.dart';
@@ -24,9 +25,12 @@ class EvaluationController extends GetxController {
 
   bool get canViewPerformance =>
       AppPreferences.hasModule('performance') &&
-      AppPreferences.hasPermission('performance.view');
+      AppPreferences.hasPermission(AppPermissions.performanceView);
   bool get canManagePerformance =>
-      AppPreferences.hasPermission('performance.manage', 'department');
+      AppPreferences.hasPermission(
+        AppPermissions.performanceManage,
+        AppPermissionScopes.department,
+      );
 
   /// List of reviews for current box
   final RxList<EvaluationListItemModel> reviews =
@@ -351,6 +355,14 @@ class EvaluationController extends GetxController {
     final details = selectedReview.value;
     if (details == null || isSubmitting.value) return false;
 
+    if (details.viewer.writesAs == 'manager' && !canManagePerformance) {
+      CustomSnackbar.showError(
+        title: 'Access Denied',
+        message: 'You do not have permission to submit manager evaluations.',
+      );
+      return false;
+    }
+
     try {
       isSubmitting.value = true;
       final payload = _buildPayload(details);
@@ -374,6 +386,14 @@ class EvaluationController extends GetxController {
   Future<bool> submitReview(String id) async {
     final details = selectedReview.value;
     if (details == null || isSubmitting.value) return false;
+
+    if (details.viewer.writesAs == 'manager' && !canManagePerformance) {
+      CustomSnackbar.showError(
+        title: 'Access Denied',
+        message: 'You do not have permission to submit manager evaluations.',
+      );
+      return false;
+    }
 
     // Pre-flight Client Validation Check
     final validationError = validateSubmission(details);
@@ -433,6 +453,14 @@ class EvaluationController extends GetxController {
   /// Manager asks colleagues for feedback (POST /performance/reviews/{id}/peers)
   Future<bool> invitePeers(String id, List<String> userIds) async {
     if (isSubmitting.value) return false;
+
+    if (!PermissionService.verifyAction(
+      AppPermissions.performanceManage,
+      requiredScope: AppPermissionScopes.department,
+      actionName: 'invite colleagues for peer reviews',
+    )) {
+      return false;
+    }
 
     try {
       isSubmitting.value = true;

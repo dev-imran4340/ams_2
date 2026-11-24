@@ -183,11 +183,14 @@ class CorrectionController extends GetxController {
     );
   }
 
-  /// Navigates user to Requests & Approvals screen (Tab 2)
+  /// Navigates user to Requests & Approvals screen (Tab: 'requests')
   void navigateToApprovals() {
     HapticFeedback.selectionClick();
     if (Get.isRegistered<IndexController>()) {
-      Get.find<IndexController>().changeTab(2);
+      final indexCtrl = Get.find<IndexController>();
+      if (!indexCtrl.openTabByKey('requests')) {
+        Get.toNamed(Routes.APPROVALS);
+      }
       Get.back();
     } else {
       Get.toNamed(Routes.LEAVE);

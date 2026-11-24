@@ -10,30 +10,34 @@ import 'package:ams_2/app/screens/employees/model/department_employee_model.dart
 
 class DepartmentStaffCard extends StatelessWidget {
   final DepartmentEmployeeModel employee;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
   final VoidCallback? onLongPress;
+  final bool showChevron;
 
   const DepartmentStaffCard({
     super.key,
     required this.employee,
-    required this.onTap,
+    this.onTap,
     this.onLongPress,
+    this.showChevron = true,
   });
 
   @override
   Widget build(BuildContext context) {
     return CustomCard(
-      onTap: () {
-        HapticFeedback.lightImpact();
-        onTap();
-      },
+      onTap: onTap != null
+          ? () {
+              HapticFeedback.lightImpact();
+              onTap!();
+            }
+          : null,
       onLongPress: onLongPress != null
           ? () {
               HapticFeedback.mediumImpact();
               onLongPress!();
             }
           : null,
-      margin: EdgeInsets.only(bottom: 10.h),
+
       padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 14.h),
       accentColor: AppColors.secondary,
       accentWidth: 3.w,
@@ -84,12 +88,16 @@ class DepartmentStaffCard extends StatelessWidget {
                     ),
                     AppSpaces.hSpace6,
                     Container(
-                      padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 6.w,
+                        vertical: 2.h,
+                      ),
                       decoration: BoxDecoration(
-                        color: (employee.isActive
-                                ? AppColors.success
-                                : AppColors.warning)
-                            .withValues(alpha: 0.12),
+                        color:
+                            (employee.isActive
+                                    ? AppColors.success
+                                    : AppColors.warning)
+                                .withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(4.r),
                       ),
                       child: Text(
@@ -127,12 +135,13 @@ class DepartmentStaffCard extends StatelessWidget {
             ),
           ),
 
-          // Chevron action
-          Icon(
-            Icons.chevron_right_rounded,
-            size: 20.sp,
-            color: AppColors.subTextColor.withValues(alpha: 0.5),
-          ),
+          // Chevron action (only when interactive)
+          if (showChevron)
+            Icon(
+              Icons.chevron_right_rounded,
+              size: 20.sp,
+              color: AppColors.subTextColor.withValues(alpha: 0.5),
+            ),
         ],
       ),
     );

@@ -40,6 +40,13 @@ abstract class Routes {
   static const HELPDESK = '/helpdesk';
   static const HELPDESK_TICKET = '/helpdesk-ticket';
   static const JOB_DESCRIPTION = '/job-description';
+  static const EMPLOYEES = '/employees';
+
+  // Company & Enterprise Kiosk Flows
+  static const COMPANY_DASHBOARD = '/company-dashboard';
+  static const COMPANY_EMPLOYEES = '/company-employees';
+  static const KIOSK_SETUP = '/kiosk-setup';
+  static const KIOSK_MAIN = '/kiosk-main';
 }
 
 

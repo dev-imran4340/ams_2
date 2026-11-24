@@ -195,6 +195,20 @@ class ChecklistsView extends GetView<ChecklistController> {
 
   Widget _buildChecklistsList() {
     return Obx(() {
+      if (controller.isAccessRestricted.value) {
+        return Container(
+          padding: EdgeInsets.symmetric(vertical: 40.h),
+          child: Center(
+            child: CustomStateView.error(
+              title: 'Access Restricted',
+              message: controller.accessRestrictedMessage.value.isNotEmpty
+                  ? controller.accessRestrictedMessage.value
+                  : 'You do not have permission to view or manage joiner and leaver checklists.',
+            ),
+          ),
+        );
+      }
+
       if (controller.isLoading.value) {
         return Container(
           padding: EdgeInsets.symmetric(vertical: 40.h),

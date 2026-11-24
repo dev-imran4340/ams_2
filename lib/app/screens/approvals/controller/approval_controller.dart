@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 import '../../../api/app_preferences.dart';
+import '../../../core/services/permission_service.dart';
 import '../../../core/utils/app_colors.dart';
 import '../../../core/widgets/custom_snackbar.dart';
 import '../../index/controller/index_controller.dart';
@@ -21,8 +22,7 @@ class ApprovalController extends GetxController {
   final RxBool isActionLoading = false.obs;
 
   /// Active Approvals Box filter ('waiting', 'mine', 'pending', 'decided')
-  /// Company/Managers start on 'waiting' (approver queue); Employees start on 'mine'
-  final RxString selectedBox = (AppPreferences.isCompanyMode ? 'waiting' : 'mine').obs;
+  final RxString selectedBox = 'waiting'.obs;
 
   // Collections
   final RxList<ApprovalItemModel> approvalsList = <ApprovalItemModel>[].obs;
@@ -35,14 +35,15 @@ class ApprovalController extends GetxController {
   // Reactive Validation Observable for Rejection Dialog
   final RxnString rejectionError = RxnString();
 
+  bool get canOverrideApprovals =>
+      AppPreferences.hasPermission(AppPermissions.approvalsOverride);
+
   @override
   void onInit() {
     super.onInit();
     final args = Get.arguments;
     if (args is Map && args['box'] != null) {
       selectedBox.value = args['box'].toString();
-    } else {
-      selectedBox.value = AppPreferences.isCompanyMode ? 'waiting' : 'mine';
     }
     if (args is Map && args['openId'] != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -155,6 +156,15 @@ class ApprovalController extends GetxController {
   Future<void> approveRequest(String id, {String? comment}) async {
     if (isActionLoading.value) return;
 
+    final current = selectedApproval.value;
+    if (current?.can.asOverride == true && !canOverrideApprovals) {
+      CustomSnackbar.showError(
+        title: 'Access Denied',
+        message: 'You do not have permission to override approval decisions.',
+      );
+      return;
+    }
+
     try {
       isActionLoading.value = true;
       HapticFeedback.mediumImpact();
@@ -192,6 +202,15 @@ class ApprovalController extends GetxController {
   /// Confirms and processes request rejection (POST /approvals/{id}/reject)
   Future<void> rejectRequest(String id, {required String comment}) async {
     if (isActionLoading.value) return;
+
+    final current = selectedApproval.value;
+    if (current?.can.asOverride == true && !canOverrideApprovals) {
+      CustomSnackbar.showError(
+        title: 'Access Denied',
+        message: 'You do not have permission to override approval decisions.',
+      );
+      return;
+    }
 
     final trimmed = comment.trim();
     if (trimmed.isEmpty) {

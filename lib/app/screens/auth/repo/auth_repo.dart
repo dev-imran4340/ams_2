@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:local_auth/local_auth.dart';
 
 import '../../../api/api_client.dart';
 import '../../../api/api_endpoints.dart';
@@ -8,6 +9,10 @@ import '../../../api/app_preferences.dart';
 import '../model/auth_model.dart';
 
 class AuthRepo {
+  final LocalAuthentication _localAuth;
+
+  AuthRepo({LocalAuthentication? localAuth})
+      : _localAuth = localAuth ?? LocalAuthentication();
   /// Authenticates user credentials via POST /api/v1/auth/login.
   /// Supports dual-mode: corporate email or employee number + company code.
   Future<LoginResponseModel> login({
@@ -101,28 +106,33 @@ class AuthRepo {
     }
   }
 
-  /// Biometric authentication fallback / mock support
-  Future<LoginResponseModel?> authenticateWithBiometrics() async {
-    await Future.delayed(const Duration(milliseconds: 300));
+  /// Verifies if device has functional biometric hardware and enrolled biometrics
+  Future<bool> isBiometricHardwareAvailable() async {
+    try {
+      final bool canCheck = await _localAuth.canCheckBiometrics;
+      final bool isSupported = await _localAuth.isDeviceSupported();
+      return canCheck && isSupported;
+    } catch (e) {
+      debugPrint('⚠️ [AuthRepo -> isBiometricHardwareAvailable] $e');
+      return false;
+    }
+  }
 
-    final mockUser = UserModel(
-      id: '01jb2x9k4m7q8r3t5v6w8y0z1a',
-      name: 'Authenticated Employee',
-      email: AppPreferences.savedEmail ?? 'employee@acme.pk',
-      employeeId: 'EMP-0001',
-      designation: 'Staff Member',
-      department: 'Corporate Headquarters',
-      avatarUrl: null,
-      accountType: 'organization',
-    );
-
-    return LoginResponseModel(
-      twoFactorRequired: false,
-      token: AppPreferences.token ?? 'ams_bio_session_token',
-      refreshToken: 'ams_bio_ref_mock_token',
-      user: mockUser,
-      message: 'Biometric verification successful',
-    );
+  /// Prompts device platform-backed biometric authentication (Fingerprint / Face ID).
+  /// Strictly performs local unlock only — does not create sessions or fake tokens.
+  Future<bool> authenticateWithBiometricsLocally({
+    String reason = 'Authenticate to access your AMS 2 session',
+  }) async {
+    try {
+      return await _localAuth.authenticate(
+        localizedReason: reason,
+        biometricOnly: true,
+        persistAcrossBackgrounding: true,
+      );
+    } catch (e) {
+      debugPrint('⚠️ [AuthRepo -> authenticateWithBiometricsLocally] $e');
+      return false;
+    }
   }
 }
 

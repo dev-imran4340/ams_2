@@ -86,7 +86,7 @@ class PushNotificationService {
       // Print cached token if already present from previous sessions
       final cachedToken = AppPreferences.fcmToken;
       if (cachedToken != null && cachedToken.isNotEmpty) {
-        Get.log('💾 [$originTag] Stored Local FCM Token: $cachedToken');
+        Get.log('💾 [$originTag] Stored Local FCM Token is present.');
         _printTokenBanner(cachedToken, source: 'Cached Local Storage (Startup)');
       }
 
@@ -378,14 +378,16 @@ class PushNotificationService {
     });
   }
 
-  /// Prominently outputs the FCM token in a clean, high-visibility console box for testing
+  /// Prominently outputs the FCM token in a clean, sanitized console box for diagnostics
   void _printTokenBanner(String token, {String source = 'Firebase Live'}) {
+    final sanitizedToken = token.length > 10
+        ? '${token.substring(0, 4)}...[REDACTED]...${token.substring(token.length - 4)}'
+        : '[REDACTED]';
     debugPrint('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     debugPrint('🔥 [AMS FCM DEVICE TOKEN CAPTURED]');
     debugPrint('   • Source   : $source');
     debugPrint('   • Platform : ${Platform.isIOS ? "iOS" : (Platform.isAndroid ? "Android" : defaultTargetPlatform.name)}');
-    debugPrint('   • Token    :');
-    debugPrint(token);
+    debugPrint('   • Token    : $sanitizedToken');
     debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
   }
 

@@ -42,13 +42,22 @@ class SplashController extends GetxController {
       if (_hasNavigated) return;
       _hasNavigated = true;
 
+      // If tablet is provisioned as an enterprise kiosk terminal, boot directly into Kiosk Mode
+      if (AppPreferences.isKioskProvisioned) {
+        Get.offAllNamed(Routes.KIOSK_MAIN);
+        return;
+      }
+
       // Read authentication credentials strictly through AppPreferences abstraction
       final String? token = AppPreferences.token;
       final bool isLoggedIn = AppPreferences.isLoggedIn;
 
       if (token != null && token.trim().isNotEmpty && isLoggedIn) {
-        // Active session: route to authenticated Main Shell (Index) for both Company & Employee
-        Get.offAllNamed(Routes.INDEX);
+        if (AppPreferences.isCompanyMode) {
+          Get.offAllNamed(Routes.COMPANY_DASHBOARD);
+        } else {
+          Get.offAllNamed(Routes.INDEX);
+        }
       } else {
         // No valid token: route to Login
         Get.offAllNamed(Routes.LOGIN);

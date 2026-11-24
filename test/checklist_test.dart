@@ -1,5 +1,9 @@
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
+import 'package:ams_2/app/api/app_preferences.dart';
+import 'package:ams_2/app/core/services/permission_service.dart';
 import 'package:ams_2/app/screens/checklists/model/checklist_model.dart';
 import 'package:ams_2/app/screens/checklists/repo/checklist_repo.dart';
 import 'package:ams_2/app/screens/checklists/controller/checklist_controller.dart';
@@ -21,6 +25,16 @@ class MockChecklistRepo extends ChecklistRepo {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUpAll(() async {
+    const MethodChannel channel =
+        MethodChannel('plugins.flutter.io/path_provider');
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+      return '.';
+    });
+    await GetStorage.init();
+  });
 
   group('ChecklistModel & Task Model JSON Deserialization', () {
     test('correctly parses full ChecklistModel and tasks', () {
@@ -112,8 +126,11 @@ void main() {
   group('ChecklistController Filtering & Telemetry', () {
     late ChecklistController controller;
 
-    setUp(() {
+    setUp(() async {
       Get.reset();
+      await AppPreferences.setPermissions({
+        AppPermissions.onboardingManage: ['department'],
+      });
     });
 
     tearDown(() {

@@ -6,7 +6,9 @@ import '../../../api/app_preferences.dart';
 import '../../../api/exception_handler.dart';
 import '../../../services/push_notification_service.dart';
 import '../../../core/utils/device_info_helper.dart';
+import '../../../core/widgets/custom_snackbar.dart';
 import '../../../routes/app_routes.dart';
+import '../../index/repo/index_repo.dart';
 import '../components/saved_account_sheet.dart';
 import '../components/two_factor_sheet.dart';
 import '../model/auth_model.dart';
@@ -74,9 +76,10 @@ class AuthController extends GetxController {
     _promptSavedAccountIfAvailable();
   }
 
-  void _loadSavedCredentialsStatus() {
+  Future<void> _loadSavedCredentialsStatus() async {
     rememberMe.value = AppPreferences.rememberMe;
     if (AppPreferences.hasRememberedCredentials()) {
+      await AppPreferences.loadSavedCredentials();
       hasSavedCredentials.value = true;
       savedAccountLabel.value = AppPreferences.getSavedLoginIdentifier();
       isSavedPromptVisible.value = true;
@@ -139,9 +142,7 @@ class AuthController extends GetxController {
       rememberMe.value = true;
       clearInlineErrors();
       isSavedPromptVisible.value = false;
-      Get.log(
-        '🔐 [AuthController] Decrypted & populated saved credentials for: ${creds['login']}',
-      );
+      Get.log('🔐 [AuthController] Populated saved credentials into form.');
     }
   }
 
@@ -284,6 +285,7 @@ class AuthController extends GetxController {
 
       // Handle Direct Login (No 2FA Required)
       if (response.token != null && response.token!.isNotEmpty) {
+        await AppPreferences.clearSession();
         await AppPreferences.saveAuthData(
           token: response.token!,
           refreshToken: response.refreshToken,
@@ -303,7 +305,7 @@ class AuthController extends GetxController {
         }
 
         Get.log(
-          '🔑 [AuthController -> login()] Session token successfully persisted to local storage (AppPreferences): ${AppPreferences.token}',
+          '🔑 [AuthController -> login()] Session token successfully persisted to local storage.',
         );
 
         // Register FCM device push token with AMS 2 backend
@@ -313,8 +315,12 @@ class AuthController extends GetxController {
           '🎯 [AuthController -> login()] Decoded user identity type: ${response.isCompany ? "Company/Organization User" : "Employee"}',
         );
 
-        // Route smoothly to unified Main Shell (Index) where permissions & modules drive views
-        Get.offAllNamed(Routes.INDEX);
+        // Separate Login Flows: Company Account -> Company Dashboard; Employee Account -> Index
+        if (response.isCompany) {
+          Get.offAllNamed(Routes.COMPANY_DASHBOARD);
+        } else {
+          Get.offAllNamed(Routes.INDEX);
+        }
       } else {
         loginError.value = response.message ?? 'Authentication failed. Please verify your credentials.';
       }
@@ -375,6 +381,7 @@ class AuthController extends GetxController {
       );
 
       if (response.token != null && response.token!.isNotEmpty) {
+        await AppPreferences.clearSession();
         await AppPreferences.saveAuthData(
           token: response.token!,
           isCompany: response.isCompany,
@@ -405,8 +412,12 @@ class AuthController extends GetxController {
           '🎯 [AuthController -> verifyTwoFactor()] Decoded user identity type: ${response.isCompany ? "Company/Organization User" : "Employee"}',
         );
 
-        // Route smoothly to unified Main Shell (Index) where permissions & modules drive views
-        Get.offAllNamed(Routes.INDEX);
+        // Separate Login Flows: Company Account -> Company Dashboard; Employee Account -> Index
+        if (response.isCompany) {
+          Get.offAllNamed(Routes.COMPANY_DASHBOARD);
+        } else {
+          Get.offAllNamed(Routes.INDEX);
+        }
       }
     } catch (e) {
       if (e is ApiException) {
@@ -453,28 +464,66 @@ class AuthController extends GetxController {
     }
   }
 
-  /// Biometric authentication flow
+  /// Biometric session unlock flow.
+  /// Strictly unlocks an existing securely stored session and verifies it with the backend.
+  /// Never creates a session independently or bypasses backend authentication.
   Future<void> loginWithBiometrics() async {
+    // 1. Check if a valid session exists
+    final token = AppPreferences.token;
+    if (token == null || token.trim().isEmpty || !AppPreferences.isLoggedIn) {
+      CustomSnackbar.showInfo(
+        message: 'No active session found. Please sign in with your credentials.',
+      );
+      return;
+    }
+
     try {
       isBiometricLoading.value = true;
-      final response = await repo.authenticateWithBiometrics();
-      if (response != null && response.token != null && response.token!.isNotEmpty) {
-        authResponse.value = response;
-        await AppPreferences.saveAuthData(
-          token: response.token!,
-          refreshToken: response.refreshToken,
-          user: response.user,
-          isCompany: response.isCompany,
+
+      // 2. Check hardware availability and enrollment
+      final isAvailable = await repo.isBiometricHardwareAvailable();
+      if (!isAvailable) {
+        CustomSnackbar.showError(
+          title: 'Biometrics Unavailable',
+          message: 'Biometric authentication is not supported or not configured on this device.',
         );
+        return;
+      }
 
-        // Register FCM device push token with AMS 2 backend
-        PushNotificationService.instance.registerDevicePushToken();
+      // 3. Prompt user for biometric unlock
+      final didAuthenticate = await repo.authenticateWithBiometricsLocally(
+        reason: 'Authenticate to unlock your AMS 2 session',
+      );
 
-        Get.log(
-          '🎯 [AuthController -> loginWithBiometrics()] Decoded user identity type: ${response.isCompany ? "Company/Organization User" : "Employee"}',
+      if (!didAuthenticate) {
+        CustomSnackbar.showInfo(
+          message: 'Biometric authentication was cancelled or not recognized.',
         );
+        return;
+      }
 
-        // Route smoothly to unified Main Shell (Index) where permissions & modules drive views
+      // 4. Verify existing session with backend via GET /me
+      final indexRepo = Get.isRegistered<IndexRepo>()
+          ? Get.find<IndexRepo>()
+          : IndexRepo();
+      final meResult = await indexRepo.fetchMe();
+
+      if (meResult == null) {
+        // Stored session has expired or is invalid
+        await AppPreferences.clearSession();
+        CustomSnackbar.showError(
+          title: 'Session Expired',
+          message: 'Your session has expired or is invalid. Please sign in again.',
+        );
+        Get.offAllNamed(Routes.LOGIN);
+        return;
+      }
+
+      // 5. Session confirmed valid by backend: proceed to main shell
+      PushNotificationService.instance.registerDevicePushToken();
+      if (AppPreferences.isCompanyMode) {
+        Get.offAllNamed(Routes.COMPANY_DASHBOARD);
+      } else {
         Get.offAllNamed(Routes.INDEX);
       }
     } catch (e) {

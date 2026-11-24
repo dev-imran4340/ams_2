@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 
 import '../../../api/app_preferences.dart';
 import '../../../api/exception_handler.dart';
+import '../../../core/services/permission_service.dart';
 import '../../../core/widgets/custom_snackbar.dart';
 import '../model/money_request_model.dart';
 import '../repo/money_request_repo.dart';
@@ -69,7 +70,7 @@ class MoneyRequestController extends GetxController {
   /// Verifies if 'loans_expenses' module is enabled in active subscription and money.view permission
   void _checkModuleGate() {
     final hasModule = AppPreferences.hasModule('loans_expenses');
-    final hasPermission = AppPreferences.hasPermission('money.view');
+    final hasPermission = AppPreferences.hasPermission(AppPermissions.moneyView);
     isLoansModuleActive.value = hasModule && hasPermission;
     if (!isLoansModuleActive.value) {
       isAccessRestricted.value = true;
@@ -78,6 +79,9 @@ class MoneyRequestController extends GetxController {
           : 'You do not have permission to access Money Requests.';
     }
   }
+
+  /// Whether current user has permission to manage/approve money requests
+  bool get canManageMoney => AppPreferences.hasPermission(AppPermissions.moneyManage);
 
   /// Loads available types, categories, and historical requests
   Future<void> loadLoansData() async {
@@ -176,6 +180,13 @@ class MoneyRequestController extends GetxController {
 
   /// Submits new loan, advance or expense claim
   Future<bool> submitRequest() async {
+    if (!PermissionService.verifyAction(
+      AppPermissions.moneyView,
+      actionName: 'submit money request',
+    )) {
+      return false;
+    }
+
     final type = selectedFormType.value;
     if (type == null) {
       CustomSnackbar.showError(message: 'Please select a request type.');
@@ -240,6 +251,12 @@ class MoneyRequestController extends GetxController {
 
   /// Cancels / withdraws pending request
   Future<bool> cancelRequest(String id) async {
+    if (!PermissionService.verifyAction(
+      AppPermissions.moneyView,
+      actionName: 'cancel money request',
+    )) {
+      return false;
+    }
     try {
       isCancelling.value = true;
       final success = await repo.cancelMoneyRequest(

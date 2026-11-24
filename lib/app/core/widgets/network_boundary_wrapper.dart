@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../services/network_connectivity_service.dart';
 import '../utils/app_colors.dart';
@@ -116,8 +117,9 @@ class _NetworkBoundaryWrapperState extends State<NetworkBoundaryWrapper> {
 
   @override
   Widget build(BuildContext context) {
+    final Widget content;
     if (!_isConnected) {
-      return Scaffold(
+      content = Scaffold(
         backgroundColor: AppColors.backgroundColor,
         body: SafeArea(
           child: CustomStateView.error(
@@ -140,8 +142,19 @@ class _NetworkBoundaryWrapperState extends State<NetworkBoundaryWrapper> {
           ),
         ),
       );
+    } else {
+      content = widget.child;
     }
 
-    return widget.child;
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarIconBrightness: Brightness.light,
+      ),
+      child: content,
+    );
   }
 }

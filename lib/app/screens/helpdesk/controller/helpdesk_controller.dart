@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 import '../../../api/app_preferences.dart';
+import '../../../core/services/permission_service.dart';
 import '../../../core/utils/app_colors.dart';
 import '../model/helpdesk_model.dart';
 import '../repo/helpdesk_repo.dart';
@@ -56,6 +57,9 @@ class HelpdeskController extends GetxController {
   int get openCount => tickets.where((t) => t.isOpen).length;
   int get inProgressCount => tickets.where((t) => t.isInProgress || t.isWaitingOnUser).length;
   int get resolvedCount => tickets.where((t) => t.isResolved || t.isClosed).length;
+
+  /// Whether current user has permission to handle, resolve, or assign tickets
+  bool get canHandleTickets => AppPreferences.hasPermission(AppPermissions.helpdeskHandle);
 
   /// Filtered tickets list based on telemetry strip and category filter
   List<HelpdeskTicketModel> get filteredTickets {

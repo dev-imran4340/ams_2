@@ -97,7 +97,7 @@ class MeMenuItem {
 class MeResponseModel {
   final MeUser user;
   final MeCompany company;
-  final Map<String, List<String>> permissions;
+  final Map<String, List<String>?> permissions;
   final List<String> modules;
   final List<MeMenuItem> menu;
   final Map<String, int> badges;
@@ -129,15 +129,16 @@ class MeResponseModel {
         : <String, dynamic>{};
     final company = MeCompany.fromJson(compRaw);
 
-    // Parse permissions map
-    final Map<String, List<String>> permissions = {};
+    // Parse permissions map preserving null semantics for binary permissions
+    final Map<String, List<String>?> permissions = {};
     if (data['permissions'] is Map) {
       (data['permissions'] as Map).forEach((key, value) {
         if (value is List) {
           permissions[key.toString()] =
               value.map((e) => e.toString()).toList();
         } else if (value == null) {
-          permissions[key.toString()] = <String>[];
+          // Explicit null indicates granted binary permission (e.g. "support.raise": null)
+          permissions[key.toString()] = null;
         }
       });
     }

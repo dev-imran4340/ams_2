@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 import '../../../api/app_preferences.dart';
+import '../../../core/services/permission_service.dart';
 import '../../../core/widgets/custom_snackbar.dart';
 import '../model/task_model.dart';
 import '../repo/task_repo.dart';
@@ -262,6 +263,12 @@ class TaskController extends GetxController {
 
   /// Opens bottom sheet for creating a new task
   void openCreateTaskModal(BuildContext context) {
+    if (!PermissionService.verifyAction(
+      AppPermissions.tasksManage,
+      actionName: 'create or delegate tasks',
+    )) {
+      return;
+    }
     HapticFeedback.lightImpact();
     titleController.clear();
     descriptionController.clear();
@@ -277,6 +284,12 @@ class TaskController extends GetxController {
 
   /// Submits new deliverable
   Future<void> submitTask() async {
+    if (!PermissionService.verifyAction(
+      AppPermissions.tasksManage,
+      actionName: 'create or delegate tasks',
+    )) {
+      return;
+    }
     // Strict FormKey validation invariant & Error Auto-Scroll
     if (createTaskFormKey.currentState == null ||
         !createTaskFormKey.currentState!.validate()) {

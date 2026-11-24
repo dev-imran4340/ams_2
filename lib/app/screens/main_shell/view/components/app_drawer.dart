@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import '../../../../core/utils/app_colors.dart';
 import '../../../../core/utils/app_spaces.dart';
 import '../../../../core/utils/app_text_styles.dart';
+import '../../../../core/services/permission_service.dart';
 import '../../../../routes/app_routes.dart';
 import '../../../index/controller/index_controller.dart';
 import '../../controller/session_me_controller.dart';
@@ -15,19 +16,247 @@ import 'drawer_profile_header.dart';
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});
 
-  void _navigateToRoute(String routeName) {
+  void _navigateToRoute(String routeName, {String? tabKey}) {
     Get.back(); // Dismiss drawer smoothly
-    if (routeName == Routes.PROFILE &&
-        Get.currentRoute == Routes.INDEX &&
+    if (Get.currentRoute == Routes.INDEX &&
         Get.isRegistered<IndexController>()) {
       final indexCtrl = Get.find<IndexController>();
-      final profileIdx = indexCtrl.navTabs.indexWhere((t) => t.id == 'profile');
-      if (profileIdx != -1) {
-        indexCtrl.changeTab(profileIdx);
+      if (tabKey != null && indexCtrl.openTabByKey(tabKey)) {
+        return;
+      }
+      if (routeName == Routes.PROFILE && indexCtrl.openTabByKey('profile')) {
+        return;
+      }
+      if (routeName == Routes.APPROVALS && indexCtrl.openTabByKey('requests')) {
+        return;
+      }
+      if (routeName == Routes.ATTENDANCE_HISTORY && indexCtrl.openTabByKey('attendance')) {
+        return;
+      }
+      if (routeName == Routes.SCHEDULE && indexCtrl.openTabByKey('schedule')) {
+        return;
+      }
+      if (routeName == Routes.EMPLOYEES && indexCtrl.openTabByKey('employees')) {
         return;
       }
     }
     Get.toNamed(routeName);
+  }
+
+  Widget? _buildDrawerCardByKey(String key, SessionMeController sessionController) {
+    switch (key) {
+      case 'requests':
+      case 'approvals':
+        return DrawerModuleCard(
+          title: 'Requests & Approvals',
+          subtitle: 'Leave, attendance, overtime & loan requests',
+          icon: Icons.inbox_rounded,
+          accentTint: AppColors.secondary,
+          badgeCount: sessionController.getBadge('requests'),
+          onTap: () => _navigateToRoute(Routes.APPROVALS, tabKey: 'requests'),
+        );
+
+      case 'employees':
+        if (!sessionController.hasPermission('employees.view')) return null;
+        return DrawerModuleCard(
+          title: 'Employees Directory',
+          subtitle: 'Department staff directory & contacts',
+          icon: Icons.badge_outlined,
+          accentTint: AppColors.primary,
+          onTap: () => _navigateToRoute(Routes.EMPLOYEES, tabKey: 'employees'),
+        );
+
+      case 'attendance':
+        if (!sessionController.hasModule('attendance') ||
+            !sessionController.hasPermission('attendance.view')) {
+          return null;
+        }
+        return DrawerModuleCard(
+          title: 'Attendance',
+          subtitle: 'Punch history, shift logs & daily hours',
+          icon: Icons.calendar_today_outlined,
+          accentTint: AppColors.warning,
+          onTap: () => _navigateToRoute(Routes.ATTENDANCE_HISTORY, tabKey: 'attendance'),
+        );
+
+      case 'schedule':
+        if (!sessionController.hasModule('attendance')) return null;
+        if (!sessionController.hasPermission('schedules.view') &&
+            !sessionController.hasPermission('attendance.view')) {
+          return null;
+        }
+        return DrawerModuleCard(
+          title: 'Work Schedule & Rota',
+          subtitle: 'Assigned shift pattern & holidays roster',
+          icon: Icons.schedule_rounded,
+          accentTint: AppColors.secondary,
+          onTap: () => _navigateToRoute(Routes.SCHEDULE, tabKey: 'schedule'),
+        );
+
+      case 'leave':
+      case 'leaves':
+        if (!sessionController.hasModule('leave') ||
+            !sessionController.hasPermission('leave.view')) {
+          return null;
+        }
+        return DrawerModuleCard(
+          title: 'Leave Management',
+          subtitle: 'Annual quota balance & absence requests',
+          icon: Icons.beach_access_outlined,
+          accentTint: AppColors.secondary,
+          onTap: () => _navigateToRoute(Routes.LEAVE),
+        );
+
+      case 'payroll':
+      case 'payslips':
+        if (!sessionController.hasModule('payroll') ||
+            !sessionController.hasPermission('pay.view')) {
+          return null;
+        }
+        return DrawerModuleCard(
+          title: 'Payroll & Payslips',
+          subtitle: 'Monthly salary breakdown & tax slips',
+          icon: Icons.receipt_long_outlined,
+          accentTint: AppColors.secondary,
+          onTap: () => _navigateToRoute(Routes.PAYROLL),
+        );
+
+      case 'money':
+      case 'loans':
+        if (!sessionController.hasModule('loans_expenses') ||
+            !sessionController.hasPermission('money.view')) {
+          return null;
+        }
+        return DrawerModuleCard(
+          title: 'Money Requests',
+          subtitle: 'Advance money requests & installments',
+          icon: Icons.account_balance_wallet_outlined,
+          accentTint: AppColors.warning,
+          onTap: () => _navigateToRoute(Routes.LOANS),
+        );
+
+      case 'performance':
+      case 'evaluation':
+        if (!sessionController.hasModule('performance') ||
+            !sessionController.hasPermission('performance.view')) {
+          return null;
+        }
+        return DrawerModuleCard(
+          title: 'Evaluation',
+          subtitle: 'Performance reviews & evaluations',
+          icon: Icons.trending_up_rounded,
+          accentTint: AppColors.accentNavy,
+          onTap: () => _navigateToRoute(Routes.EVALUATION),
+        );
+
+      case 'documents':
+        if (!sessionController.hasModule('documents') ||
+            !sessionController.hasPermission('documents.view')) {
+          return null;
+        }
+        return DrawerModuleCard(
+          title: 'Documents & Letters',
+          subtitle: 'Handbooks, notices & legal documents',
+          icon: Icons.menu_book_outlined,
+          accentTint: AppColors.info,
+          badgeCount: sessionController.getBadge('documents'),
+          onTap: () => _navigateToRoute(Routes.DOCUMENTS),
+        );
+
+      case 'news':
+        if (!sessionController.hasModule('documents') ||
+            !sessionController.hasPermission('documents.view')) {
+          return null;
+        }
+        return DrawerModuleCard(
+          title: 'News & Events',
+          subtitle: 'Announcements, events & milestones',
+          icon: Icons.campaign_outlined,
+          accentTint: AppColors.secondary,
+          onTap: () => _navigateToRoute(Routes.NEWS),
+        );
+
+      case 'tasks':
+        if (!sessionController.hasModule('onboarding')) return null;
+        return DrawerModuleCard(
+          title: 'Daily Tasks',
+          subtitle: 'Assigned tasks, duties & checklists',
+          icon: Icons.check_circle_outline_rounded,
+          accentTint: AppColors.secondary,
+          badgeCount: sessionController.getBadge('tasks'),
+          onTap: () => _navigateToRoute(Routes.TASKS),
+        );
+
+      case 'assets':
+        if (!sessionController.hasModule('assets') &&
+            !sessionController.hasModule('onboarding') &&
+            !sessionController.hasPermission('assets.view')) {
+          return null;
+        }
+        return DrawerModuleCard(
+          title: 'Company Assets',
+          subtitle: 'Assigned hardware, equipment & inventory',
+          icon: Icons.devices_other_rounded,
+          accentTint: AppColors.accentNavy,
+          onTap: () => _navigateToRoute(Routes.ASSETS),
+        );
+
+      case 'training':
+        if (!sessionController.hasModule('training') &&
+            !sessionController.hasModule('onboarding') &&
+            !sessionController.hasPermission('training.view')) {
+          return null;
+        }
+        return DrawerModuleCard(
+          title: 'Training & Development',
+          subtitle: 'Courses, compliance & certifications',
+          icon: Icons.school_outlined,
+          accentTint: AppColors.secondary,
+          onTap: () => _navigateToRoute(Routes.TRAINING),
+        );
+
+      case 'checklists':
+      case 'onboarding':
+        if (!sessionController.hasModule('onboarding') ||
+            !sessionController.hasPermission(AppPermissions.onboardingManage)) {
+          return null;
+        }
+        return DrawerModuleCard(
+          title: 'Checklists',
+          subtitle: 'Onboarding & offboarding workflows',
+          icon: Icons.checklist_rounded,
+          accentTint: AppColors.primary,
+          onTap: () => _navigateToRoute(Routes.CHECKLISTS),
+        );
+
+      case 'helpdesk':
+        return DrawerModuleCard(
+          title: 'HR Helpdesk',
+          subtitle: 'HR inquiries, requests & ticket discussion',
+          icon: Icons.forum_outlined,
+          accentTint: AppColors.secondary,
+          badgeCount: sessionController.getBadge('helpdesk'),
+          onTap: () => _navigateToRoute(Routes.HELPDESK),
+        );
+
+      case 'support':
+        if (!sessionController.hasPermission(AppPermissions.supportView) &&
+            !sessionController.hasMenuItem('support')) {
+          return null;
+        }
+        return DrawerModuleCard(
+          title: 'App Support & Guides',
+          subtitle: 'Technical app issues & video tutorials',
+          icon: Icons.video_library_outlined,
+          accentTint: AppColors.primary,
+          onTap: () => _navigateToRoute(Routes.SUPPORT_TICKETS),
+        );
+
+      case 'home':
+      case 'profile':
+      default:
+        return null;
+    }
   }
 
   @override
@@ -58,79 +287,45 @@ class AppDrawer extends StatelessWidget {
                 physics: const BouncingScrollPhysics(),
                 padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 16.h),
                 child: Obx(() {
-                  // Module, Permission & Dynamic Menu checks strictly driven by sessionController
-                  final bool hasAttendance =
-                      sessionController.hasModule('attendance') &&
-                      sessionController.hasPermission('attendance.view') &&
-                      sessionController.hasMenuItem('attendance');
+                  final List<Widget> dynamicCards = [];
+                  final Set<String> renderedKeys = {};
 
-                  final bool hasSchedule =
-                      sessionController.hasModule('attendance') &&
-                      (sessionController.hasPermission('schedules.view') ||
-                          sessionController.hasPermission('attendance.view')) &&
-                      sessionController.hasMenuItem('schedule');
-
-                  final bool hasLeave = sessionController.hasModule('leave') &&
-                      sessionController.hasPermission('leave.view') &&
-                      sessionController.hasMenuItem('leave');
-
-                  final bool hasPayroll =
-                      sessionController.hasModule('payroll') &&
-                      sessionController.hasPermission('pay.view') &&
-                      sessionController.hasMenuItem('payslips');
-
-                  final bool hasLoans =
-                      sessionController.hasModule('loans_expenses') &&
-                      sessionController.hasPermission('money.view') &&
-                      sessionController.hasMenuItem('money');
-
-                  final bool hasPerformance =
-                      sessionController.hasModule('performance') &&
-                      sessionController.hasPermission('performance.view') &&
-                      sessionController.hasMenuItem('performance');
-
-                  final bool hasDocuments =
-                      sessionController.hasModule('documents') &&
-                      sessionController.hasPermission('documents.view') &&
-                      sessionController.hasMenuItem('documents');
-                  final int docBadges = sessionController.getBadge('documents');
-
-                  final bool hasNews =
-                      sessionController.hasModule('documents') &&
-                      sessionController.hasPermission('documents.view') &&
-                      sessionController.hasMenuItem('news');
-
-                  final bool hasTasks =
-                      sessionController.hasModule('onboarding') &&
-                      sessionController.hasMenuItem('tasks');
-                  final int taskBadges = sessionController.getBadge('tasks');
-
-                  final bool hasAssets =
-                      sessionController.hasMenuItem('assets') ||
-                      sessionController.hasPermission('assets.view') ||
-                      sessionController.hasModule('assets') ||
-                      sessionController.hasModule('onboarding');
-
-                  final bool hasTraining =
-                      sessionController.hasMenuItem('training') ||
-                      sessionController.hasPermission('training.view') ||
-                      sessionController.hasModule('training') ||
-                      sessionController.hasModule('onboarding');
-
-                  final bool hasChecklists =
-                      sessionController.hasMenuItem('checklists') ||
-                      sessionController.hasPermission('checklists.view') ||
-                      sessionController.hasModule('onboarding');
-
-                  final bool hasSupport =
-                      sessionController.hasMenuItem('support') ||
-                      sessionController.hasPermission('support.view');
-
-                  // HR Helpdesk module is temporarily hidden as per user request (kept intact, dormant)
-                  // final bool hasHelpdesk =
-                  //     sessionController.hasMenuItem('helpdesk') ||
-                  //     sessionController.hasModule('onboarding');
-                  // final int helpdeskBadges = sessionController.getBadge('helpdesk');
+                  // Render strictly matching the server's menu list & order
+                  if (sessionController.menu.isNotEmpty) {
+                    for (final item in sessionController.menu) {
+                      if (renderedKeys.contains(item.key)) continue;
+                      final card = _buildDrawerCardByKey(item.key, sessionController);
+                      if (card != null) {
+                        renderedKeys.add(item.key);
+                        dynamicCards.add(card);
+                      }
+                    }
+                  } else {
+                    // Fallback order when menu is temporarily unpopulated
+                    const fallbackOrder = [
+                      'requests',
+                      'employees',
+                      'attendance',
+                      'schedule',
+                      'leave',
+                      'payroll',
+                      'money',
+                      'performance',
+                      'documents',
+                      'news',
+                      'tasks',
+                      'assets',
+                      'training',
+                      'checklists',
+                      'support',
+                    ];
+                    for (final key in fallbackOrder) {
+                      final card = _buildDrawerCardByKey(key, sessionController);
+                      if (card != null) {
+                        dynamicCards.add(card);
+                      }
+                    }
+                  }
 
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -166,130 +361,10 @@ class AppDrawer extends StatelessWidget {
                         onTap: () => _navigateToRoute(Routes.EMPLOYEE_CARD),
                       ),
 
-                      // Card 2: Attendance History (Module: attendance)
-                      if (hasAttendance)
-                        DrawerModuleCard(
-                          title: 'Attendance',
-                          subtitle: 'Punch history, shift logs & daily hours',
-                          icon: Icons.calendar_today_outlined,
-                          accentTint: AppColors.warning,
-                          onTap: () =>
-                              _navigateToRoute(Routes.ATTENDANCE_HISTORY),
-                        ),
+                      // Dynamic Cards strictly according to server menu list
+                      ...dynamicCards,
 
-                      // Card 2b: Work Schedule & Rota (Module: attendance & Permission: schedules.view / attendance.view)
-                      if (hasSchedule)
-                        DrawerModuleCard(
-                          title: 'Work Schedule & Rota',
-                          subtitle: 'Assigned shift pattern & holidays roster',
-                          icon: Icons.schedule_rounded,
-                          accentTint: AppColors.secondary,
-                          onTap: () => _navigateToRoute(Routes.SCHEDULE),
-                        ),
-
-                      // Card 3: Leave Management (Module: leave)
-                      if (hasLeave)
-                        DrawerModuleCard(
-                          title: 'Leave Management',
-                          subtitle: 'Annual quota balance & absence requests',
-                          icon: Icons.beach_access_outlined,
-                          accentTint: AppColors.secondary,
-                          onTap: () => _navigateToRoute(Routes.LEAVE),
-                        ),
-
-                      // Card 4: Payroll & Payslips (Module: payroll)
-                      if (hasPayroll)
-                        DrawerModuleCard(
-                          title: 'Payroll & Payslips',
-                          subtitle: 'Monthly salary breakdown & tax slips',
-                          icon: Icons.receipt_long_outlined,
-                          accentTint: AppColors.secondary,
-                          onTap: () => _navigateToRoute(Routes.PAYROLL),
-                        ),
-
-                      // Card 5: Money Requests (Module: loans_expenses)
-                      if (hasLoans)
-                        DrawerModuleCard(
-                          title: 'Money Requests',
-                          subtitle: 'Advance money requests & installments',
-                          icon: Icons.account_balance_wallet_outlined,
-                          accentTint: AppColors.warning,
-                          onTap: () => _navigateToRoute(Routes.LOANS),
-                        ),
-
-                      // Card 6: Evaluation (Module: performance)
-                      if (hasPerformance)
-                        DrawerModuleCard(
-                          title: 'Evaluation',
-                          subtitle: 'Performance reviews & evaluations',
-                          icon: Icons.trending_up_rounded,
-                          accentTint: AppColors.accentNavy,
-                          onTap: () => _navigateToRoute(Routes.EVALUATION),
-                        ),
-
-                      // Card 7: Documents & Policies (Module: documents)
-                      if (hasDocuments)
-                        DrawerModuleCard(
-                          title: 'Documents & Letters',
-                          subtitle: 'Handbooks, notices & legal documents',
-                          icon: Icons.menu_book_outlined,
-                          accentTint: AppColors.info,
-                          badgeCount: docBadges,
-                          onTap: () => _navigateToRoute(Routes.DOCUMENTS),
-                        ),
-
-                      // Card 7b: News & Events (Module: documents, menu: news)
-                      if (hasNews)
-                        DrawerModuleCard(
-                          title: 'News & Events',
-                          subtitle: 'Announcements, events & milestones',
-                          icon: Icons.campaign_outlined,
-                          accentTint: AppColors.secondary,
-                          onTap: () => _navigateToRoute(Routes.NEWS),
-                        ),
-
-                      // Card 8: Daily Tasks (Module: onboarding)
-                      if (hasTasks)
-                        DrawerModuleCard(
-                          title: 'Daily Tasks',
-                          subtitle: 'Assigned tasks, duties & checklists',
-                          icon: Icons.check_circle_outline_rounded,
-                          accentTint: AppColors.secondary,
-                          badgeCount: taskBadges,
-                          onTap: () => _navigateToRoute(Routes.TASKS),
-                        ),
-
-                      // Card 8b: Company Assets (Module: assets)
-                      if (hasAssets)
-                        DrawerModuleCard(
-                          title: 'Company Assets',
-                          subtitle: 'Assigned hardware, equipment & inventory',
-                          icon: Icons.devices_other_rounded,
-                          accentTint: AppColors.accentNavy,
-                          onTap: () => _navigateToRoute(Routes.ASSETS),
-                        ),
-
-                      // Card 8c: Training & Certifications (Module: training)
-                      if (hasTraining)
-                        DrawerModuleCard(
-                          title: 'Training & Development',
-                          subtitle: 'Courses, compliance & certifications',
-                          icon: Icons.school_outlined,
-                          accentTint: AppColors.secondary,
-                          onTap: () => _navigateToRoute(Routes.TRAINING),
-                        ),
-
-                      // Card 8d: Checklists (Module: onboarding)
-                      if (hasChecklists)
-                        DrawerModuleCard(
-                          title: 'Checklists',
-                          subtitle: 'Onboarding & offboarding workflows',
-                          icon: Icons.checklist_rounded,
-                          accentTint: AppColors.primary,
-                          onTap: () => _navigateToRoute(Routes.CHECKLISTS),
-                        ),
-
-                      // Card 8e: Job Description (Phase 18)
+                      // Core Self-Service: Job Description (Phase 18)
                       DrawerModuleCard(
                         title: 'Job Description',
                         subtitle: 'Role overview, duties & scope',
@@ -298,7 +373,7 @@ class AppDrawer extends StatelessWidget {
                         onTap: () => _navigateToRoute(Routes.JOB_DESCRIPTION),
                       ),
 
-                      // Card 9b: Enterprise Kiosk & Terminal PIN (Phase 10)
+                      // Core Self-Service: Enterprise Kiosk & Terminal PIN (Phase 10)
                       DrawerModuleCard(
                         title: 'Kiosk & Backup PIN',
                         subtitle: sessionController.hasPermission('kiosks.manage')
@@ -309,21 +384,10 @@ class AppDrawer extends StatelessWidget {
                         onTap: () => _navigateToRoute(Routes.KIOSK),
                       ),
 
-                      // Card 10a: HR Helpdesk (Temporarily hidden as per user request — kept intact, easily re-enabled)
-                      /*
-                      if (hasHelpdesk)
-                        DrawerModuleCard(
-                          title: 'HR Helpdesk',
-                          subtitle: 'Service desk, HR, IT & payroll inquiries',
-                          icon: Icons.confirmation_number_outlined,
-                          accentTint: AppColors.secondary,
-                          badgeCount: helpdeskBadges,
-                          onTap: () => _navigateToRoute(Routes.HELPDESK),
-                        ),
-                      */
-
-                      // Card 10b: App Support & Guides (App Technical Issues & Videos)
-                      if (hasSupport)
+                      // App Support & Guides (if not already included from menu)
+                      if (!renderedKeys.contains('support') &&
+                          !renderedKeys.contains('helpdesk') &&
+                          (sessionController.hasPermission('support.view') || sessionController.hasMenuItem('support')))
                         DrawerModuleCard(
                           title: 'App Support & Guides',
                           subtitle: 'Technical app issues & video tutorials',

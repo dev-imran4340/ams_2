@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
+import '../../../api/app_preferences.dart';
+import '../../../core/services/permission_service.dart';
 import '../model/checklist_model.dart';
 import '../repo/checklist_repo.dart';
 import '../view/components/checklist_details_bottom_sheet.dart';
@@ -13,6 +15,11 @@ class ChecklistController extends GetxController {
 
   // State Observables
   final RxBool isLoading = false.obs;
+  final RxBool isAccessRestricted = false.obs;
+  final RxString accessRestrictedMessage = ''.obs;
+
+  bool get canManageOnboarding =>
+      AppPreferences.hasPermission(AppPermissions.onboardingManage);
 
   /// ScrollController to track dynamic background contrast changes
   final ScrollController scrollController = ScrollController();
@@ -67,6 +74,13 @@ class ChecklistController extends GetxController {
 
   /// Loads onboarding and offboarding checklists from repository
   Future<void> loadChecklists({bool isRefresh = false}) async {
+    if (!canManageOnboarding) {
+      isAccessRestricted.value = true;
+      accessRestrictedMessage.value =
+          'You do not have permission to view or manage joiner and leaver checklists.';
+      return;
+    }
+    isAccessRestricted.value = false;
     try {
       isLoading.value = true;
       final result = await repo.fetchChecklists();

@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../api/app_preferences.dart';
 import '../../../api/exception_handler.dart';
+import '../../../core/services/permission_service.dart';
 import '../../../core/utils/app_colors.dart';
 import '../../../core/widgets/custom_snackbar.dart';
 import '../../index/controller/index_controller.dart';
@@ -104,9 +105,12 @@ class LeaveController extends GetxController {
   }
 
   // Permissions
-  bool get canViewWhosOff => AppPreferences.hasPermission('leave.view');
-  bool get canManageLeave => AppPreferences.hasPermission('leave.manage', 'department');
-  bool get canAdjustLeave => AppPreferences.hasPermission('leave.adjust', 'department');
+  bool get canViewWhosOff =>
+      AppPreferences.hasPermission(AppPermissions.leaveView, AppPermissionScopes.department);
+  bool get canManageLeave =>
+      AppPreferences.hasPermission(AppPermissions.leaveManage, AppPermissionScopes.department);
+  bool get canAdjustLeave =>
+      AppPreferences.hasPermission(AppPermissions.leaveAdjust, AppPermissionScopes.department);
 
   /// Loads leave balances, leave types, and my leave requests (Phase 11)
   Future<void> loadLeaveData() async {
@@ -120,6 +124,13 @@ class LeaveController extends GetxController {
         isAccessRestricted.value = true;
         accessRestrictedMessage.value =
             'Leave module is not included in your company subscription.';
+        return;
+      }
+
+      if (!AppPreferences.hasPermission(AppPermissions.leaveView)) {
+        isAccessRestricted.value = true;
+        accessRestrictedMessage.value =
+            'You do not have permission to view leave balances or records.';
         return;
       }
 
@@ -160,6 +171,12 @@ class LeaveController extends GetxController {
 
   /// Opens the Apply Leave modal sheet
   void openApplyLeaveModal(BuildContext context) {
+    if (!PermissionService.verifyAction(
+      AppPermissions.leaveView,
+      actionName: 'apply for leave',
+    )) {
+      return;
+    }
     HapticFeedback.lightImpact();
     resetFormErrors();
     reasonController.clear();
@@ -378,6 +395,13 @@ class LeaveController extends GetxController {
   Future<void> applyLeave([BuildContext? context]) async {
     if (isSubmitting.value) return;
 
+    if (!PermissionService.verifyAction(
+      AppPermissions.leaveView,
+      actionName: 'submit leave application',
+    )) {
+      return;
+    }
+
     if (!validateApplyLeaveForm()) {
       HapticFeedback.heavyImpact();
       if (reasonError.value != null) {
@@ -440,6 +464,12 @@ class LeaveController extends GetxController {
 
   /// Cancels an existing leave application (POST /me/leave/requests/{id}/cancel)
   Future<void> cancelLeave(String id, String reason) async {
+    if (!PermissionService.verifyAction(
+      AppPermissions.leaveView,
+      actionName: 'cancel leave application',
+    )) {
+      return;
+    }
     try {
       isCancelling.value = true;
       final success = await repo.cancelLeaveRequest(id, reason: reason);

@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:open_filex/open_filex.dart';
 
 import '../../../api/exception_handler.dart';
+import '../../../core/services/permission_service.dart';
 import '../../../core/widgets/custom_snackbar.dart';
 import '../../main_shell/controller/session_me_controller.dart';
 import '../model/payroll_model.dart';
@@ -52,7 +53,7 @@ class PayrollController extends GetxController {
     if (Get.isRegistered<SessionMeController>()) {
       final session = Get.find<SessionMeController>();
       final hasModule = session.hasModule('payroll');
-      final hasPermission = session.hasPermission('pay.view');
+      final hasPermission = session.hasPermission(AppPermissions.payView);
       isPayrollModuleActive.value = hasModule && hasPermission;
       if (!isPayrollModuleActive.value) {
         isAccessRestricted.value = true;
@@ -117,6 +118,12 @@ class PayrollController extends GetxController {
 
   /// Downloads and immediately opens the official payslip PDF
   Future<void> downloadAndOpenPdf(String id, {String? periodLabel}) async {
+    if (!PermissionService.verifyAction(
+      AppPermissions.payView,
+      actionName: 'download payslip',
+    )) {
+      return;
+    }
     try {
       isDownloadingPdf.value = true;
       final file = await repo.downloadPayslipPdf(id, periodLabel: periodLabel);

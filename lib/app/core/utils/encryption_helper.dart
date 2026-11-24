@@ -1,48 +1,14 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
 
-/// Cryptographic helper for secure local credential persistence.
-/// Encrypts sensitive fields (login, password, company codes) using a multi-round
-/// hardware device-bound XOR cipher and URL-safe Base64 encoding.
-/// This prevents plaintext password exposure in local storage files.
+/// Cryptographic helper for migration and secure credential handling.
+/// Insecure repeating XOR cipher and fixed embedded keys have been removed
+/// in favor of platform-backed secure hardware storage (SecureStorageService).
 class EncryptionHelper {
-  static const String _vaultSalt = 'AMS2_CORP_VAULT_KEY_2026_SOFTECH';
   static const String _magicPrefix = 'ams_enc::';
 
-  /// Generates a composite cryptographic key derived from hardware device ID and corporate salt.
-  static List<int> _deriveKey(String? deviceId) {
-    final String resolvedId = (deviceId != null && deviceId.isNotEmpty)
-        ? deviceId
-        : 'ams_fallback_hw_id_2026';
-    final String compositeKey = '$resolvedId#$_vaultSalt#$resolvedId';
-    return utf8.encode(compositeKey);
-  }
-
-  /// Encrypts plaintext string into a safe, obfuscated ciphertext format.
-  static String? encrypt(String? plainText, {String? deviceId}) {
-    if (plainText == null || plainText.isEmpty) return null;
-
-    try {
-      final List<int> plainBytes = utf8.encode(plainText);
-      final List<int> keyBytes = _deriveKey(deviceId);
-
-      final List<int> cipherBytes = List<int>.generate(
-        plainBytes.length,
-        (i) => plainBytes[i] ^ keyBytes[i % keyBytes.length],
-      );
-
-      final String base64Payload = base64UrlEncode(cipherBytes);
-      return '$_magicPrefix$base64Payload';
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('⚠️ [EncryptionHelper -> encrypt] Failed to encrypt string: $e');
-      }
-      return null;
-    }
-  }
-
-  /// Decrypts ciphertext back to original plaintext string.
-  static String? decrypt(String? cipherText, {String? deviceId}) {
+  /// Legacy decryption strictly used for one-time migration of previous local credentials.
+  /// Never used for new writes or persistence.
+  static String? legacyDecrypt(String? cipherText, {String? deviceId}) {
     if (cipherText == null || cipherText.isEmpty) return null;
 
     try {
@@ -52,7 +18,11 @@ class EncryptionHelper {
       }
 
       final List<int> cipherBytes = base64Url.decode(cleanPayload);
-      final List<int> keyBytes = _deriveKey(deviceId);
+      final String resolvedId = (deviceId != null && deviceId.isNotEmpty)
+          ? deviceId
+          : 'ams_fallback_hw_id_2026';
+      final String legacyKey = '$resolvedId#AMS2_CORP_VAULT_KEY_2026_SOFTECH#$resolvedId';
+      final List<int> keyBytes = utf8.encode(legacyKey);
 
       final List<int> decryptedBytes = List<int>.generate(
         cipherBytes.length,
@@ -60,11 +30,21 @@ class EncryptionHelper {
       );
 
       return utf8.decode(decryptedBytes);
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('⚠️ [EncryptionHelper -> decrypt] Failed to decrypt string: $e');
-      }
+    } catch (_) {
       return null;
     }
+  }
+
+  /// Deprecated: Direct XOR encryption is removed for security compliance.
+  @Deprecated('Use SecureStorageService instead of XOR encryption')
+  static String? encrypt(String? plainText, {String? deviceId}) {
+    // No-op / Redirected to secure storage
+    return plainText;
+  }
+
+  /// Deprecated: Decrypt helper for backwards compatibility.
+  @Deprecated('Use SecureStorageService instead of XOR decryption')
+  static String? decrypt(String? cipherText, {String? deviceId}) {
+    return legacyDecrypt(cipherText, deviceId: deviceId);
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../utils/app_colors.dart';
@@ -80,33 +81,32 @@ class CustomButton extends StatelessWidget {
       );
     }
 
+    final buttonContent = Container(
+      width: width,
+      height: height ?? 52.h,
+      decoration: BoxDecoration(
+        color: finalGradient == null ? finalBackgroundColor : null,
+        gradient: finalGradient,
+        borderRadius: BorderRadius.circular(borderRadius ?? 12.r),
+        border: finalBorder,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: isDisabled ? null : onPressed,
+          borderRadius: BorderRadius.circular(borderRadius ?? 12.r),
+          child: _buildChild(finalTextColor),
+        ),
+      ),
+    );
+
+    final Widget buttonWidget = width != null
+        ? buttonContent
+        : _AdaptiveWidthBox(child: buttonContent);
+
     return Opacity(
       opacity: isDisabled ? 0.6 : 1.0,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final effectiveWidth =
-              width ?? (constraints.hasBoundedWidth ? double.infinity : null);
-
-          return Container(
-            width: effectiveWidth,
-            height: height ?? 52.h,
-            decoration: BoxDecoration(
-              color: finalGradient == null ? finalBackgroundColor : null,
-              gradient: finalGradient,
-              borderRadius: BorderRadius.circular(borderRadius ?? 12.r),
-              border: finalBorder,
-            ),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: isDisabled ? null : onPressed,
-                borderRadius: BorderRadius.circular(borderRadius ?? 12.r),
-                child: _buildChild(finalTextColor),
-              ),
-            ),
-          );
-        },
-      ),
+      child: buttonWidget,
     );
   }
 
@@ -148,5 +148,56 @@ class CustomButton extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+/// Adaptive width wrapper that expands to fill bounded width (e.g. in Columns)
+/// or hugs content width when unbounded (e.g. in Rows), while supporting
+/// intrinsic dimension calculations without throwing LayoutBuilder exceptions.
+class _AdaptiveWidthBox extends SingleChildRenderObjectWidget {
+  const _AdaptiveWidthBox({super.child});
+
+  @override
+  RenderObject createRenderObject(BuildContext context) =>
+      _RenderAdaptiveWidthBox();
+}
+
+class _RenderAdaptiveWidthBox extends RenderProxyBox {
+  _RenderAdaptiveWidthBox();
+
+  @override
+  void performLayout() {
+    if (child == null) {
+      size = constraints.smallest;
+      return;
+    }
+    final targetWidth =
+        constraints.hasBoundedWidth ? constraints.maxWidth : null;
+    final childConstraints = constraints.copyWith(
+      minWidth: targetWidth ?? 0.0,
+      maxWidth: targetWidth ?? constraints.maxWidth,
+    );
+    child!.layout(childConstraints, parentUsesSize: true);
+    size = child!.size;
+  }
+
+  @override
+  double computeMinIntrinsicWidth(double height) {
+    return child?.getMinIntrinsicWidth(height) ?? 0.0;
+  }
+
+  @override
+  double computeMaxIntrinsicWidth(double height) {
+    return child?.getMaxIntrinsicWidth(height) ?? 0.0;
+  }
+
+  @override
+  double computeMinIntrinsicHeight(double width) {
+    return child?.getMinIntrinsicHeight(width) ?? 0.0;
+  }
+
+  @override
+  double computeMaxIntrinsicHeight(double width) {
+    return child?.getMaxIntrinsicHeight(width) ?? 0.0;
   }
 }

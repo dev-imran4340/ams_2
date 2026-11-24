@@ -40,7 +40,9 @@ class DashboardQuickActions extends StatelessWidget {
             AppPreferences.hasPermission('attendance.view'));
 
     final bool hasLeave =
-        session?.hasModule('leave') ?? AppPreferences.hasModule('leave');
+        (session?.hasModule('leave') ?? AppPreferences.hasModule('leave')) &&
+        (session?.hasPermission('leave.view') ??
+            AppPreferences.hasPermission('leave.view'));
 
     final bool hasPayroll =
         (session?.hasModule('payroll') ??

@@ -7,6 +7,7 @@ import '../services/network_connectivity_service.dart';
 import 'api_endpoints.dart';
 import 'app_preferences.dart';
 import 'exception_handler.dart';
+import 'log_sanitizer.dart';
 
 enum HttpMethod { get, post, put, patch, delete }
 
@@ -106,9 +107,9 @@ class ApiClient {
       Get.log(
         '🌐 [API Request] ${method.name.toUpperCase()} -> $uri\n'
         'Origin: $tag\n'
-        'Headers: $requestHeaders\n'
-        'Params: $queryParameters\n'
-        'Body: $encodedBody',
+        'Headers: ${LogSanitizer.sanitizeHeaders(requestHeaders)}\n'
+        'Params: ${LogSanitizer.sanitizeData(queryParameters)}\n'
+        'Body: ${LogSanitizer.sanitizeData(encodedBody)}',
       );
     }
 
@@ -150,8 +151,8 @@ class ApiClient {
         Get.log(
           '🏁 [API Response] ${response.statusCode} in ${stopwatch.elapsedMilliseconds}ms -> $uri\n'
           'Origin: $tag\n'
-          'Headers: ${response.headers}\n'
-          'Response Body: ${response.body}',
+          'Headers: ${LogSanitizer.sanitizeHeaders(response.headers)}\n'
+          'Response Body: ${LogSanitizer.sanitizeData(response.body)}',
         );
       }
 
@@ -251,8 +252,8 @@ class ApiClient {
       Get.log(
         '🌐 [API Multipart Request] ${method.name.toUpperCase()} -> $uri\n'
         'Origin: $tag\n'
-        'Headers: ${request.headers}\n'
-        'Fields: $fields\n'
+        'Headers: ${LogSanitizer.sanitizeHeaders(request.headers)}\n'
+        'Fields: ${LogSanitizer.sanitizeData(fields)}\n'
         'Files: ${files?.map((f) => f.filename).toList()}',
       );
     }
@@ -266,8 +267,8 @@ class ApiClient {
         Get.log(
           '🏁 [API Multipart Response] ${response.statusCode} in ${stopwatch.elapsedMilliseconds}ms -> $uri\n'
           'Origin: $tag\n'
-          'Headers: ${response.headers}\n'
-          'Response Body: ${response.body}',
+          'Headers: ${LogSanitizer.sanitizeHeaders(response.headers)}\n'
+          'Response Body: ${LogSanitizer.sanitizeData(response.body)}',
         );
       }
 
