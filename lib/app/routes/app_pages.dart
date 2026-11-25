@@ -395,9 +395,7 @@ class AppPages {
     GetPage(
       name: Routes.EMPLOYEE_CARD,
       page: () => const EmployeeCardView(),
-      middlewares: [
-        AuthGuardMiddleware(requiredPermission: 'employees.cards.print'),
-      ],
+      middlewares: [AuthGuardMiddleware()],
       binding: BindingsBuilder(() {
         Get.lazyPut(() => EmployeeCardRepo(), fenix: true);
         Get.lazyPut(

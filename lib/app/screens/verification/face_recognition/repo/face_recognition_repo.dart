@@ -1166,6 +1166,7 @@ class FaceRecognitionRepo {
     required File liveSelfieFile,
     Face? liveDetectedFace,
     List<double>? liveVectorDirect,
+    bool ignoreSavedEmbedding = false,
   }) async {
     try {
       // 0. Ensure FaceNet is loaded
@@ -1173,8 +1174,9 @@ class FaceRecognitionRepo {
         await faceNet.loadModel();
       }
 
-      // 1. Retrieve enrolled reference embedding (from JSON or referenceFile)
-      List<double>? refVector = await getSavedFaceEmbedding();
+      // 1. Retrieve enrolled reference embedding (skip saved employee embedding in kiosk mode)
+      List<double>? refVector =
+          ignoreSavedEmbedding ? null : await getSavedFaceEmbedding();
 
       if (refVector == null || refVector.length != 192) {
         final refBytes = await referenceFile.readAsBytes();
@@ -1193,7 +1195,9 @@ class FaceRecognitionRepo {
         if (faceNet.isModelLoaded) {
           try {
             refVector = faceNet.extractEmbeddingFromUint8List(refBytes, refFaces.first);
-            faceNet.setReferenceEmbedding(refVector);
+            if (!ignoreSavedEmbedding) {
+              faceNet.setReferenceEmbedding(refVector);
+            }
           } catch (_) {}
         }
 

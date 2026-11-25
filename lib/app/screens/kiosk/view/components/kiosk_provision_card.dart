@@ -8,6 +8,7 @@ import 'package:ams_2/app/core/utils/app_text_styles.dart';
 import 'package:ams_2/app/core/widgets/custom_button.dart';
 import 'package:ams_2/app/core/widgets/custom_text_field.dart';
 import '../../controller/kiosk_controller.dart';
+import '../../model/kiosk_model.dart';
 import 'kiosk_clock_in_dialog.dart';
 
 class KioskProvisionCard extends StatelessWidget {
@@ -80,7 +81,7 @@ class KioskProvisionCard extends StatelessWidget {
                   padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
                   decoration: BoxDecoration(
                     color: isProvisioned
-                        ? const Color(0xFF10B981).withValues(alpha: 0.12)
+                        ? AppColors.success.withValues(alpha: 0.12)
                         : AppColors.primary.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(8.r),
                   ),
@@ -88,7 +89,7 @@ class KioskProvisionCard extends StatelessWidget {
                     isProvisioned ? 'ACTIVE KIOSK' : 'NOT PROVISIONED',
                     style: AppTextStyles.text10.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: isProvisioned ? const Color(0xFF10B981) : AppColors.primary,
+                      color: isProvisioned ? AppColors.success : AppColors.primary,
                     ),
                   ),
                 ),
@@ -182,19 +183,84 @@ class KioskProvisionCard extends StatelessWidget {
 
                     AppSpaces.vSpace12,
 
-                    CustomTextField(
-                      controller: controller.locationController,
-                      focusNode: controller.locationFocusNode,
-                      labelText: 'Location ID / Name',
-                      hintText: 'e.g. Head Office / 01jb...',
-                      prefixIcon: const Icon(Icons.location_on_outlined),
-                      validator: (val) {
-                        if (val == null || val.trim().isEmpty) {
-                          return 'Please enter location';
-                        }
-                        return null;
-                      },
-                    ),
+                    if (controller.isLoadingLocations.value)
+                      Row(
+                        children: [
+                          SizedBox(
+                            width: 16.r,
+                            height: 16.r,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.w,
+                              color: AppColors.secondary,
+                            ),
+                          ),
+                          AppSpaces.hSpace8,
+                          Text(
+                            'Loading work locations...',
+                            style: AppTextStyles.text12.copyWith(
+                              color: AppColors.subTextColor,
+                            ),
+                          ),
+                        ],
+                      )
+                    else
+                      DropdownButtonFormField<KioskLocationModel>(
+                        focusNode: controller.locationFocusNode,
+                        initialValue: controller.selectedKioskLocation.value,
+                        isExpanded: true,
+                        dropdownColor: AppColors.cardBackground,
+                        decoration: InputDecoration(
+                          labelText: 'Work Location',
+                          hintText: controller.kioskLocations.isEmpty
+                              ? 'No locations available'
+                              : 'Select work location',
+                          prefixIcon: const Icon(Icons.location_on_outlined),
+                          filled: true,
+                          fillColor: AppColors.backgroundColor,
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 12.w,
+                            vertical: 12.h,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12.r),
+                            borderSide: BorderSide(color: AppColors.borderColor),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12.r),
+                            borderSide: BorderSide(color: AppColors.borderColor),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12.r),
+                            borderSide: BorderSide(
+                              color: AppColors.secondary,
+                              width: 1.5.w,
+                            ),
+                          ),
+                        ),
+                        items: controller.kioskLocations
+                            .map(
+                              (loc) => DropdownMenuItem<KioskLocationModel>(
+                                value: loc,
+                                child: Text(
+                                  loc.name,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: AppTextStyles.text14.copyWith(
+                                    color: AppColors.textColor,
+                                  ),
+                                ),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (val) {
+                          controller.selectedKioskLocation.value = val;
+                        },
+                        validator: (val) {
+                          if (val == null) {
+                            return 'Please select a work location';
+                          }
+                          return null;
+                        },
+                      ),
 
                     AppSpaces.vSpace8,
 

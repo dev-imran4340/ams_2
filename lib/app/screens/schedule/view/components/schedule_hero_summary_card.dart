@@ -169,7 +169,7 @@ class ScheduleHeroSummaryCard extends StatelessWidget {
                     icon: Icons.weekend_rounded,
                     label: 'Rest Days',
                     value: '$restDays Days',
-                    color: const Color(0xFF64748B),
+                    color: AppColors.subTextColor,
                   ),
                 ),
                 Container(width: 0.8.w, height: 26.h, color: AppColors.borderColor),

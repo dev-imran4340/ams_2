@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../../../../api/app_preferences.dart';
 import '../../../../api/exception_handler.dart';
@@ -76,6 +77,12 @@ class FaceRecognitionController extends GetxController
   final RxString punchKind = 'in'.obs;
   AttendanceRequiresModel? punchRequires;
 
+  // Kiosk mode arguments (isolated from employee AppPreferences)
+  final RxBool isKioskMode = false.obs;
+  Uint8List? kioskReferenceBytes;
+  bool kioskFaceSaved = false;
+  String? kioskConsentText;
+
   // Flag preventing redundant navigation / double-cleanup
   bool _isExiting = false;
 
@@ -117,7 +124,7 @@ class FaceRecognitionController extends GetxController
       companyName.value = savedCompany;
     }
 
-    // 2. Extract arguments (Either from Attendance Punch or Employee Card QR)
+    // 2. Extract arguments (Either from Attendance Punch, Kiosk Mode, or Employee Card QR)
     if (Get.arguments is Map) {
       final args = Get.arguments as Map;
       if (args['isPunchMode'] == true) {
@@ -126,6 +133,19 @@ class FaceRecognitionController extends GetxController
         if (args['requires'] is AttendanceRequiresModel) {
           punchRequires = args['requires'] as AttendanceRequiresModel;
         }
+      }
+      if (args['isKioskMode'] == true) {
+        isKioskMode.value = true;
+        isPunchMode.value = true;
+        kioskFaceSaved = args['kioskFaceSaved'] == true;
+        kioskConsentText = args['kioskConsentText']?.toString();
+        if (args['kioskReferenceBytes'] is Uint8List) {
+          kioskReferenceBytes = args['kioskReferenceBytes'] as Uint8List;
+        }
+        final kName = args['kioskPersonName']?.toString();
+        final kEmpNum = args['kioskEmployeeNumber']?.toString();
+        if (kName != null && kName.isNotEmpty) employeeName.value = kName;
+        if (kEmpNum != null && kEmpNum.isNotEmpty) employeeId.value = kEmpNum;
       }
       if (args['card'] != null) {
         final dynamic card = args['card'];
@@ -220,6 +240,29 @@ class FaceRecognitionController extends GetxController
   Future<void> _checkExistingReferenceFace() async {
     try {
       isLoading.value = true;
+
+      // Kiosk Mode: Completely isolated from Employee AppPreferences & /me/face
+      if (isKioskMode.value) {
+        if (!kioskFaceSaved) {
+          hasReferenceFace.value = false;
+          actionMode.value = FaceActionMode.register;
+          statusText.value = kioskConsentText ??
+              'Hold steady inside oval to enroll your face for attendance.';
+          return;
+        }
+
+        if (kioskReferenceBytes != null && kioskReferenceBytes!.isNotEmpty) {
+          hasReferenceFace.value = true;
+          actionMode.value = FaceActionMode.verify;
+          statusText.value = 'Align face inside oval to Verify';
+          return;
+        }
+
+        hasReferenceFace.value = false;
+        actionMode.value = FaceActionMode.verify;
+        statusText.value = 'Saved face reference not available on kiosk.';
+        return;
+      }
 
       // Check if this is an attendance punch where face_saved is explicitly false
       if (isPunchMode.value && punchRequires?.faceSaved == false) {
@@ -750,6 +793,26 @@ class FaceRecognitionController extends GetxController
       debugPrint(
           '>>> [AI FACE] Face captured successfully with face: ${detectedFace.boundingBox}');
 
+      // Kiosk Mode: Do NOT overwrite local employee reference face in AppPreferences
+      if (isKioskMode.value) {
+        statusText.value = 'Face Captured! Returning to Kiosk...';
+        isMatchSuccess.value = true;
+        matchProgress.value = 1.0;
+        pulseAnimationController.stop();
+        HapticFeedback.heavyImpact();
+
+        final resultPayload = {
+          'photoFile': capturedFile,
+          'faceConsent': !kioskFaceSaved,
+          'faceScore': 1.0,
+          'faceMatch': 'matched',
+        };
+
+        await Future.delayed(const Duration(milliseconds: 300));
+        await cleanupAndExit(result: resultPayload);
+        return;
+      }
+
       // Save as reference face template locally using the face detected on captured photo
       await repo.saveReferenceFace(
         capturedFile,
@@ -821,31 +884,49 @@ class FaceRecognitionController extends GetxController
   Future<void> verifyFaceMatch() async {
     if (isVerifying.value || isMatchSuccess.value) return;
 
+    File? kioskTempRefFile;
     try {
       isVerifying.value = true;
       isLoading.value = true;
       statusText.value = 'Comparing live facial biometrics...';
 
-      // Check if reference face exists
-      final hasRef = await repo.hasSavedReferenceFace();
-      if (!hasRef) {
-        isVerifying.value = false;
-        isLoading.value = false;
-        statusText.value = 'No registered face found. Switch to "Register Face" first.';
-        CustomSnackbar.showInfo(
-          message: 'Please switch to Register Face to enroll your biometric template first.',
+      File? refFile;
+      if (isKioskMode.value) {
+        if (kioskReferenceBytes == null || kioskReferenceBytes!.isEmpty) {
+          isVerifying.value = false;
+          isLoading.value = false;
+          statusText.value = 'Registered face image missing.';
+          await _ensureImageStreamRunning();
+          return;
+        }
+        final tempDir = await getTemporaryDirectory();
+        kioskTempRefFile = File(
+          '${tempDir.path}/kiosk_ref_${DateTime.now().millisecondsSinceEpoch}.jpg',
         );
-        await _ensureImageStreamRunning();
-        return;
-      }
+        await kioskTempRefFile.writeAsBytes(kioskReferenceBytes!, flush: true);
+        refFile = kioskTempRefFile;
+      } else {
+        // Check if reference face exists
+        final hasRef = await repo.hasSavedReferenceFace();
+        if (!hasRef) {
+          isVerifying.value = false;
+          isLoading.value = false;
+          statusText.value = 'No registered face found. Switch to "Register Face" first.';
+          CustomSnackbar.showInfo(
+            message: 'Please switch to Register Face to enroll your biometric template first.',
+          );
+          await _ensureImageStreamRunning();
+          return;
+        }
 
-      final refFile = await repo.getReferenceFaceFile();
-      if (refFile == null) {
-        isVerifying.value = false;
-        isLoading.value = false;
-        statusText.value = 'Registered face image missing.';
-        await _ensureImageStreamRunning();
-        return;
+        refFile = await repo.getReferenceFaceFile();
+        if (refFile == null) {
+          isVerifying.value = false;
+          isLoading.value = false;
+          statusText.value = 'Registered face image missing.';
+          await _ensureImageStreamRunning();
+          return;
+        }
       }
 
       if (cameraController == null || !cameraController!.value.isInitialized) {
@@ -862,10 +943,11 @@ class FaceRecognitionController extends GetxController
       final selfieFile = File(xFile.path);
       final capturedSelfiePhoto = selfieFile;
 
-      // Compare decoded live selfie face directly with server reference face
+      // Compare decoded live selfie face directly with reference face
       final report = await repo.compareFaces(
         referenceFile: refFile,
         liveSelfieFile: selfieFile,
+        ignoreSavedEmbedding: isKioskMode.value,
       );
 
       comparisonReport.value = report;
@@ -890,11 +972,13 @@ class FaceRecognitionController extends GetxController
         if (isPunchMode.value) {
           debugPrint(
               '>>> [AI FACE] MATCH SUCCESS in Punch Mode. Returning immediately to Dashboard with captured photo.');
-          // In punch mode: Immediately pop face recognition screen and hand over to dashboard
+          // In punch/kiosk mode: Immediately pop face recognition screen and hand over result
           final resultPayload = {
             'photoFile': capturedSelfiePhoto,
-            'faceConsent': punchRequires?.faceSaved == false,
-            'faceScore': score,
+            'faceConsent': isKioskMode.value
+                ? !kioskFaceSaved
+                : (punchRequires?.faceSaved == false),
+            'faceScore': isKioskMode.value ? report.score : score,
             'faceMatch': 'matched',
           };
 
@@ -973,6 +1057,11 @@ class FaceRecognitionController extends GetxController
       statusText.value = 'Verification error. Please retry.';
       await _ensureImageStreamRunning();
     } finally {
+      if (kioskTempRefFile != null && kioskTempRefFile.existsSync()) {
+        try {
+          await kioskTempRefFile.delete();
+        } catch (_) {}
+      }
       isLoading.value = false;
       isVerifying.value = false;
     }

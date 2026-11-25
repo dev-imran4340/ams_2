@@ -24,108 +24,116 @@ class ProfileView extends GetView<ProfileController> {
       onRetry: () => controller.loadProfile(),
       child: Scaffold(
         backgroundColor: AppColors.backgroundColor,
-        body: Obx(() {
-          if (controller.isLoading.value) {
-            return Center(
-              child: CircularProgressIndicator(
+        body: Stack(
+          children: [
+            // 1. Curved Ambient Gradient Header (Always visible)
+            EmployeeAmbientHeader(height: 230.h),
+
+            // 2. Main Scrollable Content Overlapping the Header
+            SafeArea(
+              child: RefreshIndicator(
+                onRefresh: controller.loadProfile,
                 color: AppColors.primary,
-                strokeWidth: 2.5.w,
-              ),
-            );
-          }
-
-          return Stack(
-            children: [
-              // 1. Curved Ambient Gradient Header
-              EmployeeAmbientHeader(height: 230.h),
-
-              // 2. Main Scrollable Content Overlapping the Header
-              SafeArea(
-                child: RefreshIndicator(
-                  onRefresh: controller.loadProfile,
-                  color: AppColors.primary,
-                  child: SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(
-                      parent: BouncingScrollPhysics(),
-                    ),
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 14.w,
-                      vertical: 10.h,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Top Bar with Back, Title, and Edit Profile Action
-                        CustomScreenHeader(
-                          title: 'Account & Settings',
-                          subtitle: 'Security, preferences & credentials',
-                          actions: [
-                            CustomScreenHeader.actionButton(
-                              icon: Icons.edit_outlined,
-                              onTap: controller.navigateToEditProfile,
-                              tooltip: 'Edit Profile',
-                            ),
-                          ],
-                        ),
-
-                        AppSpaces.vSpace14,
-
-                        // Component 1: Primary Employee Header Card (Tapable -> Opens Detailed Profile with Tabs)
-                        ProfileHeaderCard(
-                          isClickable: true,
-                          onTap: controller.navigateToProfileDetails,
-                        ),
-
-                        AppSpaces.vSpace16,
-
-                        // Component 2: Distinct Small Cards Grid (2FA, Change Password, Settings, Employee Card)
-                        Row(
-                          children: [
-                            Expanded(child: _build2FACard()),
-                            AppSpaces.hSpace12,
-                            Expanded(child: _buildChangePasswordCard(context)),
-                          ],
-                        ),
-
-                        AppSpaces.vSpace12,
-
-                        Row(
-                          children: [
-                            Expanded(child: _buildSettingsCard(context)),
-                            AppSpaces.hSpace12,
-                            Expanded(child: _buildEmployeeCard()),
-                          ],
-                        ),
-
-                        AppSpaces.vSpace18,
-
-                        // Component 3: Just the Logout Button
-                        _buildLogoutButton(context),
-
-                        AppSpaces.vSpace18,
-
-                        // Corporate Version Stamp
-                        Center(
-                          child: Text(
-                            'AMS 2.0 • Powered by Softech Business Services',
-                            style: AppTextStyles.text10.copyWith(
-                              letterSpacing: 0.5,
-                              color: AppColors.subTextColor,
-                              fontWeight: FontWeight.w500,
-                            ),
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(
+                    parent: BouncingScrollPhysics(),
+                  ),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 14.w,
+                    vertical: 10.h,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Top Bar with Back, Title, and Edit Profile Action (Always visible)
+                      CustomScreenHeader(
+                        title: 'Account & Settings',
+                        subtitle: 'Security, preferences & credentials',
+                        actions: [
+                          CustomScreenHeader.actionButton(
+                            icon: Icons.edit_outlined,
+                            onTap: controller.navigateToEditProfile,
+                            tooltip: 'Edit Profile',
                           ),
-                        ),
+                        ],
+                      ),
 
-                        // Safe clearance for the floating navigation bar
-                        SizedBox(height: 85.h),
-                      ],
-                    ),
+                      AppSpaces.vSpace14,
+
+                      Obx(() {
+                        if (controller.isLoading.value) {
+                          return Padding(
+                            padding: EdgeInsets.symmetric(vertical: 48.h),
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                color: AppColors.primary,
+                                strokeWidth: 2.5.w,
+                              ),
+                            ),
+                          );
+                        }
+
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Component 1: Primary Employee Header Card (Tapable -> Opens Detailed Profile with Tabs)
+                            ProfileHeaderCard(
+                              isClickable: true,
+                              onTap: controller.navigateToProfileDetails,
+                            ),
+
+                            AppSpaces.vSpace16,
+
+                            // Component 2: Distinct Small Cards Grid (2FA, Change Password, Settings, Employee Card)
+                            Row(
+                              children: [
+                                Expanded(child: _build2FACard()),
+                                AppSpaces.hSpace12,
+                                Expanded(child: _buildChangePasswordCard(context)),
+                              ],
+                            ),
+
+                            AppSpaces.vSpace12,
+
+                            Row(
+                              children: [
+                                Expanded(child: _buildSettingsCard(context)),
+                                AppSpaces.hSpace12,
+                                Expanded(child: _buildEmployeeCard()),
+                              ],
+                            ),
+
+                            AppSpaces.vSpace18,
+
+                            // Component 3: Just the Logout Button
+                            _buildLogoutButton(context),
+
+                            AppSpaces.vSpace18,
+
+                            // Corporate Version Stamp
+                            Center(
+                              child: Text(
+                                'AMS 2.0 • Powered by Softech Business Services',
+                                style: AppTextStyles.text10.copyWith(
+                                  letterSpacing: 0.5,
+                                  color: AppColors.subTextColor,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+
+                            // Safe clearance for the floating navigation bar
+                            SizedBox(height: 85.h),
+                          ],
+                        );
+                      }),
+                    ],
                   ),
                 ),
               ),
-            ],
-          );
-        }),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -269,13 +277,13 @@ class ProfileView extends GetView<ProfileController> {
                 width: 36.r,
                 height: 36.r,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFF3E0),
+                  color: AppColors.orangeLight,
                   borderRadius: BorderRadius.circular(10.r),
                 ),
                 child: Icon(
                   Icons.lock_reset_rounded,
                   size: 18.sp,
-                  color: const Color(0xFFE65100),
+                  color: AppColors.orangeDeep,
                 ),
               ),
               Container(
@@ -310,7 +318,7 @@ class ProfileView extends GetView<ProfileController> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: AppTextStyles.text10.copyWith(
-                  color: const Color(0xFFE65100),
+                  color: AppColors.orangeDeep,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -336,13 +344,13 @@ class ProfileView extends GetView<ProfileController> {
                 width: 36.r,
                 height: 36.r,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEDE7F6),
+                  color: AppColors.purpleLight,
                   borderRadius: BorderRadius.circular(10.r),
                 ),
                 child: Icon(
                   Icons.tune_rounded,
                   size: 18.sp,
-                  color: const Color(0xFF5E35B1),
+                  color: AppColors.purpleDeep,
                 ),
               ),
               Container(
@@ -377,7 +385,7 @@ class ProfileView extends GetView<ProfileController> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: AppTextStyles.text10.copyWith(
-                  color: const Color(0xFF5E35B1),
+                  color: AppColors.purpleDeep,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -739,10 +747,10 @@ class ProfileView extends GetView<ProfileController> {
           width: 32.r,
           height: 32.r,
           decoration: BoxDecoration(
-            color: const Color(0xFFEDE7F6),
+            color: AppColors.purpleLight,
             borderRadius: BorderRadius.circular(8.r),
           ),
-          child: Icon(icon, size: 16.sp, color: const Color(0xFF5E35B1)),
+          child: Icon(icon, size: 16.sp, color: AppColors.purpleDeep),
         ),
         AppSpaces.hSpace10,
         Expanded(

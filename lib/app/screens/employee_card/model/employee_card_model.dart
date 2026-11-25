@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/utils/app_colors.dart';
+
 /// Represents company information printed on the Digital ID Badge
 class EmployeeCardCompany {
   final String name;
@@ -99,7 +101,7 @@ class EmployeeCardDetails {
       buffer.write(hex);
       return Color(int.parse(buffer.toString(), radix: 16));
     } catch (_) {
-      return const Color(0xFF7F1D1D);
+      return AppColors.crimsonDark;
     }
   }
 

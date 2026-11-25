@@ -285,7 +285,7 @@ class ScheduleDayCard extends StatelessWidget {
                         Icon(
                           Icons.bed_rounded,
                           size: 13.sp,
-                          color: const Color(0xFF64748B),
+                          color: AppColors.subTextColor,
                         ),
                         AppSpaces.hSpace4,
                         Text(
@@ -363,14 +363,14 @@ class ScheduleDayCard extends StatelessWidget {
       return Container(
         padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
         decoration: BoxDecoration(
-          color: const Color(0xFF64748B).withValues(alpha: 0.12),
+          color: AppColors.subTextColor.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(4.r),
         ),
         child: Text(
           day.type.trim().toUpperCase(), // "OFF"
           style: AppTextStyles.text10.copyWith(
             fontWeight: FontWeight.bold,
-            color: const Color(0xFF64748B),
+            color: AppColors.subTextColor,
           ),
         ),
       );

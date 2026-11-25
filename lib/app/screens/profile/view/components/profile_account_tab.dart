@@ -8,7 +8,6 @@ import '../../../../core/utils/app_spaces.dart';
 import '../../../../core/utils/app_text_styles.dart';
 import '../../../../core/widgets/custom_card.dart';
 import '../../controller/profile_controller.dart';
-import 'kiosk_pin_bottom_sheet.dart';
 import 'preference_toggle_tile.dart';
 
 class ProfileAccountTab extends GetView<ProfileController> {
@@ -162,85 +161,7 @@ class ProfileAccountTab extends GetView<ProfileController> {
 
             AppSpaces.vSpace14,
 
-            // 4. Kiosk Backup PIN Setup Card (PUT /me/kiosk-pin)
-            CustomCard(
-              onTap: () async {
-                final changed = await KioskPinBottomSheet.show(
-                  context,
-                  repo: controller.repo,
-                );
-                if (changed == true) {
-                  controller.update();
-                }
-              },
-              child: Row(
-                children: [
-                  Container(
-                    width: 38.r,
-                    height: 38.r,
-                    decoration: BoxDecoration(
-                      color: AppColors.secondary.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(10.r),
-                    ),
-                    child: Icon(
-                      Icons.pin_rounded,
-                      color: AppColors.secondary,
-                      size: 20.sp,
-                    ),
-                  ),
-                  AppSpaces.hSpace12,
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Kiosk Backup PIN',
-                          style: AppTextStyles.text14.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textColor,
-                          ),
-                        ),
-                        AppSpaces.vSpace2,
-                        Text(
-                          '4-6 digit PIN for badge-less tablet attendance',
-                          style: AppTextStyles.text10.copyWith(
-                            color: AppColors.subTextColor,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-                    decoration: BoxDecoration(
-                      color: AppPreferences.isKioskPinConfigured
-                          ? AppColors.secondary.withValues(alpha: 0.12)
-                          : AppColors.inputFill,
-                      borderRadius: BorderRadius.circular(8.r),
-                      border: Border.all(
-                        color: AppPreferences.isKioskPinConfigured
-                            ? AppColors.secondary.withValues(alpha: 0.4)
-                            : AppColors.borderColor,
-                        width: 1.w,
-                      ),
-                    ),
-                    child: Text(
-                      AppPreferences.isKioskPinConfigured ? 'Configured' : 'Set PIN',
-                      style: AppTextStyles.text10.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: AppPreferences.isKioskPinConfigured
-                            ? AppColors.secondary
-                            : AppColors.subTextColor,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            AppSpaces.vSpace14,
-
-            // 5. Workplace Sign Out Action Card
+            // 4. Workplace Sign Out Action Card
             CustomCard(
               onTap: () => controller.showLogoutConfirmation(context),
               child: Row(

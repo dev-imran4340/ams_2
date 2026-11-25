@@ -61,8 +61,26 @@ class DashboardQuickActions extends StatelessWidget {
         (session?.hasPermission('support.view') ??
             AppPreferences.hasPermission('support.view'));
 
+    final bool hasEmployeesDirectory =
+        session?.hasPermission('employees.view') ??
+        AppPreferences.hasPermission('employees.view');
+
     // Dynamically build action tiles strictly adhering to Permission-Driven Access Invariant
     final actions = <_QuickActionItem>[];
+
+    if (hasEmployeesDirectory) {
+      actions.add(
+        _QuickActionItem(
+          icon: Icons.groups_rounded,
+          title: 'Staff\nDirectory',
+          color: AppColors.primary,
+          onTap: () {
+            HapticFeedback.lightImpact();
+            Get.toNamed(Routes.EMPLOYEES);
+          },
+        ),
+      );
+    }
 
     if (hasAttendance) {
       actions.add(

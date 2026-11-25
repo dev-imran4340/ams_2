@@ -39,7 +39,7 @@ class FaceRecognitionView extends GetView<FaceRecognitionController> {
                       colors: [
                         AppColors.accentNavy, // Slate Navy (0xFF023E61)
                         AppColors.primary,    // Deep Corporate Navy (0xFF012B43)
-                        Color(0xFF001524),    // Executive Dark Base
+                        AppColors.deepNavyBase,    // Executive Dark Base
                       ],
                     ),
                   ),

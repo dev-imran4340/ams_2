@@ -86,166 +86,193 @@ class _ProfileDetailsViewState extends State<ProfileDetailsView> {
       onRetry: controller.refreshActiveProfile,
       child: Scaffold(
         backgroundColor: AppColors.backgroundColor,
-        body: Obx(() {
-          if (controller.isLoading.value) {
-            return Center(
-              child: CircularProgressIndicator(
+        body: Stack(
+          children: [
+            // 1. Curved Ambient Gradient Header (Always visible)
+            EmployeeAmbientHeader(height: 230.h),
+
+            // 2. Main Scrollable Content Overlapping the Header
+            SafeArea(
+              child: RefreshIndicator(
+                onRefresh: controller.refreshActiveProfile,
                 color: AppColors.primary,
-                strokeWidth: 2.5.w,
-              ),
-            );
-          }
-
-          return Stack(
-            children: [
-              // 1. Curved Ambient Gradient Header
-              EmployeeAmbientHeader(height: 230.h),
-
-              // 2. Main Scrollable Content Overlapping the Header
-              SafeArea(
-                child: RefreshIndicator(
-                  onRefresh: controller.refreshActiveProfile,
-                  color: AppColors.primary,
-                  child: SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(
-                      parent: BouncingScrollPhysics(),
-                    ),
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 14.w,
-                      vertical: 10.h,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Top Bar with Back (if route), Title, and Edit Profile Action
-                        CustomScreenHeader(
-                          title: '',
-                          showBackButton: !widget.isBottomNavTab,
-                          customTitleWidget: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Obx(() {
-                                final isOther =
-                                    controller.isViewingOtherEmployee.value;
-                                final name = controller.profile.value?.name;
-                                final title = isOther
-                                    ? (name != null && name.isNotEmpty
-                                        ? name
-                                        : 'Employee Profile')
-                                    : 'My Profile';
-                                return Text(
-                                  title,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: AppTextStyles.text16.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.textColor,
-                                  ),
-                                );
-                              }),
-                              AppSpaces.vSpace2,
-                              Obx(() {
-                                final isOther =
-                                    controller.isViewingOtherEmployee.value;
-                                final p = controller.profile.value;
-                                final desig = p?.designation ?? p?.job?.designation ?? '';
-                                final dept = p?.department ?? p?.job?.department ?? '';
-                                final parts = [
-                                  if (desig.trim().isNotEmpty) desig.trim(),
-                                  if (dept.trim().isNotEmpty) dept.trim(),
-                                ];
-                                final subtitle = isOther
-                                    ? (parts.isNotEmpty ? parts.join(' • ') : '')
-                                    : 'Employment credentials & service records';
-                                if (subtitle.isEmpty) return const SizedBox.shrink();
-                                return Text(
-                                  subtitle,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: AppTextStyles.text10.copyWith(
-                                    color: AppColors.textColor
-                                        .withValues(alpha: 0.75),
-                                  ),
-                                );
-                              }),
-                            ],
-                          ),
-                          actions: [
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(
+                    parent: BouncingScrollPhysics(),
+                  ),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 14.w,
+                    vertical: 10.h,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Top Bar with Back (if route), Title, and Edit Profile Action (Always visible)
+                      CustomScreenHeader(
+                        title: '',
+                        showBackButton: !widget.isBottomNavTab,
+                        customTitleWidget: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
                             Obx(() {
-                              if (controller.isViewingOtherEmployee.value) {
-                                return const SizedBox.shrink();
-                              }
-                              return CustomScreenHeader.actionButton(
-                                icon: Icons.edit_outlined,
-                                onTap: controller.navigateToEditProfile,
-                                tooltip: 'Edit Profile',
+                              final isOther =
+                                  controller.isViewingOtherEmployee.value;
+                              final name = controller.profile.value?.name;
+                              final title = isOther
+                                  ? (name != null && name.isNotEmpty
+                                      ? name
+                                      : 'Employee Profile')
+                                  : 'My Profile';
+                              return Text(
+                                title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppTextStyles.text16.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textColor,
+                                ),
+                              );
+                            }),
+                            AppSpaces.vSpace2,
+                            Obx(() {
+                              final isOther =
+                                  controller.isViewingOtherEmployee.value;
+                              final p = controller.profile.value;
+                              final desig = p?.designation ?? p?.job?.designation ?? '';
+                              final dept = p?.department ?? p?.job?.department ?? '';
+                              final parts = [
+                                if (desig.trim().isNotEmpty) desig.trim(),
+                                if (dept.trim().isNotEmpty) dept.trim(),
+                              ];
+                              final subtitle = isOther
+                                  ? (parts.isNotEmpty ? parts.join(' • ') : '')
+                                  : 'Employment credentials & service records';
+                              if (subtitle.isEmpty) return const SizedBox.shrink();
+                              return Text(
+                                subtitle,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppTextStyles.text10.copyWith(
+                                  color: AppColors.textColor
+                                      .withValues(alpha: 0.75),
+                                ),
                               );
                             }),
                           ],
                         ),
-
-                        AppSpaces.vSpace14,
-
-                        // Component 1: Primary Employee Header Card (Static / non-clickable)
-                        const ProfileHeaderCard(isClickable: false),
-
-                        AppSpaces.vSpace14,
-
-                        // Component 2: Dynamic Horizontal Section Tabs Bar (Server Driven from sections)
-                        const ProfileSectionTabsBar(),
-
-                        AppSpaces.vSpace14,
-
-                        // Component 3: Reactive Section Tab Content (Supports left/right swipe between tabs)
-                        GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onHorizontalDragEnd: (details) {
-                            if (details.primaryVelocity == null) return;
-                            if (details.primaryVelocity! < -250) {
-                              // Swiped left -> next section tab
-                              controller.selectNextSection();
-                            } else if (details.primaryVelocity! > 250) {
-                              // Swiped right -> previous section tab
-                              controller.selectPreviousSection();
+                        actions: [
+                          Obx(() {
+                            if (controller.isViewingOtherEmployee.value ||
+                                controller.isAccessRestricted.value) {
+                              return const SizedBox.shrink();
                             }
-                          },
-                          child: Obx(() {
-                            final currentKey =
-                                controller.selectedSectionKey.value;
-                            return AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 250),
-                              switchInCurve: Curves.easeInOut,
-                              switchOutCurve: Curves.easeInOut,
-                              child: _buildSectionContent(currentKey),
+                            return CustomScreenHeader.actionButton(
+                              icon: Icons.edit_outlined,
+                              onTap: controller.navigateToEditProfile,
+                              tooltip: 'Edit Profile',
                             );
                           }),
-                        ),
+                        ],
+                      ),
 
-                        AppSpaces.vSpace18,
+                      AppSpaces.vSpace14,
 
-                        // Corporate Version Stamp
-                        Center(
-                          child: Text(
-                            'AMS 2.0 • Powered by Softech Business Services',
-                            style: AppTextStyles.text10.copyWith(
-                              letterSpacing: 0.5,
-                              color: AppColors.subTextColor,
-                              fontWeight: FontWeight.w500,
+                      Obx(() {
+                        if (controller.isLoading.value) {
+                          return Padding(
+                            padding: EdgeInsets.symmetric(vertical: 48.h),
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                color: AppColors.primary,
+                                strokeWidth: 2.5.w,
+                              ),
                             ),
-                          ),
-                        ),
+                          );
+                        }
 
-                        // Safe clearance for bottom edge
-                        SizedBox(height: 30.h),
-                      ],
-                    ),
+                        if (controller.isAccessRestricted.value &&
+                            controller.profile.value == null) {
+                          return Padding(
+                            padding: EdgeInsets.symmetric(vertical: 24.h),
+                            child: Center(
+                              child: CustomStateView.error(
+                                title: 'Access Restricted',
+                                message: controller
+                                        .accessRestrictedMessage.value.isNotEmpty
+                                    ? controller.accessRestrictedMessage.value
+                                    : 'Personal profile details are not enabled for your role.',
+                                buttonText: 'Refresh',
+                                onRetry: controller.refreshActiveProfile,
+                              ),
+                            ),
+                          );
+                        }
+
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Component 1: Primary Employee Header Card (Static / non-clickable)
+                            const ProfileHeaderCard(isClickable: false),
+
+                            AppSpaces.vSpace14,
+
+                            // Component 2: Dynamic Horizontal Section Tabs Bar (Server Driven from sections)
+                            const ProfileSectionTabsBar(),
+
+                            AppSpaces.vSpace14,
+
+                            // Component 3: Reactive Section Tab Content (Supports left/right swipe between tabs)
+                            GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onHorizontalDragEnd: (details) {
+                                if (details.primaryVelocity == null) return;
+                                if (details.primaryVelocity! < -250) {
+                                  // Swiped left -> next section tab
+                                  controller.selectNextSection();
+                                } else if (details.primaryVelocity! > 250) {
+                                  // Swiped right -> previous section tab
+                                  controller.selectPreviousSection();
+                                }
+                              },
+                              child: Obx(() {
+                                final currentKey =
+                                    controller.selectedSectionKey.value;
+                                return AnimatedSwitcher(
+                                  duration: const Duration(milliseconds: 250),
+                                  switchInCurve: Curves.easeInOut,
+                                  switchOutCurve: Curves.easeInOut,
+                                  child: _buildSectionContent(currentKey),
+                                );
+                              }),
+                            ),
+
+                            AppSpaces.vSpace18,
+
+                            // Corporate Version Stamp
+                            Center(
+                              child: Text(
+                                'AMS 2.0 • Powered by Softech Business Services',
+                                style: AppTextStyles.text10.copyWith(
+                                  letterSpacing: 0.5,
+                                  color: AppColors.subTextColor,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+
+                            // Safe clearance for bottom edge
+                            SizedBox(height: 30.h),
+                          ],
+                        );
+                      }),
+                    ],
                   ),
                 ),
               ),
-            ],
-          );
-        }),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -52,9 +52,6 @@ class EmployeeCardController extends GetxController
   /// Loads official digital ID card credentials from repository
   Future<void> loadCardData() async {
     if (AppPreferences.isCompanyMode) return;
-    if (!canPrintCard) {
-      return;
-    }
     try {
       isLoading.value = true;
       final result = await repo.fetchCardDetails();

@@ -1,3 +1,36 @@
+/// Work location item returned by GET /kiosks/locations
+class KioskLocationModel {
+  final String id;
+  final String name;
+
+  const KioskLocationModel({
+    required this.id,
+    required this.name,
+  });
+
+  factory KioskLocationModel.fromJson(Map<String, dynamic> json) {
+    return KioskLocationModel(
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+      };
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is KioskLocationModel &&
+          runtimeType == other.runtimeType &&
+          id == other.id;
+
+  @override
+  int get hashCode => id.hashCode;
+}
+
 /// Kiosk configuration returned by POST /kiosks and GET /kiosk
 class KioskConfigModel {
   final String id;
@@ -104,8 +137,15 @@ class KioskIdentifyResponseModel {
   final KioskPersonModel person;
   final String ticket;
   final int expiresIn;
+  final bool checkedIn;
+  final bool onBreak;
+  final String? since;
+  final String? sinceAt;
+  final String? stateDate;
+  final bool usesBreaks;
   final List<String> allowedActions;
   final Map<String, dynamic> refusals;
+  final bool requiresPosition;
   final bool requiresPhoto;
   final String requiresFace;
   final bool faceSaved;
@@ -115,13 +155,33 @@ class KioskIdentifyResponseModel {
     required this.person,
     required this.ticket,
     this.expiresIn = 120,
+    this.checkedIn = false,
+    this.onBreak = false,
+    this.since,
+    this.sinceAt,
+    this.stateDate,
+    this.usesBreaks = false,
     this.allowedActions = const [],
     this.refusals = const {},
+    this.requiresPosition = false,
     this.requiresPhoto = false,
     this.requiresFace = 'off',
     this.faceSaved = false,
     this.consentText,
   });
+
+  bool get canCheckIn => allowedActions.contains('in');
+  bool get canCheckOut => allowedActions.contains('out');
+  bool get canStartBreak => allowedActions.contains('break_start');
+  bool get canEndBreak => allowedActions.contains('break_end');
+
+  String? refusalMessageFor(String kind) {
+    final entry = refusals[kind];
+    if (entry is Map) {
+      return entry['message']?.toString();
+    }
+    return null;
+  }
 
   factory KioskIdentifyResponseModel.fromJson(Map<String, dynamic> json) {
     final personData = json['person'] is Map<String, dynamic>
@@ -150,8 +210,15 @@ class KioskIdentifyResponseModel {
       person: KioskPersonModel.fromJson(personData),
       ticket: json['ticket']?.toString() ?? '',
       expiresIn: (json['expires_in'] as num?)?.toInt() ?? 120,
+      checkedIn: stateData['checked_in'] == true,
+      onBreak: stateData['on_break'] == true,
+      since: stateData['since']?.toString(),
+      sinceAt: stateData['since_at']?.toString(),
+      stateDate: stateData['date']?.toString(),
+      usesBreaks: stateData['uses_breaks'] == true,
       allowedActions: allowed,
       refusals: refusalsMap,
+      requiresPosition: requiresData['position'] == true,
       requiresPhoto: requiresData['photo'] == true,
       requiresFace: requiresData['face']?.toString() ?? 'off',
       faceSaved: requiresData['face_saved'] == true,
@@ -165,10 +232,17 @@ class KioskIdentifyResponseModel {
       'ticket': ticket,
       'expires_in': expiresIn,
       'state': {
+        'checked_in': checkedIn,
+        'on_break': onBreak,
+        'since': since,
+        'since_at': sinceAt,
+        'date': stateDate,
+        'uses_breaks': usesBreaks,
         'allowed': allowedActions,
         'refusals': refusals,
       },
       'requires': {
+        'position': requiresPosition,
         'photo': requiresPhoto,
         'face': requiresFace,
         'face_saved': faceSaved,

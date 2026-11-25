@@ -35,10 +35,11 @@ class CompanyDashboardController extends GetxController {
   final FocusNode locationFocusNode = FocusNode();
   final RxBool replaceExisting = false.obs;
 
-  // Direct Kiosk PIN Setup / Testing field on Dashboard
-  final TextEditingController kioskPinController = TextEditingController();
-  final FocusNode kioskPinFocusNode = FocusNode();
-  final RxBool isSubmittingPin = false.obs;
+  // Kiosk Work Locations (GET /kiosks/locations)
+  final RxList<KioskLocationModel> kioskLocations = <KioskLocationModel>[].obs;
+  final Rxn<KioskLocationModel> selectedKioskLocation = Rxn<KioskLocationModel>();
+  final RxBool isLoadingLocations = false.obs;
+  final RxnString locationsError = RxnString();
 
   bool get canManageKiosks => AppPreferences.hasPermission('kiosks.manage');
   bool get canViewEmployees => AppPreferences.hasPermission('employees.view');
@@ -62,10 +63,8 @@ class CompanyDashboardController extends GetxController {
     _clockTimer?.cancel();
     kioskNameController.dispose();
     locationController.dispose();
-    kioskPinController.dispose();
     kioskNameFocusNode.dispose();
     locationFocusNode.dispose();
-    kioskPinFocusNode.dispose();
     scrollController.dispose();
     super.onClose();
   }
@@ -93,13 +92,40 @@ class CompanyDashboardController extends GetxController {
         employees.clear();
       }
 
-      // 4. Update dashboard presentation model
+      // 4. Preload kiosk work locations if user can manage kiosks
+      if (canManageKiosks) {
+        await loadKioskLocations();
+      }
+
+      // 5. Update dashboard presentation model
       dashboardData.value = CompanyDashboardData.fromPreferences(
         activeKiosk: activeKiosk.value,
         employeesList: employees,
       );
     } finally {
       isLoading.value = false;
+    }
+  }
+
+  /// Loads available work locations from GET /kiosks/locations
+  Future<void> loadKioskLocations() async {
+    if (!canManageKiosks) return;
+    try {
+      isLoadingLocations.value = true;
+      locationsError.value = null;
+      final locs = await repo.fetchKioskLocations();
+      kioskLocations.assignAll(locs);
+
+      if (locs.length == 1) {
+        selectedKioskLocation.value = locs.first;
+      } else if (selectedKioskLocation.value != null &&
+          !locs.contains(selectedKioskLocation.value)) {
+        selectedKioskLocation.value = null;
+      }
+    } catch (e) {
+      locationsError.value = e.toString();
+    } finally {
+      isLoadingLocations.value = false;
     }
   }
 
@@ -117,11 +143,32 @@ class CompanyDashboardController extends GetxController {
     }
 
     if (!provisionFormKey.currentState!.validate()) {
-      if (kioskNameController.text.trim().isEmpty) {
-        kioskNameFocusNode.requestFocus();
-      } else {
-        locationFocusNode.requestFocus();
+      final FocusNode targetFocus = kioskNameController.text.trim().isEmpty ||
+              kioskNameController.text.trim().length < 2 ||
+              kioskNameController.text.trim().length > 60
+          ? kioskNameFocusNode
+          : locationFocusNode;
+      if (targetFocus.context != null) {
+        Scrollable.ensureVisible(
+          targetFocus.context!,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeInOut,
+        );
       }
+      targetFocus.requestFocus();
+      return;
+    }
+
+    final locationId = selectedKioskLocation.value?.id ?? locationController.text.trim();
+    if (locationId.isEmpty) {
+      if (locationFocusNode.context != null) {
+        Scrollable.ensureVisible(
+          locationFocusNode.context!,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeInOut,
+        );
+      }
+      locationFocusNode.requestFocus();
       return;
     }
 
@@ -129,12 +176,15 @@ class CompanyDashboardController extends GetxController {
       isProvisioning.value = true;
       final config = await repo.provisionKiosk(
         name: kioskNameController.text.trim(),
-        location: locationController.text.trim(),
+        location: locationId,
         replace: replaceExisting.value,
       );
 
       if (config != null) {
         activeKiosk.value = config;
+        kioskNameController.clear();
+        locationController.clear();
+        selectedKioskLocation.value = null;
         CustomSnackbar.showSuccess(
           title: 'Kiosk Provisioned',
           message: 'Tablet successfully provisioned. Logging out setup administrator.',
@@ -183,25 +233,6 @@ class CompanyDashboardController extends GetxController {
     Get.offAllNamed(Routes.KIOSK_MAIN);
   }
 
-  /// Submits the Kiosk PIN / Quick Provisioning action
-  void submitKioskPin() {
-    final pin = kioskPinController.text.trim();
-    if (pin.isEmpty) {
-      kioskPinFocusNode.requestFocus();
-      CustomSnackbar.showWarning(
-        title: 'PIN Required',
-        message: 'Please enter the 4 to 6 digit Kiosk PIN.',
-      );
-      return;
-    }
-
-    if (isKioskProvisioned) {
-      enterKioskMode();
-    } else {
-      navigateToKioskSetup();
-    }
-  }
-
   /// Navigates to dedicated Company Staff Directory reusing EmployeesView with company arguments
   void navigateToEmployees() {
     Get.toNamed(
@@ -238,6 +269,9 @@ class CompanyDashboardController extends GetxController {
         message: 'You need "kiosks.manage" permission to access Kiosk Setup.',
       );
       return;
+    }
+    if (kioskLocations.isEmpty && !isLoadingLocations.value) {
+      loadKioskLocations();
     }
     Get.toNamed(Routes.KIOSK_SETUP);
   }

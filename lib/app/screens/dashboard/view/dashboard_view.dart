@@ -39,39 +39,15 @@ class DashboardView extends GetView<DashboardController> {
         backgroundColor: AppColors.backgroundColor,
         body: Obx(() {
           final isCurrentlyLoading = controller.isLoading.value;
-
-          if (isCurrentlyLoading) {
-            return Center(
-              child: CircularProgressIndicator(
-                color: AppColors.primary,
-                strokeWidth: 2.5.w,
-              ),
-            );
-          }
-
           final hasAttendance = (sessionController.hasModule('attendance') ||
                   AppPreferences.hasModule('attendance')) &&
               (sessionController.hasPermission('attendance.view') ||
                   AppPreferences.hasPermission('attendance.view'));
+          final hasEmployeesDirectory =
+              sessionController.hasPermission('employees.view') ||
+              AppPreferences.hasPermission('employees.view');
 
           final data = controller.dashboardData.value;
-          if (hasAttendance && data == null) {
-            if (sessionController.isLoading.value) {
-              return Center(
-                child: CircularProgressIndicator(
-                  color: AppColors.primary,
-                  strokeWidth: 2.5.w,
-                ),
-              );
-            }
-            return CustomStateView.empty(
-              title: 'No Attendance Data',
-              message: 'No attendance records available for today.',
-              buttonText: 'Refresh',
-              onAction: controller.loadDashboard,
-            );
-          }
-
           final meUser = sessionController.user.value;
           final String userName = meUser?.name ?? user?.name ?? 'Employee';
           final String designation = AppPreferences.getProfileData()?['designation']?.toString() ??
@@ -80,7 +56,7 @@ class DashboardView extends GetView<DashboardController> {
 
           return Stack(
             children: [
-              // 1. Curved Ambient Gradient Header
+              // 1. Curved Ambient Gradient Header (Always visible)
               EmployeeAmbientHeader(height: 230.h),
 
               // 2. Main Scrollable Content Overlapping the Header
@@ -101,25 +77,68 @@ class DashboardView extends GetView<DashboardController> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Top Executive Header (Avatar, Name, Greeting, Location Pill, Notification Bell)
+                        // Top Executive Header (Always visible: Avatar, Name, Greeting, Notification Bell)
                         _buildTopHeader(userName, designation),
 
                         AppSpaces.vSpace12,
 
-                        // Employee Personal Overview
-                        if (hasAttendance) ...[
-                          const LiveShiftClockCard(),
-                          AppSpaces.vSpace12,
-                        ],
+                        if (isCurrentlyLoading ||
+                            (hasAttendance &&
+                                data == null &&
+                                !controller.isAccessRestricted.value &&
+                                sessionController.isLoading.value))
+                          Padding(
+                            padding: EdgeInsets.symmetric(vertical: 48.h),
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                color: AppColors.primary,
+                                strokeWidth: 2.5.w,
+                              ),
+                            ),
+                          )
+                        else ...[
+                          // Employee Personal Overview
+                          if (hasAttendance && data != null) ...[
+                            const LiveShiftClockCard(),
+                            AppSpaces.vSpace12,
+                          ],
 
-                        // 2. Executive Quick Services Hub
-                        const DashboardQuickActions(),
+                          // 2. Executive Quick Services Hub (Always accessible for permitted modules)
+                          const DashboardQuickActions(),
 
-                        // 3. Section: Today's Metrics Overview
-                        if (hasAttendance) ...[
-                          AppSpaces.vSpace12,
-                          _buildTodayOverviewHeader(),
-                          AppSpaces.vSpace12,
+                          // 3. Body Section: Permission Error / Empty / Today's Metrics
+                          if (controller.isAccessRestricted.value) ...[
+                            AppSpaces.vSpace14,
+                            Center(
+                              child: CustomStateView.error(
+                                title: 'Personal Attendance Restricted',
+                                message: controller
+                                        .accessRestrictedMessage.value.isNotEmpty
+                                    ? '${controller.accessRestrictedMessage.value}\nUse Staff Directory or Drawer modules for department access.'
+                                    : 'Personal attendance is not enabled for your role. Use Staff Directory for department access.',
+                                buttonText: hasEmployeesDirectory
+                                    ? 'Open Staff Directory'
+                                    : 'Refresh',
+                                onRetry: hasEmployeesDirectory
+                                    ? () => Get.toNamed(Routes.EMPLOYEES)
+                                    : controller.loadDashboard,
+                              ),
+                            ),
+                          ] else if (hasAttendance && data == null) ...[
+                            AppSpaces.vSpace14,
+                            Center(
+                              child: CustomStateView.empty(
+                                title: 'No Attendance Data',
+                                message:
+                                    'No attendance records available for today.',
+                                buttonText: 'Refresh',
+                                onAction: controller.loadDashboard,
+                              ),
+                            ),
+                          ] else if (hasAttendance && data != null) ...[
+                            AppSpaces.vSpace12,
+                            _buildTodayOverviewHeader(),
+                            AppSpaces.vSpace12,
 
                             // 4-Card Mini Grid
                             const TodayStatsGrid(),
@@ -129,6 +148,7 @@ class DashboardView extends GetView<DashboardController> {
                             // 4. Section: Today's Punch Activity Log
                             const RecentActivityTimeline(),
                           ],
+                        ],
 
                         AppSpaces.vSpace24,
 

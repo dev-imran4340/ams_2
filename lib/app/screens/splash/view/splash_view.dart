@@ -38,7 +38,7 @@ class SplashView extends GetView<SplashController> {
                     colors: [
                       AppColors.accentNavy, // Slate Navy (#023E61)
                       AppColors.primary,    // Deep Corporate Navy (#012B43)
-                      Color(0xFF001524),    // Ultra-rich dark executive base
+                      AppColors.deepNavyBase,    // Ultra-rich dark executive base
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,

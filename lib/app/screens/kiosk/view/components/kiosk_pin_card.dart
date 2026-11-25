@@ -78,8 +78,8 @@ class KioskPinCard extends StatelessWidget {
                   padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
                   decoration: BoxDecoration(
                     color: configured
-                        ? const Color(0xFF10B981).withValues(alpha: 0.12)
-                        : Colors.amber.withValues(alpha: 0.12),
+                        ? AppColors.success.withValues(alpha: 0.12)
+                        : AppColors.warning.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(8.r),
                   ),
                   child: Row(
@@ -87,7 +87,7 @@ class KioskPinCard extends StatelessWidget {
                     children: [
                       Icon(
                         configured ? Icons.check_circle_rounded : Icons.info_outline_rounded,
-                        color: configured ? const Color(0xFF10B981) : Colors.amber.shade700,
+                        color: configured ? AppColors.success : AppColors.amberDark,
                         size: 14.sp,
                       ),
                       AppSpaces.hSpace4,
@@ -95,7 +95,7 @@ class KioskPinCard extends StatelessWidget {
                         configured ? 'Configured' : 'Not Set',
                         style: AppTextStyles.text12.copyWith(
                           fontWeight: FontWeight.bold,
-                          color: configured ? const Color(0xFF10B981) : Colors.amber.shade700,
+                          color: configured ? AppColors.success : AppColors.amberDark,
                         ),
                       ),
                     ],

@@ -6,21 +6,39 @@ import 'package:ams_2/app/core/utils/app_colors.dart';
 import 'package:ams_2/app/core/utils/app_spaces.dart';
 import 'package:ams_2/app/core/utils/app_text_styles.dart';
 import 'package:ams_2/app/core/widgets/custom_button.dart';
+import 'package:ams_2/app/core/widgets/custom_card.dart';
 import 'package:ams_2/app/core/widgets/custom_text_field.dart';
-import 'package:ams_2/app/routes/app_routes.dart';
+import 'package:ams_2/app/core/widgets/employee_ambient_header.dart';
+import 'package:ams_2/app/core/widgets/network_boundary_wrapper.dart';
 import '../controller/kiosk_controller.dart';
-import '../model/kiosk_model.dart';
+import 'components/kiosk_live_punch_card.dart';
 
 class KioskMainView extends GetView<KioskController> {
   const KioskMainView({super.key});
 
   static const List<String> _weekdays = [
-    'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday',
+    'Sunday',
   ];
 
   static const List<String> _months = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
   ];
 
   String _formatTime(DateTime dt) {
@@ -41,181 +59,238 @@ class KioskMainView extends GetView<KioskController> {
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false, // Prevents Android back button from popping kiosk station
-      onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) {
-          _showAdminExitDialog(context);
-        }
-      },
-      child: Scaffold(
-        backgroundColor: const Color(0xFF011A29), // Deep Corporate Navy
-        body: SafeArea(
-          child: Obx(() {
-            final session = controller.identifiedSession.value;
-            final isSuccess = controller.showSuccessCard.value;
+    return NetworkBoundaryWrapper(
+      onRetry: controller.loadKioskState,
+      child: PopScope(
+        canPop: false,
+        child: Scaffold(
+          backgroundColor: AppColors.backgroundColor,
+          body: Stack(
+            children: [
+              // Signature Curved Ambient Gradient Header matching CompanyDashboardView
+              EmployeeAmbientHeader(
+                height: 230.h,
+                borderRadius: 20.r,
+                gradientColors: const [
+                  AppColors.primary,
+                  AppColors.primary,
+                  AppColors.primary,
+                  AppColors.primary,
+                  AppColors.primary,
+                  AppColors.secondary,
+                  AppColors.liteSecondary,
+                ],
+              ),
 
-            return Column(
-              children: [
-                // 1. Tablet Header (Station Telemetry & Exit Lock)
-                _buildStationHeader(context),
+              SafeArea(
+                bottom: false,
+                child: Obx(() {
+                  if (controller.isLoading.value &&
+                      controller.activeKioskConfig.value == null) {
+                    return Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.secondary,
+                      ),
+                    );
+                  }
 
-                Expanded(
-                  child: SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(maxWidth: 580.w),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            // 2. High-Visibility Digital Clock & Calendar
-                            _buildDigitalClock(),
+                  final session = controller.identifiedSession.value;
+                  final isSuccess = controller.showSuccessCard.value;
 
-                            AppSpaces.vSpace20,
+                  return Column(
+                    children: [
+                      // 1. Top Station Header on Ambient Gradient
+                      Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 14.w,
+                          vertical: 8.h,
+                        ),
+                        child: _buildStationHeader(context),
+                      ),
 
-                            // 3. Dynamic Interactive State
-                            if (isSuccess) ...[
-                              _buildPunchSuccessCard(),
-                            ] else if (session != null) ...[
-                              _buildIdentifiedActionCard(session),
-                            ] else ...[
-                              _buildIdentificationCard(context),
-                            ],
-                          ],
+                      // 2. Scrollable Main Content
+                      Expanded(
+                        child: RefreshIndicator(
+                          onRefresh: controller.loadKioskState,
+                          color: AppColors.secondary,
+                          child: SingleChildScrollView(
+                            controller: controller.scrollController,
+                            physics: const AlwaysScrollableScrollPhysics(
+                              parent: BouncingScrollPhysics(),
+                            ),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 14.w,
+                              vertical: 6.h,
+                            ),
+                            child: Center(
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(maxWidth: 580.w),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  children: [
+                                    // Live Digital Clock Floating Card
+                                    _buildDigitalClockCard(),
+
+                                    AppSpaces.vSpace14,
+
+                                    // Offline Queue Banner (if any queued punches)
+                                    if (controller.offlineQueueCount.value >
+                                        0) ...[
+                                      _buildOfflineQueueBanner(),
+                                      AppSpaces.vSpace14,
+                                    ],
+
+                                    // Active Interactive Card
+                                    if (isSuccess) ...[
+                                      _buildPunchSuccessCard(),
+                                    ] else if (session != null) ...[
+                                      KioskLivePunchCard(
+                                        controller: controller,
+                                        session: session,
+                                      ),
+                                    ] else ...[
+                                      _buildIdentificationCard(context),
+                                    ],
+
+                                    SizedBox(height: 28.h),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-                ),
 
-                // 4. Station Footer
-                _buildStationFooter(context),
-              ],
-            );
-          }),
+                      // 3. Footer
+                      _buildStationFooter(),
+                    ],
+                  );
+                }),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  /// Top Bar: Branding, Location, Online Badge & Admin Exit Lock
+  String _capitalizeFirst(String text) {
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) return trimmed;
+    return '${trimmed[0].toUpperCase()}${trimmed.substring(1)}';
+  }
+
+  /// Top Header matching CompanyDashboardView executive header style
   Widget _buildStationHeader(BuildContext context) {
     return Obx(() {
       final config = controller.activeKioskConfig.value;
-      final stationName = config?.name ?? 'Attendance Terminal';
+      final rawName = config?.name ?? 'Attendance Terminal';
+      final stationName = _capitalizeFirst(
+        rawName.isNotEmpty ? rawName : 'Attendance Terminal',
+      );
       final locName = config?.locationName ?? 'Worksite Station';
 
-      return Container(
-        padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 12.h),
-        decoration: BoxDecoration(
-          color: AppColors.primary.withValues(alpha: 0.85),
-          border: Border(bottom: BorderSide(color: AppColors.secondary, width: 2.w)),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: EdgeInsets.all(8.r),
-              decoration: BoxDecoration(
-                color: AppColors.secondary.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(10.r),
-              ),
-              child: Icon(Icons.tablet_mac_rounded, color: AppColors.secondary, size: 22.sp),
-            ),
-            AppSpaces.hSpace12,
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    stationName,
-                    style: TextStyle(
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      letterSpacing: 0.3,
-                    ),
-                  ),
-                  Text(
-                    locName,
-                    style: TextStyle(
-                      fontSize: 12.sp,
-                      color: AppColors.litePrimary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-              decoration: BoxDecoration(
-                color: const Color(0xFF10B981).withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(6.r),
-                border: Border.all(color: Colors.tealAccent.shade400),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 7.r,
-                    height: 7.r,
-                    decoration: const BoxDecoration(
-                      color: Colors.tealAccent,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  AppSpaces.hSpace6,
-                  Text(
-                    'ONLINE',
-                    style: TextStyle(
-                      fontSize: 11.sp,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.tealAccent,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            AppSpaces.hSpace10,
-            IconButton(
-              icon: Icon(Icons.admin_panel_settings_outlined, color: Colors.white70, size: 22.sp),
-              tooltip: 'Admin Settings',
-              onPressed: () => _showAdminExitDialog(context),
-            ),
-          ],
-        ),
-      );
-    });
-  }
-
-  /// Digital Clock Card
-  Widget _buildDigitalClock() {
-    return Obx(() {
-      final now = controller.liveClock.value;
-      final timeStr = _formatTime(now);
-      final dateStr = _formatDate(now);
-
-      return Column(
+      return Row(
         children: [
-          Text(
-            timeStr,
-            style: TextStyle(
-              fontSize: 38.sp,
-              fontWeight: FontWeight.w800,
-              color: Colors.white,
-              letterSpacing: 1.5,
-              fontFamily: 'monospace',
+          Container(
+            padding: EdgeInsets.all(10.r),
+            decoration: BoxDecoration(
+              color: AppColors.white.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(12.r),
+              border: Border.all(
+                color: AppColors.white.withValues(alpha: 0.25),
+              ),
+            ),
+            child: Icon(
+              Icons.tablet_mac_rounded,
+              color: AppColors.white,
+              size: 22.sp,
             ),
           ),
-          AppSpaces.vSpace4,
-          Text(
-            dateStr,
-            style: TextStyle(
-              fontSize: 14.sp,
-              fontWeight: FontWeight.w500,
-              color: AppColors.liteSecondary,
-              letterSpacing: 0.5,
+          AppSpaces.hSpace12,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  stationName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.text16.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.white,
+                  ),
+                ),
+                AppSpaces.vSpace2,
+                Row(
+                  children: [
+                    Icon(
+                      Icons.location_on_outlined,
+                      size: 13.sp,
+                      color: AppColors.liteSecondary,
+                    ),
+                    AppSpaces.hSpace4,
+                    Flexible(
+                      child: Text(
+                        locName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTextStyles.text12.copyWith(
+                          color: AppColors.litePrimary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
+            decoration: BoxDecoration(
+              color: AppColors.secondary.withValues(alpha: 0.22),
+              borderRadius: BorderRadius.circular(20.r),
+              border: Border.all(
+                color: AppColors.liteSecondary.withValues(alpha: 0.6),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 7.r,
+                  height: 7.r,
+                  decoration: const BoxDecoration(
+                    color: AppColors.liteSecondary,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                AppSpaces.hSpace6,
+                Text(
+                  'ONLINE',
+                  style: AppTextStyles.text10.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          AppSpaces.hSpace8,
+          Material(
+            color: AppColors.white.withValues(alpha: 0.14),
+            shape: const CircleBorder(),
+            child: InkWell(
+              customBorder: const CircleBorder(),
+              onTap: controller.handleHeaderLogout,
+              child: Padding(
+                padding: EdgeInsets.all(9.r),
+                child: Icon(
+                  Icons.logout_rounded,
+                  color: AppColors.white,
+                  size: 20.sp,
+                ),
+              ),
             ),
           ),
         ],
@@ -223,100 +298,195 @@ class KioskMainView extends GetView<KioskController> {
     });
   }
 
-  /// State 1: Idle Identification Form (PIN Entry & QR Badge)
-  Widget _buildIdentificationCard(BuildContext context) {
+  /// Signature Floating Card for Live Digital Clock
+  Widget _buildDigitalClockCard() {
     return Obx(() {
-      final config = controller.activeKioskConfig.value;
-      final pinAllowed = config?.pinAllowed ?? true;
-      final mode = controller.identifyMode.value;
+      final now = controller.liveClock.value;
+      final timeStr = _formatTime(now);
+      final dateStr = _formatDate(now);
 
-      return Container(
-        width: double.infinity,
-        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 20.h),
-        decoration: BoxDecoration(
-          color: const Color(0xFF022A40),
-          borderRadius: BorderRadius.circular(18.r),
-          border: Border(
-            bottom: BorderSide(color: AppColors.secondary, width: 3.w),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.3),
-              blurRadius: 16,
-              offset: const Offset(0, 6),
+      return CustomCard(
+        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 14.h),
+        borderRadius: 15.r,
+        accentColor: AppColors.secondary,
+        accentWidth: 3.w,
+        child: Row(
+          children: [
+            Container(
+              padding: EdgeInsets.all(10.r),
+              decoration: BoxDecoration(
+                color: AppColors.secondary.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(12.r),
+              ),
+              child: Icon(
+                Icons.access_time_filled_rounded,
+                color: AppColors.secondary,
+                size: 24.sp,
+              ),
+            ),
+            AppSpaces.hSpace12,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    timeStr,
+                    style: AppTextStyles.text24.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textColor,
+                      letterSpacing: 0.8,
+                    ),
+                  ),
+                  AppSpaces.vSpace2,
+                  Text(
+                    dateStr,
+                    style: AppTextStyles.text12.copyWith(
+                      color: AppColors.subTextColor,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
-        child: Column(
+      );
+    });
+  }
+
+  /// Offline Queue Banner with Sync Button
+  Widget _buildOfflineQueueBanner() {
+    return Obx(() {
+      final count = controller.offlineQueueCount.value;
+      final syncing = controller.isSyncingOffline.value;
+
+      return CustomCard(
+        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
+        borderRadius: 15.r,
+        accentColor: AppColors.warning,
+        accentWidth: 3.w,
+        child: Row(
           children: [
-            Text(
-              'Employee Attendance Identification',
-              style: TextStyle(
-                fontSize: 17.sp,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
+            Icon(
+              Icons.cloud_upload_outlined,
+              color: AppColors.warning,
+              size: 20.sp,
+            ),
+            AppSpaces.hSpace10,
+            Expanded(
+              child: Text(
+                '$count offline punch${count == 1 ? '' : 'es'} queued for sync',
+                style: AppTextStyles.text12.copyWith(
+                  color: AppColors.textColor,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
-            AppSpaces.vSpace4,
-            Text(
-              'Scan your digital QR badge or enter your employee PIN',
-              style: TextStyle(
-                fontSize: 12.sp,
-                color: AppColors.litePrimary,
-              ),
+            TextButton(
+              onPressed: syncing ? null : controller.syncOfflinePunches,
+              child: syncing
+                  ? SizedBox(
+                      width: 16.r,
+                      height: 16.r,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.w,
+                        color: AppColors.secondary,
+                      ),
+                    )
+                  : Text(
+                      'Sync Now',
+                      style: AppTextStyles.text12.copyWith(
+                        color: AppColors.secondary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
             ),
+          ],
+        ),
+      );
+    });
+  }
 
-            AppSpaces.vSpace16,
-
-            // Identification Mode Switcher
+  /// State 1: Idle Identification Card (QR Badge Only)
+  Widget _buildIdentificationCard(BuildContext context) {
+    return Obx(() {
+      return CustomCard(
+        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 14.h),
+        borderRadius: 15.r,
+        accentColor: AppColors.secondary,
+        accentWidth: 3.w,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Section Title
             Row(
               children: [
-                Expanded(
-                  child: _buildModeTab(
-                    title: 'Employee PIN',
-                    icon: Icons.pin_outlined,
-                    isSelected: mode == 'pin',
-                    onTap: () {
-                      controller.identifyMode.value = 'pin';
-                      controller.idErrorMessage.value = '';
-                    },
+                Container(
+                  padding: EdgeInsets.all(9.r),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10.r),
+                  ),
+                  child: Icon(
+                    Icons.qr_code_scanner_rounded,
+                    color: AppColors.primary,
+                    size: 20.sp,
                   ),
                 ),
                 AppSpaces.hSpace10,
                 Expanded(
-                  child: _buildModeTab(
-                    title: 'QR Badge',
-                    icon: Icons.qr_code_scanner_rounded,
-                    isSelected: mode == 'qr',
-                    onTap: () {
-                      controller.identifyMode.value = 'qr';
-                      controller.idErrorMessage.value = '';
-                    },
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Employee Identification',
+                        style: AppTextStyles.text16.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textColor,
+                        ),
+                      ),
+                      AppSpaces.vSpace2,
+                      Text(
+                        'Scan your digital QR badge to punch attendance',
+                        style: AppTextStyles.text12.copyWith(
+                          color: AppColors.subTextColor,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
 
-            AppSpaces.vSpace18,
+            AppSpaces.vSpace16,
 
-            // Error Message Display
+            // Error Message Banner
             if (controller.idErrorMessage.value.isNotEmpty) ...[
               Container(
                 width: double.infinity,
                 padding: EdgeInsets.all(10.r),
                 decoration: BoxDecoration(
-                  color: Colors.red.shade900.withValues(alpha: 0.3),
+                  color: AppColors.error.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10.r),
-                  border: Border.all(color: Colors.red.shade400),
+                  border: Border.all(
+                    color: AppColors.error.withValues(alpha: 0.4),
+                  ),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.error_outline_rounded, color: Colors.red.shade300, size: 18.sp),
+                    Icon(
+                      Icons.error_outline_rounded,
+                      color: AppColors.error,
+                      size: 18.sp,
+                    ),
                     AppSpaces.hSpace8,
                     Expanded(
                       child: Text(
                         controller.idErrorMessage.value,
-                        style: TextStyle(color: Colors.red.shade200, fontSize: 12.sp),
+                        style: AppTextStyles.text12.copyWith(
+                          color: AppColors.error,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
                   ],
@@ -325,337 +495,68 @@ class KioskMainView extends GetView<KioskController> {
               AppSpaces.vSpace14,
             ],
 
-            // Body: PIN Mode vs QR Mode
-            if (mode == 'pin') ...[
-              if (!pinAllowed) ...[
-                Container(
-                  padding: EdgeInsets.all(14.r),
-                  decoration: BoxDecoration(
-                    color: Colors.amber.shade900.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(10.r),
-                    border: Border.all(color: Colors.amber.shade400),
-                  ),
-                  child: Text(
-                    'PIN entry is disabled for this worksite. Please use your QR badge.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.amber.shade200, fontSize: 13.sp),
-                  ),
-                ),
-              ] else ...[
-                Form(
-                  key: controller.clockInFormKey,
-                  child: Column(
-                    children: [
-                      CustomTextField(
-                        controller: controller.empNumController,
-                        focusNode: controller.empNumFocusNode,
-                        hintText: 'Employee Number (e.g. EMP-0001)',
-                        prefixIcon: Icon(Icons.badge_outlined, size: 20.sp, color: AppColors.subTextColor),
-                        validator: (val) {
-                          if (val == null || val.trim().isEmpty) {
-                            return 'Please enter your employee number';
-                          }
-                          return null;
-                        },
-                      ),
-                      AppSpaces.vSpace12,
-                      CustomTextField(
-                        controller: controller.terminalPinController,
-                        focusNode: controller.terminalPinFocusNode,
-                        hintText: '4-6 Digit Kiosk PIN',
-                        prefixIcon: Icon(Icons.password_rounded, size: 20.sp, color: AppColors.subTextColor),
-                        obscureText: true,
-                        keyboardType: TextInputType.number,
-                        validator: (val) {
-                          if (val == null || val.trim().isEmpty) {
-                            return 'Please enter your kiosk PIN';
-                          }
-                          return null;
-                        },
-                      ),
-                      AppSpaces.vSpace16,
-                      CustomButton(
-                        text: 'Identify & Continue',
-                        isGradient: true,
-                        isLoading: controller.isSubmitting.value,
-                        icon: Icon(Icons.arrow_forward_rounded, size: 20.sp, color: Colors.white),
-                        onPressed: controller.identifyViaEmployeeNumberAndPin,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ] else ...[
-              // QR Badge Scanner Option
-              Column(
+            // QR Badge Scanner Action
+            Center(
+              child: Column(
                 children: [
                   Container(
-                    height: 160.h,
-                    width: 160.h,
+                    height: 150.h,
+                    width: 150.h,
                     decoration: BoxDecoration(
-                      color: Colors.black26,
-                      borderRadius: BorderRadius.circular(16.r),
-                      border: Border.all(color: AppColors.secondary, width: 2.w),
-                    ),
-                    child: Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.qr_code_2_rounded,
-                            size: 64.sp,
-                            color: AppColors.liteSecondary,
-                          ),
-                          AppSpaces.vSpace8,
-                          Text(
-                            'Align QR Badge in view',
-                            style: TextStyle(fontSize: 11.sp, color: Colors.white70),
-                          ),
-                        ],
+                      color: AppColors.backgroundColor,
+                      borderRadius: BorderRadius.circular(15.r),
+                      border: Border.all(
+                        color: AppColors.secondary,
+                        width: 2.w,
                       ),
                     ),
-                  ),
-                  AppSpaces.vSpace14,
-                  CustomButton(
-                    text: 'Scan Badge / Test Verification',
-                    isGradient: true,
-                    isLoading: controller.isSubmitting.value,
-                    icon: Icon(Icons.camera_alt_outlined, size: 20.sp, color: Colors.white),
-                    onPressed: () {
-                      _showManualBadgePrompt(context);
-                    },
-                  ),
-                ],
-              ),
-            ],
-          ],
-        ),
-      );
-    });
-  }
-
-  /// State 2: Employee Identified Session (Allowed Actions & Face Check)
-  Widget _buildIdentifiedActionCard(KioskIdentifyResponseModel session) {
-    return Obx(() {
-      final reqFace = controller.isFaceVerificationRequired.value;
-      final isFaceOk = controller.isFaceVerified.value;
-      final countdown = controller.ticketCountdown.value;
-      final allowed = session.allowedActions;
-
-      return Container(
-        width: double.infinity,
-        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 20.h),
-        decoration: BoxDecoration(
-          color: const Color(0xFF022A40),
-          borderRadius: BorderRadius.circular(18.r),
-          border: Border(
-            bottom: BorderSide(color: AppColors.secondary, width: 3.w),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.3),
-              blurRadius: 16,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            // Welcome Header
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 24.r,
-                  backgroundColor: AppColors.secondary,
-                  child: Text(
-                    session.person.name.isNotEmpty ? session.person.name[0] : 'E',
-                    style: TextStyle(
-                      fontSize: 20.sp,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-                AppSpaces.hSpace12,
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        session.person.name,
-                        style: TextStyle(
-                          fontSize: 18.sp,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      Text(
-                        'ID: ${session.person.employeeNumber} • ${session.person.department ?? "Staff"}',
-                        style: TextStyle(
-                          fontSize: 12.sp,
-                          color: AppColors.litePrimary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
-                  decoration: BoxDecoration(
-                    color: countdown < 30 ? Colors.red.shade900 : Colors.black45,
-                    borderRadius: BorderRadius.circular(20.r),
-                    border: Border.all(
-                      color: countdown < 30 ? Colors.redAccent : AppColors.secondary,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.timer_outlined,
-                        size: 14.sp,
-                        color: countdown < 30 ? Colors.redAccent : AppColors.liteSecondary,
-                      ),
-                      AppSpaces.hSpace4,
-                      Text(
-                        '${countdown}s',
-                        style: TextStyle(
-                          fontSize: 12.sp,
-                          fontWeight: FontWeight.bold,
-                          color: countdown < 30 ? Colors.redAccent : Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-
-            AppSpaces.vSpace16,
-            Divider(color: Colors.white24, height: 1),
-            AppSpaces.vSpace16,
-
-            // Face Verification Step (if required)
-            if (reqFace && !isFaceOk) ...[
-              Container(
-                padding: EdgeInsets.all(12.r),
-                decoration: BoxDecoration(
-                  color: Colors.orange.shade900.withValues(alpha: 0.25),
-                  borderRadius: BorderRadius.circular(12.r),
-                  border: Border.all(color: Colors.orange.shade400),
-                ),
-                child: Column(
-                  children: [
-                    Row(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.face_retouching_natural_rounded, color: Colors.orange.shade300),
-                        AppSpaces.hSpace10,
-                        Expanded(
-                          child: Text(
-                            'Facial Verification Required',
-                            style: TextStyle(
-                              fontSize: 13.sp,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
+                        Icon(
+                          Icons.qr_code_2_rounded,
+                          size: 64.sp,
+                          color: AppColors.primary,
+                        ),
+                        AppSpaces.vSpace8,
+                        Text(
+                          'Tap below to scan',
+                          style: AppTextStyles.text12.copyWith(
+                            color: AppColors.subTextColor,
                           ),
                         ),
                       ],
                     ),
-                    AppSpaces.vSpace8,
-                    Text(
-                      'This workplace requires facial matching before recording your punch.',
-                      style: TextStyle(fontSize: 11.sp, color: Colors.white70),
+                  ),
+                  AppSpaces.vSpace14,
+                  CustomButton(
+                    text: 'Scan QR Badge',
+                    isGradient: true,
+                    isLoading: controller.isSubmitting.value,
+                    icon: Icon(
+                      Icons.qr_code_scanner_rounded,
+                      size: 20.sp,
+                      color: AppColors.white,
                     ),
-                    AppSpaces.vSpace12,
-                    CustomButton(
-                      text: 'Complete Face Verification',
-                      isGradient: true,
-                      isLoading: controller.isVerifyingFace.value,
-                      icon: Icon(Icons.camera_front_rounded, size: 20.sp, color: Colors.white),
-                      onPressed: () => controller.verifyLiveFace(),
+                    onPressed: controller.isSubmitting.value
+                        ? null
+                        : controller.scanQrBadgeAndIdentify,
+                  ),
+                  AppSpaces.vSpace6,
+                  TextButton(
+                    onPressed: controller.isSubmitting.value
+                        ? null
+                        : () => _showManualBadgePrompt(context),
+                    child: Text(
+                      'Enter Badge Code Manually',
+                      style: AppTextStyles.text12.copyWith(
+                        color: AppColors.subTextColor,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ],
-                ),
-              ),
-              AppSpaces.vSpace16,
-            ],
-
-            // Allowed Attendance Actions Grid
-            Text(
-              'Select Attendance Action',
-              style: TextStyle(
-                fontSize: 14.sp,
-                fontWeight: FontWeight.bold,
-                color: Colors.white70,
-              ),
-            ),
-            AppSpaces.vSpace12,
-
-            if (allowed.isEmpty) ...[
-              Container(
-                padding: EdgeInsets.all(14.r),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade900.withValues(alpha: 0.4),
-                  borderRadius: BorderRadius.circular(10.r),
-                ),
-                child: Text(
-                  'No attendance actions are currently permitted for your shift schedule.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.white70, fontSize: 12.sp),
-                ),
-              ),
-            ] else ...[
-              Wrap(
-                spacing: 12.w,
-                runSpacing: 12.h,
-                alignment: WrapAlignment.center,
-                children: [
-                  if (allowed.contains('in'))
-                    _buildActionButton(
-                      label: 'Check In',
-                      kind: 'in',
-                      icon: Icons.login_rounded,
-                      color: const Color(0xFF10B981),
-                      enabled: !reqFace || isFaceOk,
-                    ),
-                  if (allowed.contains('out'))
-                    _buildActionButton(
-                      label: 'Check Out',
-                      kind: 'out',
-                      icon: Icons.logout_rounded,
-                      color: Colors.redAccent,
-                      enabled: !reqFace || isFaceOk,
-                    ),
-                  if (allowed.contains('break_start'))
-                    _buildActionButton(
-                      label: 'Start Break',
-                      kind: 'break_start',
-                      icon: Icons.coffee_rounded,
-                      color: Colors.amber.shade700,
-                      enabled: !reqFace || isFaceOk,
-                    ),
-                  if (allowed.contains('break_end'))
-                    _buildActionButton(
-                      label: 'End Break',
-                      kind: 'break_end',
-                      icon: Icons.work_history_rounded,
-                      color: AppColors.secondary,
-                      enabled: !reqFace || isFaceOk,
-                    ),
+                  ),
                 ],
               ),
-            ],
-
-            AppSpaces.vSpace18,
-
-            // Cancel / Exit Session Button
-            TextButton.icon(
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.white60,
-              ),
-              icon: Icon(Icons.close_rounded, size: 16.sp),
-              label: Text('Cancel Identification', style: TextStyle(fontSize: 12.sp)),
-              onPressed: () => controller.cancelSession(),
             ),
           ],
         ),
@@ -671,217 +572,98 @@ class KioskMainView extends GetView<KioskController> {
       final time = punch?.time ?? _formatTime(DateTime.now());
       final name = punch?.personName ?? 'Employee';
 
-      return Container(
-        width: double.infinity,
-        padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 26.h),
-        decoration: BoxDecoration(
-          color: const Color(0xFF022A40),
-          borderRadius: BorderRadius.circular(18.r),
-          border: Border.all(color: Colors.tealAccent, width: 2.w),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.tealAccent.withValues(alpha: 0.2),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
+      return CustomCard(
+        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 20.h),
+        borderRadius: 15.r,
+        accentColor: AppColors.success,
+        accentWidth: 3.w,
         child: Column(
           children: [
             Container(
-              padding: EdgeInsets.all(16.r),
+              padding: EdgeInsets.all(14.r),
               decoration: BoxDecoration(
-                color: Colors.tealAccent.withValues(alpha: 0.15),
+                color: AppColors.success.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
-              child: Icon(Icons.check_circle_rounded, color: Colors.tealAccent, size: 54.sp),
+              child: Icon(
+                Icons.check_circle_rounded,
+                color: AppColors.success,
+                size: 52.sp,
+              ),
             ),
             AppSpaces.vSpace14,
             Text(
               'Punch Recorded Successfully',
-              style: TextStyle(
-                fontSize: 20.sp,
+              textAlign: TextAlign.center,
+              style: AppTextStyles.text18.copyWith(
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: AppColors.textColor,
               ),
             ),
             AppSpaces.vSpace6,
             Text(
               '$role • $time',
-              style: TextStyle(
-                fontSize: 15.sp,
-                fontWeight: FontWeight.w600,
-                color: Colors.tealAccent,
+              style: AppTextStyles.text14.copyWith(
+                fontWeight: FontWeight.w700,
+                color: AppColors.secondary,
               ),
             ),
             AppSpaces.vSpace4,
             Text(
               'Recorded for $name',
-              style: TextStyle(fontSize: 13.sp, color: AppColors.litePrimary),
+              style: AppTextStyles.text12.copyWith(
+                color: AppColors.subTextColor,
+              ),
             ),
-            AppSpaces.vSpace20,
+            AppSpaces.vSpace18,
             CustomButton(
-              text: 'Done (Reset Now)',
+              text: 'Done (Next Employee)',
               isGradient: true,
               onPressed: controller.resetToMainScreen,
             ),
-          ],
-        ),
-      );
-    });
-  }
-
-  Widget _buildActionButton({
-    required String label,
-    required String kind,
-    required IconData icon,
-    required Color color,
-    required bool enabled,
-  }) {
-    return Obx(() {
-      final isBusy = controller.isSubmitting.value;
-
-      return SizedBox(
-        width: 140.w,
-        child: ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: color,
-            foregroundColor: Colors.white,
-            disabledBackgroundColor: Colors.grey.shade800,
-            disabledForegroundColor: Colors.white38,
-            padding: EdgeInsets.symmetric(vertical: 14.h, horizontal: 10.w),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12.r),
-            ),
-            elevation: 4,
-          ),
-          onPressed: (enabled && !isBusy) ? () => controller.punchAttendanceAction(kind) : null,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 28.sp),
-              AppSpaces.vSpace6,
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 13.sp,
-                  fontWeight: FontWeight.bold,
+            AppSpaces.vSpace10,
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.secondary,
+                  side: BorderSide(
+                    color: AppColors.secondary.withValues(alpha: 0.5),
+                  ),
+                  padding: EdgeInsets.symmetric(vertical: 12.h),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12.r),
+                  ),
                 ),
+                icon: Icon(
+                  Icons.refresh_rounded,
+                  size: 18.sp,
+                  color: AppColors.secondary,
+                ),
+                label: Text(
+                  'Continue (Break / Check Out)',
+                  style: AppTextStyles.text14.copyWith(
+                    color: AppColors.secondary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                onPressed: controller.isSubmitting.value
+                    ? null
+                    : controller.continueAfterPunch,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       );
     });
   }
 
-  Widget _buildModeTab({
-    required String title,
-    required IconData icon,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.symmetric(vertical: 10.h),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.secondary : Colors.black26,
-          borderRadius: BorderRadius.circular(10.r),
-          border: Border.all(
-            color: isSelected ? AppColors.secondary : Colors.white24,
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 16.sp, color: Colors.white),
-            AppSpaces.hSpace8,
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 12.sp,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: Colors.white,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStationFooter(BuildContext context) {
-    return Container(
+  Widget _buildStationFooter() {
+    return Padding(
       padding: EdgeInsets.symmetric(vertical: 8.h),
       child: Text(
-        'AMS 2 Enterprise Kiosk Terminal • Version 2.0.0',
-        style: TextStyle(fontSize: 10.sp, color: Colors.white38),
-      ),
-    );
-  }
-
-  /// Secret dialog allowing authorized administrators to exit or reset Kiosk Mode
-  void _showAdminExitDialog(BuildContext context) {
-    final TextEditingController adminPinController = TextEditingController();
-
-    Get.dialog(
-      AlertDialog(
-        backgroundColor: AppColors.cardBackground,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.r)),
-        title: Row(
-          children: [
-            Icon(Icons.lock_rounded, color: AppColors.primary),
-            AppSpaces.hSpace10,
-            Text('Kiosk Station Administration', style: TextStyle(fontSize: 16.sp)),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Enter administrator authorization to exit or de-provision this kiosk station.',
-              style: AppTextStyles.text12.copyWith(color: AppColors.subTextColor),
-            ),
-            AppSpaces.vSpace14,
-            CustomTextField(
-              controller: adminPinController,
-              hintText: 'Enter Admin / Station PIN',
-              obscureText: true,
-              keyboardType: TextInputType.number,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            child: const Text('Cancel'),
-            onPressed: () => Get.back(),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red.shade700,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Exit & Reset Station'),
-            onPressed: () async {
-              Get.back();
-              await controller.deProvisionKiosk();
-            },
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Return to Login'),
-            onPressed: () {
-              Get.back();
-              Get.offAllNamed(Routes.LOGIN);
-            },
-          ),
-        ],
+        'AMS 2 Enterprise Kiosk Terminal • v2.0.0',
+        style: AppTextStyles.text10.copyWith(color: AppColors.subTextColor),
       ),
     );
   }
@@ -890,46 +672,101 @@ class KioskMainView extends GetView<KioskController> {
     final TextEditingController badgeInputController = TextEditingController();
 
     Get.dialog(
-      AlertDialog(
-        backgroundColor: AppColors.cardBackground,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.r)),
-        title: Text('Scan / Enter Badge Value', style: TextStyle(fontSize: 16.sp)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Input the QR badge code as scanned from the employee digital ID card.',
-              style: AppTextStyles.text12.copyWith(color: AppColors.subTextColor),
+      Dialog(
+        backgroundColor: AppColors.transparent,
+        insetPadding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: 420.w),
+          child: CustomCard(
+            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 14.h),
+            borderRadius: 15.r,
+            accentColor: AppColors.secondary,
+            accentWidth: 3.w,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: EdgeInsets.all(9.r),
+                      decoration: BoxDecoration(
+                        color: AppColors.secondary.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10.r),
+                      ),
+                      child: Icon(
+                        Icons.qr_code_scanner_rounded,
+                        color: AppColors.secondary,
+                        size: 20.sp,
+                      ),
+                    ),
+                    AppSpaces.hSpace10,
+                    Expanded(
+                      child: Text(
+                        'Scan / Enter Badge Value',
+                        style: AppTextStyles.text16.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textColor,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Get.back(),
+                      icon: Icon(
+                        Icons.close_rounded,
+                        color: AppColors.subTextColor,
+                        size: 20.sp,
+                      ),
+                    ),
+                  ],
+                ),
+                AppSpaces.vSpace8,
+                Text(
+                  'Input the QR badge code as scanned from the employee digital ID card.',
+                  style: AppTextStyles.text12.copyWith(
+                    color: AppColors.subTextColor,
+                  ),
+                ),
+                AppSpaces.vSpace12,
+                CustomTextField(
+                  controller: badgeInputController,
+                  hintText: 'Badge Code (e.g. 01jb2x9k4m7q8r3t5v6w8y0z1a)',
+                  prefixIcon: Icon(
+                    Icons.qr_code_rounded,
+                    size: 20.sp,
+                    color: AppColors.subTextColor,
+                  ),
+                ),
+                AppSpaces.vSpace16,
+                CustomButton(
+                  text: 'Identify',
+                  isGradient: true,
+                  onPressed: () {
+                    final code = badgeInputController.text.trim();
+                    Get.back();
+                    if (code.isNotEmpty) {
+                      controller.identifyViaBadge(code);
+                    }
+                  },
+                ),
+                AppSpaces.vSpace6,
+                Center(
+                  child: TextButton(
+                    onPressed: () => Get.back(),
+                    child: Text(
+                      'Cancel',
+                      style: AppTextStyles.text12.copyWith(
+                        color: AppColors.subTextColor,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-            AppSpaces.vSpace12,
-            CustomTextField(
-              controller: badgeInputController,
-              hintText: 'Badge Code (e.g. 01jb2x9k4m7q8r3t5v6w8y0z1a)',
-              prefixIcon: Icon(Icons.qr_code_rounded, size: 20.sp, color: AppColors.subTextColor),
-            ),
-          ],
+          ),
         ),
-        actions: [
-          TextButton(
-            child: const Text('Cancel'),
-            onPressed: () => Get.back(),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.secondary,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Identify'),
-            onPressed: () {
-              final code = badgeInputController.text.trim();
-              Get.back();
-              if (code.isNotEmpty) {
-                controller.identifyViaBadge(code);
-              }
-            },
-          ),
-        ],
       ),
-    );
+    ).whenComplete(badgeInputController.dispose);
   }
 }

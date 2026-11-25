@@ -4,14 +4,12 @@ import 'package:get/get.dart';
 
 import 'package:ams_2/app/core/utils/app_colors.dart';
 import 'package:ams_2/app/core/utils/app_spaces.dart';
-import 'package:ams_2/app/core/utils/app_text_styles.dart';
 import 'package:ams_2/app/core/widgets/custom_screen_header.dart';
 import 'package:ams_2/app/core/widgets/custom_state_view.dart';
 import 'package:ams_2/app/core/widgets/custom_telemetry_strip.dart';
 import 'package:ams_2/app/core/widgets/employee_ambient_header.dart';
 import 'package:ams_2/app/core/widgets/network_boundary_wrapper.dart';
 import '../controller/kiosk_controller.dart';
-import 'components/kiosk_pin_card.dart';
 import 'components/kiosk_provision_card.dart';
 
 class KioskView extends GetView<KioskController> {
@@ -48,8 +46,8 @@ class KioskView extends GetView<KioskController> {
                     children: [
                       // Top Bar: Back Pill & Screen Title Capsule
                       CustomScreenHeader(
-                        title: 'Kiosk & Terminal PIN',
-                        subtitle: 'Self-service PIN & reception tablet station',
+                        title: 'Kiosk Terminal',
+                        subtitle: 'Reception tablet station setup',
                         showBackButton: true,
                         onBack: () => Get.back(),
                       ),
@@ -59,14 +57,9 @@ class KioskView extends GetView<KioskController> {
                       // Component 1: Telemetry Metrics Strip
                       _buildTelemetryStrip(),
 
-                      AppSpaces.vSpace14,
-
-                      // Component 2: Filter Tabs Row (Self-Service PIN vs Tablet Terminal)
-                      _buildFilterTabs(),
-
                       AppSpaces.vSpace16,
 
-                      // Component 3: Dynamic Tab Body
+                      // Component 2: Tablet Terminal Content
                       _buildActiveTabContent(),
 
                       // Safe bottom clearance
@@ -85,18 +78,10 @@ class KioskView extends GetView<KioskController> {
   /// Telemetry metrics strip adhering strictly to AMS 2.0 design rules
   Widget _buildTelemetryStrip() {
     return Obx(() {
-      final isPinSet = controller.isPinConfigured.value;
       final isProvisioned = controller.isKioskProvisioned.value;
       final hasAdminRights = controller.canManageKiosks;
 
       final items = [
-        CustomTelemetryItem(
-          id: 'pin',
-          label: 'PIN Status',
-          count: isPinSet ? 1 : 0,
-          icon: Icons.password_rounded,
-          accentColor: AppColors.secondary,
-        ),
         CustomTelemetryItem(
           id: 'terminal',
           label: 'Tablet Station',
@@ -109,106 +94,21 @@ class KioskView extends GetView<KioskController> {
           label: 'Setup Rights',
           count: hasAdminRights ? 1 : 0,
           icon: Icons.admin_panel_settings_outlined,
-          accentColor: hasAdminRights ? const Color(0xFF10B981) : Colors.amber.shade700,
+          accentColor: hasAdminRights ? AppColors.success : AppColors.amberDark,
         ),
       ];
 
       return CustomTelemetryStrip(
         items: items,
-        selectedId: controller.selectedTab.value,
-        onSelect: (selectedId) {
-          if (selectedId != 'rights') {
-            controller.selectedTab.value = selectedId;
-          }
-        },
+        selectedId: 'terminal',
+        onSelect: (_) {},
       );
     });
   }
 
-  /// Animated filter tabs pill selector
-  Widget _buildFilterTabs() {
-    final tabs = [
-      {'id': 'pin', 'label': 'Self-Service PIN', 'icon': Icons.password_rounded},
-      {'id': 'terminal', 'label': 'Tablet Terminal', 'icon': Icons.tablet_mac_rounded},
-    ];
-
-    return SizedBox(
-      height: 38.h,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: tabs.length,
-        separatorBuilder: (_, _) => AppSpaces.hSpace8,
-        itemBuilder: (context, index) {
-          final tab = tabs[index];
-          final tabId = tab['id'] as String;
-          final tabLabel = tab['label'] as String;
-          final tabIcon = tab['icon'] as IconData;
-
-          return Obx(() {
-            final isSelected = controller.selectedTab.value == tabId;
-
-            return Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () => controller.selectedTab.value = tabId,
-                borderRadius: BorderRadius.circular(20.r),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
-                  decoration: BoxDecoration(
-                    color: isSelected ? AppColors.primary : AppColors.cardBackground,
-                    borderRadius: BorderRadius.circular(20.r),
-                    border: Border.all(
-                      color: isSelected ? AppColors.primary : AppColors.borderColor,
-                      width: 1.w,
-                    ),
-                    boxShadow: isSelected
-                        ? [
-                            BoxShadow(
-                              color: AppColors.primary.withValues(alpha: 0.15),
-                              blurRadius: 8.r,
-                              offset: Offset(0, 2.h),
-                            ),
-                          ]
-                        : null,
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        tabIcon,
-                        size: 16.sp,
-                        color: isSelected ? Colors.white : AppColors.secondary,
-                      ),
-                      AppSpaces.hSpace6,
-                      Text(
-                        tabLabel,
-                        style: AppTextStyles.text12.copyWith(
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                          color: isSelected ? Colors.white : AppColors.textColor,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          });
-        },
-      ),
-    );
-  }
-
-  /// Dynamic content based on selected tab with proper permission handling
+  /// Dynamic content based on permission handling
   Widget _buildActiveTabContent() {
     return Obx(() {
-      final tab = controller.selectedTab.value;
-
-      if (tab == 'pin') {
-        return KioskPinCard(controller: controller);
-      }
-
-      // Terminal Tab
       if (!controller.canManageKiosks) {
         return Container(
           padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 24.h),
@@ -223,9 +123,9 @@ class KioskView extends GetView<KioskController> {
             child: CustomStateView.empty(
               title: 'Administrator Access Required',
               message:
-                  'Setting up enterprise kiosk tablet stations requires kiosks.manage administrator rights. You can configure your personal backup PIN from the Self-Service PIN tab.',
-              buttonText: 'Switch to PIN Setup',
-              onAction: () => controller.selectedTab.value = 'pin',
+                  'Setting up enterprise kiosk tablet stations requires kiosks.manage administrator rights.',
+              buttonText: 'Go Back',
+              onAction: () => Get.back(),
             ),
           ),
         );

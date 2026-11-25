@@ -33,6 +33,9 @@ class ProfileRepo {
         return EmployeeProfileModel.fromJson(responseMap);
       }
     } catch (e, stackTrace) {
+      if (e is ApiException && e.isForbidden) {
+        rethrow;
+      }
       ExceptionHandler.handle(
         ApiException(message: 'Remote profile fetch failed: $e'),
         tag:

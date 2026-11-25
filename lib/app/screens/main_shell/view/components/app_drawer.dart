@@ -373,16 +373,15 @@ class AppDrawer extends StatelessWidget {
                         onTap: () => _navigateToRoute(Routes.JOB_DESCRIPTION),
                       ),
 
-                      // Core Self-Service: Enterprise Kiosk & Terminal PIN (Phase 10)
-                      DrawerModuleCard(
-                        title: 'Kiosk & Backup PIN',
-                        subtitle: sessionController.hasPermission('kiosks.manage')
-                            ? 'Tablet terminal station & backup PIN'
-                            : 'Self-service terminal clock-in PIN',
-                        icon: Icons.tablet_mac_rounded,
-                        accentTint: AppColors.secondary,
-                        onTap: () => _navigateToRoute(Routes.KIOSK),
-                      ),
+                      // Enterprise Kiosk Terminal (only for admins with kiosks.manage)
+                      if (sessionController.hasPermission('kiosks.manage'))
+                        DrawerModuleCard(
+                          title: 'Kiosk Terminal',
+                          subtitle: 'Tablet terminal station setup',
+                          icon: Icons.tablet_mac_rounded,
+                          accentTint: AppColors.secondary,
+                          onTap: () => _navigateToRoute(Routes.KIOSK),
+                        ),
 
                       // App Support & Guides (if not already included from menu)
                       if (!renderedKeys.contains('support') &&

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -7,6 +8,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import '../../../../api/exception_handler.dart';
 import '../../../../core/widgets/custom_snackbar.dart';
 import '../../../../routes/app_routes.dart';
+import '../../../kiosk/controller/kiosk_controller.dart';
 import '../model/qr_scan_model.dart';
 import '../repo/qr_scan_repo.dart';
 import '../view/components/manual_code_bottom_sheet.dart';
@@ -29,6 +31,8 @@ class QRScanController extends GetxController
   late final FocusNode manualCodeFocusNode;
 
   // Observables
+  final bool isKioskMode =
+      Get.arguments is Map && (Get.arguments as Map)['isKioskMode'] == true;
   final RxBool isScanning = true.obs;
   final RxBool isProcessing = false.obs;
   final RxBool isLoading = false.obs;
@@ -55,7 +59,7 @@ class QRScanController extends GetxController
 
     // 2. Initialize hardware MobileScannerController
     scannerController = MobileScannerController(
-      autoStart: false,
+      autoStart: !Get.testMode,
       detectionSpeed: DetectionSpeed.normal,
       detectionTimeoutMs: 300,
       facing: CameraFacing.back,
@@ -113,6 +117,36 @@ class QRScanController extends GetxController
       isScanning.value = false;
 
       HapticFeedback.mediumImpact();
+
+      if (isKioskMode) {
+        if (kDebugMode) {
+          Get.log('📷 [Kiosk QR Scanner] Scanned QR value: "$rawPayload"');
+        }
+        scanFeedbackMessage.value = 'Identifying employee...';
+
+        final kioskController = Get.find<KioskController>();
+        final ok = await kioskController.identifyViaBadge(rawPayload);
+
+        if (ok) {
+          scanSuccess.value = true;
+          scanFeedbackMessage.value = 'Employee identified!';
+          laserAnimationController.stop();
+          HapticFeedback.heavyImpact();
+          Get.back(result: true);
+        } else {
+          final errMsg = kioskController.idErrorMessage.value.isNotEmpty
+              ? kioskController.idErrorMessage.value
+              : 'Could not identify badge. Please scan again.';
+          scanFeedbackMessage.value = errMsg;
+          CustomSnackbar.showError(
+            title: 'Identification Failed',
+            message: errMsg,
+          );
+          isScanning.value = true;
+        }
+        return;
+      }
+
       scanFeedbackMessage.value = 'Verifying card cryptographic signature...';
 
       final result = await repo.verifyCardPayload(rawPayload);

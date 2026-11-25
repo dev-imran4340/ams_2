@@ -78,6 +78,11 @@ class CompanyDashboardRepo {
     return _kioskRepo.fetchKioskConfig();
   }
 
+  /// Fetches work locations available for kiosk provisioning (GET /kiosks/locations)
+  Future<List<KioskLocationModel>> fetchKioskLocations() async {
+    return _kioskRepo.fetchKioskLocations();
+  }
+
   /// Provisions this tablet device as a dedicated company kiosk (POST /kiosks)
   /// Checks kiosks.manage permission on caller
   Future<KioskConfigModel?> provisionKiosk({

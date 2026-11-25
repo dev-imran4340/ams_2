@@ -679,8 +679,8 @@ class LiveShiftClockCard extends GetView<DashboardController> {
                                     begin: Alignment.topLeft,
                                     end: Alignment.bottomRight,
                                     colors: [
-                                      Color(0xFFFF9100),
-                                      Color(0xFFE65100),
+                                      AppColors.orangeAccent,
+                                      AppColors.orangeDeep,
                                     ],
                                   )
                                 : LinearGradient(

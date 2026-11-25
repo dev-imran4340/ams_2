@@ -20,6 +20,12 @@ class AuthGuardMiddleware extends GetMiddleware {
 
   @override
   RouteSettings? redirect(String? route) {
+    // 0. Allow Kiosk hardware tablet routes when tablet is provisioned in Kiosk Mode
+    if (AppPreferences.isKioskProvisioned &&
+        (route == Routes.QR_SCANNER || route == Routes.FACE_RECOGNITION)) {
+      return null;
+    }
+
     // 1. Session verification: user must hold a valid auth token and logged-in state
     final bool hasToken = AppPreferences.token != null && AppPreferences.token!.trim().isNotEmpty;
     final bool isLoggedIn = AppPreferences.isLoggedIn;

@@ -34,6 +34,9 @@ class AttendanceHistoryRepo {
         );
       }
     } catch (e, stackTrace) {
+      if (e is ApiException && e.isForbidden) {
+        rethrow;
+      }
       ExceptionHandler.handle(
         ApiException(message: 'Failed to fetch attendance history: $e'),
         tag:

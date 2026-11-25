@@ -336,11 +336,11 @@ class DigitalIdCardWidget extends GetView<EmployeeCardController> {
                               padding: EdgeInsets.zero,
                               eyeStyle: const QrEyeStyle(
                                 eyeShape: QrEyeShape.square,
-                                color: Color(0xFF1E293B),
+                                color: AppColors.darkStripe,
                               ),
                               dataModuleStyle: const QrDataModuleStyle(
                                 dataModuleShape: QrDataModuleShape.square,
-                                color: Color(0xFF1E293B),
+                                color: AppColors.darkStripe,
                               ),
                             )
                           : Icon(

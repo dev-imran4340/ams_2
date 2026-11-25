@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 import '../../../api/app_preferences.dart';
+import '../../../api/exception_handler.dart';
 import '../../../core/utils/app_colors.dart';
 import '../../../core/widgets/custom_snackbar.dart';
 import '../../../routes/app_routes.dart';
@@ -18,6 +19,8 @@ class ProfileController extends GetxController {
   // Observables
   final RxBool isLoading = false.obs;
   final RxBool isLoggingOut = false.obs;
+  final RxBool isAccessRestricted = false.obs;
+  final RxString accessRestrictedMessage = ''.obs;
 
   // Active displayed profile (viewed by ProfileDetailsView and components)
   final Rxn<EmployeeProfileModel> profile = Rxn<EmployeeProfileModel>();
@@ -152,6 +155,8 @@ class ProfileController extends GetxController {
     if (AppPreferences.isCompanyMode) return;
     try {
       isLoading.value = true;
+      isAccessRestricted.value = false;
+      accessRestrictedMessage.value = '';
       final result = await repo.fetchProfile();
       if (result != null) {
         selfProfile.value = result;
@@ -165,6 +170,13 @@ class ProfileController extends GetxController {
         geofenceAutoCheck.value = result.geofenceAutoCheck;
         // Keep 2FA synchronized with authenticated user session
         twoFactorAuth.value = AppPreferences.isTwoFactorEnabled;
+      }
+    } on ApiException catch (e) {
+      if (e.isForbidden) {
+        isAccessRestricted.value = true;
+        accessRestrictedMessage.value = e.message.isNotEmpty
+            ? e.message
+            : 'Personal profile details are restricted for your account scope.';
       }
     } finally {
       isLoading.value = false;

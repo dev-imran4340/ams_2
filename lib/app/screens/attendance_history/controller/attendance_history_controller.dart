@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 import '../../../api/app_preferences.dart';
+import '../../../api/exception_handler.dart';
 import '../../../core/widgets/custom_snackbar.dart';
 import '../../../routes/app_routes.dart';
 import '../../index/controller/index_controller.dart';
@@ -131,6 +132,11 @@ class AttendanceHistoryController extends GetxController {
         result = null;
       }
       timesheetResponse.value = result;
+    } on ApiException catch (e) {
+      if (e.isForbidden) {
+        isAccessRestricted.value = true;
+        timesheetResponse.value = null;
+      }
     } finally {
       isLoading.value = false;
     }

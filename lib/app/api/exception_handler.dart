@@ -47,6 +47,10 @@ class ApiException implements Exception {
   /// True when the account or company is locked/disabled (HTTP 403)
   bool get isAccountUnavailable => errorCode == 'account_unavailable';
 
+  /// True when the server denied access due to missing permission/scope (HTTP 403)
+  bool get isForbidden =>
+      (statusCode == 403 || errorCode == 'forbidden') && !isAccountUnavailable;
+
   /// True when a business rule conflict occurred (HTTP 409)
   bool get isConflict => statusCode == 409 || errorCode == 'conflict';
 
@@ -262,7 +266,10 @@ class ExceptionHandler {
 
     // Kiosk requests (Authorization: Bearer <kiosk_token>) returning 401 mean the kiosk tablet
     // was revoked on the web. Clear kiosk credentials only, per doc/api.md spec, without logging out the mobile user.
-    final bool isKioskTokenRequest = tag.contains('KioskRepo') && !tag.contains('setKioskPin');
+    final bool isKioskTokenRequest = tag.contains('KioskRepo') &&
+        !tag.contains('setKioskPin') &&
+        !tag.contains('provisionKiosk') &&
+        !tag.contains('fetchKioskLocations');
     if (isKioskTokenRequest && statusCode == 401) {
       AppPreferences.clearKioskToken();
     } else if ((statusCode == 401 && errorCode != 'invalid_credentials') ||

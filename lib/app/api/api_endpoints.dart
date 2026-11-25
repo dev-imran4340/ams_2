@@ -142,6 +142,7 @@ class ApiEndpoints {
   // 21. Hardware Tablet Kiosk Mode & PIN Setup (Phase 10 Live Engine)
   static const String meKioskPin = '/me/kiosk-pin';
   static const String kiosks = '/kiosks';
+  static const String kiosksLocations = '/kiosks/locations';
   static const String kiosk = '/kiosk';
   static const String kioskIdentify = '/kiosk/identify';
   static String kioskFace(String ticket) => '/kiosk/face?ticket=$ticket';

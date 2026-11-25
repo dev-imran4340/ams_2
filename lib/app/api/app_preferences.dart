@@ -46,6 +46,7 @@ class AppPreferences {
   static const String _keyKioskToken = 'kiosk_secret_token';
   static const String _keyKioskConfig = 'kiosk_active_config';
   static const String _keyKioskPinConfigured = 'kiosk_pin_configured';
+  static const String _keyOfflineKioskPunches = 'kiosk_offline_punches_queue';
   static const String _keySavedLoginIdentifier = 'saved_login_identifier';
   static const String _keyIsCompanyMode = 'is_company_mode';
 
@@ -735,6 +736,28 @@ class AppPreferences {
     await _box.remove(_keyKioskToken);
     await _box.remove(_keyKioskConfig);
     await _box.remove(_keyKioskPinConfigured);
+    await _box.remove(_keyOfflineKioskPunches);
+  }
+
+  /// Gets queued offline kiosk punches
+  static List<Map<String, dynamic>> get offlineKioskPunches {
+    final raw = _box.read<List<dynamic>>(_keyOfflineKioskPunches);
+    if (raw == null) return [];
+    return raw
+        .whereType<Map>()
+        .map((e) => Map<String, dynamic>.from(e))
+        .toList();
+  }
+
+  /// Saves queued offline kiosk punches
+  static Future<void> setOfflineKioskPunches(
+    List<Map<String, dynamic>> punches,
+  ) async {
+    if (punches.isEmpty) {
+      await _box.remove(_keyOfflineKioskPunches);
+    } else {
+      await _box.write(_keyOfflineKioskPunches, punches);
+    }
   }
 
   /// Checks if active device is provisioned as an enterprise kiosk terminal

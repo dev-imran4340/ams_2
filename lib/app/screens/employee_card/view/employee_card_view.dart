@@ -82,20 +82,21 @@ class EmployeeCardView extends GetView<EmployeeCardController> {
 
                             AppSpaces.vSpace16,
 
-                            // Primary Action: Download Official ID Card PDF Button
-                            Obx(() {
-                              return CustomButton(
-                                text: 'Download Official Card (PDF)',
-                                icon: Icon(
-                                  Icons.download_rounded,
-                                  size: 18.sp,
-                                  color: AppColors.white,
-                                ),
-                                isGradient: true,
-                                isLoading: controller.isPdfLoading.value,
-                                onPressed: controller.downloadCardPdf,
-                              );
-                            }),
+                            // Primary Action: Download Official ID Card PDF Button (requires employees.cards.print)
+                            if (controller.canPrintCard)
+                              Obx(() {
+                                return CustomButton(
+                                  text: 'Download Official Card (PDF)',
+                                  icon: Icon(
+                                    Icons.download_rounded,
+                                    size: 18.sp,
+                                    color: AppColors.white,
+                                  ),
+                                  isGradient: true,
+                                  isLoading: controller.isPdfLoading.value,
+                                  onPressed: controller.downloadCardPdf,
+                                );
+                              }),
 
                             // Bottom clearance
                             SizedBox(height: 30.h),

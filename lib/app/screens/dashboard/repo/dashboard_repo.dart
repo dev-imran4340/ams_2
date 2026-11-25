@@ -58,6 +58,9 @@ class DashboardRepo {
             ),
       );
     } catch (e, stackTrace) {
+      if (e is ApiException && e.isForbidden) {
+        rethrow;
+      }
       ExceptionHandler.handle(
         ApiException(message: 'Failed to fetch dashboard data: $e'),
         tag: '$_tag -> fetchDashboardData() [${stackTrace.toString().split('\n').first}]',
@@ -95,6 +98,9 @@ class DashboardRepo {
         return model;
       }
     } catch (e, stackTrace) {
+      if (e is ApiException && e.isForbidden) {
+        rethrow;
+      }
       ExceptionHandler.handle(
         ApiException(message: 'Today attendance fetch failed: $e'),
         tag: '$_tag -> fetchTodayAttendance() [${stackTrace.toString().split('\n').first}]',
@@ -123,6 +129,9 @@ class DashboardRepo {
         return MonthlySummaryModel.fromApiJson(data, meta: meta);
       }
     } catch (e, stackTrace) {
+      if (e is ApiException && e.isForbidden) {
+        rethrow;
+      }
       ExceptionHandler.handle(
         ApiException(message: 'Monthly summary fetch failed: $e'),
         tag: '$_tag -> fetchMonthlySummary() [${stackTrace.toString().split('\n').first}]',

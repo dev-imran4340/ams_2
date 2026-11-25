@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import '../../../api/app_preferences.dart';
+import '../../../api/exception_handler.dart';
 import '../../../core/utils/app_colors.dart';
 import '../../../core/utils/app_spaces.dart';
 import '../../../core/widgets/custom_button.dart';
@@ -29,6 +30,8 @@ class DashboardController extends GetxController {
   final RxBool isLoading = false.obs;
   final RxBool isPunching = false.obs;
   final RxBool isBreakLoading = false.obs;
+  final RxBool isAccessRestricted = false.obs;
+  final RxString accessRestrictedMessage = ''.obs;
   final Rxn<DashboardDataModel> dashboardData = Rxn<DashboardDataModel>();
 
   final RxString liveClock = ''.obs;
@@ -61,7 +64,10 @@ class DashboardController extends GetxController {
     if (Get.isRegistered<SessionMeController>()) {
       final session = Get.find<SessionMeController>();
       _permissionWorker = ever(session.permissions, (_) {
-        if (!AppPreferences.isCompanyMode && dashboardData.value == null && !isLoading.value) {
+        if (!AppPreferences.isCompanyMode &&
+            dashboardData.value == null &&
+            !isLoading.value &&
+            !isAccessRestricted.value) {
           loadDashboard();
         }
       });
@@ -409,6 +415,9 @@ class DashboardController extends GetxController {
 
     try {
       isLoading.value = true;
+      isAccessRestricted.value = false;
+      accessRestrictedMessage.value = '';
+
       final result = await repo.fetchDashboardData();
       dashboardData.value = result;
       _updateRunningShiftTimer();
@@ -419,6 +428,14 @@ class DashboardController extends GetxController {
       final reqs = result?.todayAttendance.requires;
       if (reqs != null && reqs.face == 'match' && reqs.faceSaved) {
         unawaited(_syncServerFaceQuietly());
+      }
+    } on ApiException catch (e) {
+      if (e.isForbidden) {
+        dashboardData.value = null;
+        isAccessRestricted.value = true;
+        accessRestrictedMessage.value = e.message.isNotEmpty
+            ? e.message
+            : 'Personal attendance is restricted for your current role scope.';
       }
     } finally {
       isLoading.value = false;

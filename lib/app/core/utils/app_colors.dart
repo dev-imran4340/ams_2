@@ -28,6 +28,24 @@ class AppColors {
     static const Color metallicGoldDark = Color(0xFFB8860B);
   static const Color metallicGoldPath = Color(0xFF996515);
   static const Color deepNavyBase = Color(0xFF001524);
+  static const Color kioskBackground = Color(0xFF011A29);
+  static const Color kioskSurface = Color(0xFF022A40);
+  static const Color crimsonDark = Color(0xFF7F1D1D);
+
+  // Extended Semantic & UI Accents
+  static const Color roseAccent = Color(0xFFF43F5E);
+  static const Color indigoAccent = Color(0xFF6366F1);
+  static const Color orangeAccent = Color(0xFFFF9100);
+  static const Color orangeDeep = Color(0xFFE65100);
+  static const Color orangeLight = Color(0xFFFFF3E0);
+  static const Color purpleDeep = Color(0xFF5E35B1);
+  static const Color purpleLight = Color(0xFFEDE7F6);
+  static const Color amberDark = Color(0xFFD97706);
+  static const Color amberLight = Color(0xFFFEF3C7);
+  static const Color emeraldDark = Color(0xFF059669);
+  static const Color emeraldLight = Color(0xFFD1FAE5);
+  static const Color roseDark = Color(0xFFE11D48);
+  static const Color roseLight = Color(0xFFFFE4E6);
 
   // Attendance Specific Aliases
   static const Color onTime = success;

@@ -47,6 +47,41 @@ class KioskRepo {
   }
 
   // -------------------------------------------------------------
+  // 1B. FETCH KIOSK LOCATIONS (GET /kiosks/locations)
+  // -------------------------------------------------------------
+
+  /// Fetches work locations available for kiosk provisioning.
+  /// Called with normal user token (kiosks.manage).
+  Future<List<KioskLocationModel>> fetchKioskLocations() async {
+    try {
+      final response = await ApiClient.request(
+        method: HttpMethod.get,
+        endpoint: ApiEndpoints.kiosksLocations,
+        tag: '$_tag -> fetchKioskLocations()',
+        showToastOnError: false,
+      );
+
+      if (response != null && response is Map<String, dynamic>) {
+        final rawData = response['data'];
+        if (rawData is List) {
+          return rawData
+              .whereType<Map>()
+              .map((e) => KioskLocationModel.fromJson(Map<String, dynamic>.from(e)))
+              .toList();
+        }
+      }
+    } catch (e, stackTrace) {
+      if (e is ApiException) rethrow;
+      throw ExceptionHandler.handle(
+        ApiException(message: 'Failed to load kiosk locations: $e'),
+        tag: '$_tag -> fetchKioskLocations() [${stackTrace.toString().split('\n').first}]',
+        showToast: false,
+      );
+    }
+    return <KioskLocationModel>[];
+  }
+
+  // -------------------------------------------------------------
   // 2. KIOSK PROVISIONING (POST /kiosks)
   // -------------------------------------------------------------
 
@@ -130,6 +165,9 @@ class KioskRepo {
         return model;
       }
     } catch (e, stackTrace) {
+      if (e is ApiException && e.statusCode == 401) {
+        rethrow;
+      }
       if (kDebugMode) {
         debugPrint('[$_tag] Kiosk config check: $e (${stackTrace.toString().split('\n').first})');
       }
@@ -175,6 +213,7 @@ class KioskRepo {
         body: body,
         headers: headers,
         tag: '$_tag -> identifyEmployee()',
+        showToastOnError: false,
       );
 
       if (response != null && response is Map<String, dynamic>) {
@@ -185,9 +224,11 @@ class KioskRepo {
         return KioskIdentifyResponseModel.fromJson(payload);
       }
     } catch (e, stackTrace) {
-      ExceptionHandler.handle(
+      if (e is ApiException) rethrow;
+      throw ExceptionHandler.handle(
         ApiException(message: 'Failed to identify employee: $e'),
         tag: '$_tag -> identifyEmployee() [${stackTrace.toString().split('\n').first}]',
+        showToast: false,
       );
     }
     return null;
@@ -223,7 +264,16 @@ class KioskRepo {
       if (response.statusCode == 200 && response.bodyBytes.isNotEmpty) {
         return response.bodyBytes;
       }
+      if (response.statusCode == 401) {
+        await AppPreferences.clearKioskToken();
+        throw ApiException(
+          statusCode: 401,
+          errorCode: 'unauthenticated',
+          message: 'Kiosk session expired or revoked.',
+        );
+      }
     } catch (e, stackTrace) {
+      if (e is ApiException) rethrow;
       ExceptionHandler.handle(
         ApiException(message: 'Failed to download kiosk face template: $e'),
         tag: '$_tag -> fetchKioskFace() [${stackTrace.toString().split('\n').first}]',
@@ -315,7 +365,8 @@ class KioskRepo {
         return KioskPunchResultModel.fromJson(payload);
       }
     } catch (e, stackTrace) {
-      ExceptionHandler.handle(
+      if (e is ApiException) rethrow;
+      throw ExceptionHandler.handle(
         ApiException(message: 'Failed to submit punch: $e'),
         tag: '$_tag -> submitKioskPunch() [${stackTrace.toString().split('\n').first}]',
       );

@@ -8,7 +8,6 @@ import 'package:ams_2/app/core/utils/app_spaces.dart';
 import 'package:ams_2/app/core/utils/app_text_styles.dart';
 import 'package:ams_2/app/core/widgets/custom_button.dart';
 import 'package:ams_2/app/core/widgets/custom_state_view.dart';
-import 'package:ams_2/app/core/widgets/custom_text_field.dart';
 import 'package:ams_2/app/core/widgets/employee_ambient_header.dart';
 import 'package:ams_2/app/core/widgets/network_boundary_wrapper.dart';
 import 'package:ams_2/app/screens/employees/model/department_employee_model.dart';
@@ -485,7 +484,7 @@ class CompanyDashboardView extends GetView<CompanyDashboardController> {
                     Text(
                       isProv
                           ? 'Active: ${kiosk?.name ?? "Provisioned"}'
-                          : 'Enter Kiosk PIN to unlock / configure terminal',
+                          : 'Provision this tablet to enable shared badge/PIN attendance',
                       style: AppTextStyles.text12.copyWith(
                         color: isProv
                             ? AppColors.success
@@ -520,47 +519,6 @@ class CompanyDashboardView extends GetView<CompanyDashboardController> {
                 ),
               ),
             ],
-          ),
-
-          AppSpaces.vSpace14,
-
-          // PIN Input Field using centralized CustomTextField
-          CustomTextField(
-            controller: controller.kioskPinController,
-            focusNode: controller.kioskPinFocusNode,
-            keyboardType: TextInputType.number,
-            obscureText: true,
-            maxLength: 6,
-            labelText: 'Kiosk Access PIN',
-            hintText: 'Enter 4-6 digit PIN',
-            prefixIcon: Icon(
-              Icons.lock_outline_rounded,
-              size: 18.sp,
-              color: AppColors.secondary,
-            ),
-            suffixIcon: SizedBox(
-              width: 100.w,
-              child: Padding(
-                padding: EdgeInsets.all(4.r),
-                child: CustomButton(
-                  borderRadius: 8,
-                  fontSize: 14,
-                  text: isProv ? 'Launch' : 'Set PIN',
-                  isGradient: false,
-                  backgroundColor: AppColors.primary,
-                  height: 30.h,
-                  icon: Icon(
-                    isProv
-                        ? Icons.play_arrow_rounded
-                        : Icons.check_circle_outline_rounded,
-                    size: 16.sp,
-                    color: AppColors.white,
-                  ),
-                  onPressed: controller.submitKioskPin,
-                ),
-              ),
-            ),
-            onFieldSubmitted: (_) => controller.submitKioskPin(),
           ),
 
           AppSpaces.vSpace14,

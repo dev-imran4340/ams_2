@@ -63,16 +63,65 @@ class QRScannerView extends GetView<QRScanController> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Fast Simulator Demo Pill
-                      _buildDemoScanPill(),
-
-                      AppSpaces.vSpace8,
+                      // Fast Simulator Demo Pill (hidden in Kiosk mode)
+                      if (!controller.isKioskMode) ...[
+                        _buildDemoScanPill(),
+                        AppSpaces.vSpace8,
+                      ],
 
                       // Bottom Floating Control Bar (Torch, Camera Flip, Manual Input)
                       const ScannerControlBar(),
                     ],
                   ),
                 ),
+              ),
+
+              // 5. Loading Overlay while API request is in flight (e.g. Kiosk /kiosk/identify)
+              Positioned.fill(
+                child: Obx(() {
+                  if (!controller.isLoading.value) {
+                    return const IgnorePointer(child: SizedBox.shrink());
+                  }
+                  return Container(
+                    color: AppColors.primary.withValues(alpha: 0.72),
+                    child: Center(
+                      child: Container(
+                        margin: EdgeInsets.symmetric(horizontal: 28.w),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 20.w,
+                          vertical: 22.h,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.cardBackground,
+                          borderRadius: BorderRadius.circular(15.r),
+                          border: Border(
+                            bottom: BorderSide(
+                              color: AppColors.secondary,
+                              width: 3.w,
+                            ),
+                          ),
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            CircularProgressIndicator(
+                              color: AppColors.secondary,
+                            ),
+                            AppSpaces.vSpace14,
+                            Text(
+                              controller.scanFeedbackMessage.value,
+                              textAlign: TextAlign.center,
+                              style: AppTextStyles.text14.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                }),
               ),
             ],
           ),
@@ -231,7 +280,9 @@ class QRScannerView extends GetView<QRScanController> {
                               ),
                               AppSpaces.hSpace6,
                               Text(
-                                'Step 1 of 2 • Scan Employee ID Card',
+                                controller.isKioskMode
+                                    ? 'Kiosk Attendance • Scan QR Badge'
+                                    : 'Step 1 of 2 • Scan Employee ID Card',
                                 style: AppTextStyles.text10.copyWith(
                                   color: AppColors.liteSecondary,
                                   fontWeight: FontWeight.bold,
@@ -246,7 +297,9 @@ class QRScannerView extends GetView<QRScanController> {
 
                         // Title: Card Verification
                         Text(
-                          'Card Verification',
+                          controller.isKioskMode
+                              ? 'Scan Employee Badge'
+                              : 'Card Verification',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: AppTextStyles.text22.copyWith(

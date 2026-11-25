@@ -137,11 +137,11 @@ class NotificationItemModel {
   Color get kindToneColor {
     switch (kind) {
       case 'approval_needed':
-        return const Color(0xFFD97706); // Amber
+        return AppColors.amberDark; // Amber
       case 'request_approved':
-        return const Color(0xFF059669); // Emerald
+        return AppColors.emeraldDark; // Emerald
       case 'request_rejected':
-        return const Color(0xFFE11D48); // Rose
+        return AppColors.roseDark; // Rose
       case 'approval_reminder':
         return AppColors.secondary; // Modern Teal
       default:
@@ -152,11 +152,11 @@ class NotificationItemModel {
   Color get kindBackgroundColor {
     switch (kind) {
       case 'approval_needed':
-        return const Color(0xFFFEF3C7); // Lite Amber
+        return AppColors.amberLight; // Lite Amber
       case 'request_approved':
-        return const Color(0xFFD1FAE5); // Lite Emerald
+        return AppColors.emeraldLight; // Lite Emerald
       case 'request_rejected':
-        return const Color(0xFFFFE4E6); // Lite Rose
+        return AppColors.roseLight; // Lite Rose
       case 'approval_reminder':
         return AppColors.liteSecondary.withValues(alpha: 0.35);
       default:
