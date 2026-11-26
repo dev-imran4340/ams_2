@@ -71,6 +71,12 @@ class ChecklistCard extends GetView<ChecklistController> {
                       children: [
                         _buildKindBadge(),
                         _buildStatusBadge(),
+                        if (checklist.tasks.any((t) => t.isOverdue && t.isOpen))
+                          _buildOverdueBadge(
+                            checklist.tasks
+                                .where((t) => t.isOverdue && t.isOpen)
+                                .length,
+                          ),
                       ],
                     ),
                   ],
@@ -81,35 +87,66 @@ class ChecklistCard extends GetView<ChecklistController> {
 
           AppSpaces.vSpace12,
 
-          // 2. Anchor Date Info (Joining / Leaving)
-          if (checklist.anchorOn != null) ...[
+          // 2. Employee & Anchor Date Info (Joining / Leaving)
+          if ((checklist.employeeName != null &&
+                  checklist.employeeName!.isNotEmpty) ||
+              checklist.anchorOn != null) ...[
             Container(
-              padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+              padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 7.h),
               decoration: BoxDecoration(
                 color: AppColors.backgroundColor,
                 borderRadius: BorderRadius.circular(8.r),
               ),
-              child: Row(
+              child: Wrap(
+                spacing: 12.w,
+                runSpacing: 4.h,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  Icon(
-                    Icons.calendar_today_outlined,
-                    size: 13.sp,
-                    color: AppColors.subTextColor,
-                  ),
-                  AppSpaces.hSpace6,
-                  Text(
-                    '${checklist.anchorLabel ?? (checklist.isOnboarding ? 'Joining Date' : 'Last Day')}: ',
-                    style: AppTextStyles.text10.copyWith(
-                      color: AppColors.subTextColor,
+                  if (checklist.employeeName != null &&
+                      checklist.employeeName!.isNotEmpty)
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.person_outline_rounded,
+                          size: 13.sp,
+                          color: AppColors.primary,
+                        ),
+                        AppSpaces.hSpace4,
+                        Text(
+                          checklist.employeeName!,
+                          style: AppTextStyles.text10.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textColor,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  Text(
-                    checklist.anchorOn!,
-                    style: AppTextStyles.text10.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textColor,
+                  if (checklist.anchorOn != null)
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.calendar_today_outlined,
+                          size: 13.sp,
+                          color: AppColors.subTextColor,
+                        ),
+                        AppSpaces.hSpace4,
+                        Text(
+                          '${checklist.anchorLabel ?? (checklist.isOnboarding ? 'Joining Date' : 'Last Day')}: ',
+                          style: AppTextStyles.text10.copyWith(
+                            color: AppColors.subTextColor,
+                          ),
+                        ),
+                        Text(
+                          checklist.anchorOn!,
+                          style: AppTextStyles.text10.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textColor,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
                 ],
               ),
             ),
@@ -198,6 +235,24 @@ class ChecklistCard extends GetView<ChecklistController> {
         style: AppTextStyles.text10.copyWith(
           fontSize: 9.sp,
           color: color,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOverdueBadge(int count) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 7.w, vertical: 2.h),
+      decoration: BoxDecoration(
+        color: AppColors.error.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(6.r),
+      ),
+      child: Text(
+        '$count OVERDUE',
+        style: AppTextStyles.text10.copyWith(
+          fontSize: 9.sp,
+          color: AppColors.error,
           fontWeight: FontWeight.bold,
         ),
       ),

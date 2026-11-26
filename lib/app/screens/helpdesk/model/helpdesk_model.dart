@@ -22,6 +22,16 @@ class HelpdeskCategoryModel {
         'id': id,
         'name': name,
       };
+
+  @override
+  String toString() => name;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) || (other is HelpdeskCategoryModel && other.id == id);
+
+  @override
+  int get hashCode => id.hashCode;
 }
 
 /// Attachment file for ticket messages

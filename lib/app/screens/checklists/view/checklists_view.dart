@@ -27,34 +27,39 @@ class ChecklistsView extends GetView<ChecklistController> {
             // 1. Signature Curved Ambient Gradient Header (215.h)
             EmployeeAmbientHeader(height: 220.h),
 
-            // 2. Main Scrollable Content
+            // 2. Sticky Header + Scrollable Body
             SafeArea(
               bottom: false,
-              child: RefreshIndicator(
-                onRefresh: () => controller.loadChecklists(isRefresh: true),
-                color: AppColors.secondary,
-                child: SingleChildScrollView(
-                  controller: controller.scrollController,
-                  physics: const AlwaysScrollableScrollPhysics(
-                    parent: BouncingScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(14.w, 8.h, 14.w, 0),
+                    child: const CustomScreenHeader(
+                      title: 'Checklists',
+                      subtitle: 'Onboarding & offboarding workflows',
+                    ),
                   ),
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 14.w,
-                    vertical: 8.h,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Header: Back Pill, Title/Subtitle Capsule
-                      const CustomScreenHeader(
-                        title: 'Checklists',
-                        subtitle: 'Onboarding & offboarding workflows',
-                      ),
-
-                      AppSpaces.vSpace14,
-
-                      // Component 1: Telemetry Strip (Total, Onboarding, Offboarding, Completed)
-                      _buildTelemetryStrip(),
+                  AppSpaces.vSpace14,
+                  Expanded(
+                    child: RefreshIndicator(
+                      onRefresh: () =>
+                          controller.loadChecklists(isRefresh: true),
+                      color: AppColors.secondary,
+                      child: SingleChildScrollView(
+                        controller: controller.scrollController,
+                        physics: const AlwaysScrollableScrollPhysics(
+                          parent: BouncingScrollPhysics(),
+                        ),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 14.w,
+                          vertical: 4.h,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Component 1: Telemetry Strip (Total, Onboarding, Offboarding, Completed)
+                            _buildTelemetryStrip(),
 
                       AppSpaces.vSpace30,
 
@@ -72,6 +77,9 @@ class ChecklistsView extends GetView<ChecklistController> {
                   ),
                 ),
               ),
+            ),
+                  ],
+                ),
             ),
           ],
         ),

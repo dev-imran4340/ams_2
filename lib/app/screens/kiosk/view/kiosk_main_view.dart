@@ -12,6 +12,7 @@ import 'package:ams_2/app/core/widgets/employee_ambient_header.dart';
 import 'package:ams_2/app/core/widgets/network_boundary_wrapper.dart';
 import '../controller/kiosk_controller.dart';
 import 'components/kiosk_live_punch_card.dart';
+// import 'components/kiosk_quick_actions.dart';
 
 class KioskMainView extends GetView<KioskController> {
   const KioskMainView({super.key});
@@ -60,6 +61,7 @@ class KioskMainView extends GetView<KioskController> {
   @override
   Widget build(BuildContext context) {
     return NetworkBoundaryWrapper(
+      allowOffline: true,
       onRetry: controller.loadKioskState,
       child: PopScope(
         canPop: false,
@@ -148,6 +150,8 @@ class KioskMainView extends GetView<KioskController> {
                                         controller: controller,
                                         session: session,
                                       ),
+                                      // AppSpaces.vSpace14,
+                                      // KioskQuickActions(controller: controller),
                                     ] else ...[
                                       _buildIdentificationCard(context),
                                     ],
@@ -248,10 +252,16 @@ class KioskMainView extends GetView<KioskController> {
           Container(
             padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
             decoration: BoxDecoration(
-              color: AppColors.secondary.withValues(alpha: 0.22),
+              color: (controller.isOnline.value
+                      ? AppColors.secondary
+                      : AppColors.warning)
+                  .withValues(alpha: 0.22),
               borderRadius: BorderRadius.circular(20.r),
               border: Border.all(
-                color: AppColors.liteSecondary.withValues(alpha: 0.6),
+                color: (controller.isOnline.value
+                        ? AppColors.liteSecondary
+                        : AppColors.warning)
+                    .withValues(alpha: 0.6),
               ),
             ),
             child: Row(
@@ -260,14 +270,16 @@ class KioskMainView extends GetView<KioskController> {
                 Container(
                   width: 7.r,
                   height: 7.r,
-                  decoration: const BoxDecoration(
-                    color: AppColors.liteSecondary,
+                  decoration: BoxDecoration(
+                    color: controller.isOnline.value
+                        ? AppColors.liteSecondary
+                        : AppColors.warning,
                     shape: BoxShape.circle,
                   ),
                 ),
                 AppSpaces.hSpace6,
                 Text(
-                  'ONLINE',
+                  controller.isOnline.value ? 'ONLINE' : 'OFFLINE',
                   style: AppTextStyles.text10.copyWith(
                     fontWeight: FontWeight.bold,
                     color: AppColors.white,

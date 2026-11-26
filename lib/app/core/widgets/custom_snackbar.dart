@@ -18,7 +18,7 @@ class CustomSnackbar {
   }) {
     try {
       if (Get.isSnackbarOpen) {
-        Get.closeCurrentSnackbar();
+        Get.closeAllSnackbars();
       }
 
       Get.rawSnackbar(
@@ -42,8 +42,9 @@ class CustomSnackbar {
         borderRadius: 12.r,
         margin: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
         duration: duration,
+        isDismissible: false,
         snackStyle: SnackStyle.FLOATING,
-        animationDuration: const Duration(milliseconds: 300),
+        animationDuration: const Duration(milliseconds: 250),
       );
       return;
     } catch (_) {}

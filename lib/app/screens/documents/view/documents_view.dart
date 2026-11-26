@@ -29,69 +29,73 @@ class DocumentsView extends GetView<DocumentController> {
             // 1. Curved Ambient Gradient Header
             EmployeeAmbientHeader(height: 240.h),
 
-            // 2. Main Scrollable Content Overlapping Header
+            // 2. Sticky Header + Scrollable Body
             SafeArea(
               bottom: false,
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  return RefreshIndicator(
-                    onRefresh: () => controller.loadAllDocuments(isRefresh: true),
-                    color: AppColors.secondary,
-                    child: SingleChildScrollView(
-                      physics: const AlwaysScrollableScrollPhysics(
-                        parent: BouncingScrollPhysics(),
-                      ),
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 14.w,
-                        vertical: 8.h,
-                      ),
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          minHeight: constraints.maxHeight - 16.h,
-                        ),
-                        child: IntrinsicHeight(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Top Bar: Back Pill, Title and Action Button
-                              Obx(() {
-                                final isLettersTab =
-                                    controller.selectedTabIndex.value == 2;
-                                final canRequest = controller.meDocuments.value
-                                        ?.requestableLetters.isNotEmpty ==
-                                    true;
-                                final String headerSubtitle = controller
-                                            .selectedTabIndex.value ==
-                                        0
-                                    ? 'Company policies & official guidelines'
-                                    : controller.selectedTabIndex.value == 1
-                                        ? 'Personal employee files & records'
-                                        : 'Official issued letters & requests';
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(14.w, 8.h, 14.w, 0),
+                    child: Obx(() {
+                      final isLettersTab =
+                          controller.selectedTabIndex.value == 2;
+                      final canRequest = controller.meDocuments.value
+                              ?.requestableLetters.isNotEmpty ==
+                          true;
+                      final String headerSubtitle =
+                          controller.selectedTabIndex.value == 0
+                              ? 'Company policies & official guidelines'
+                              : controller.selectedTabIndex.value == 1
+                                  ? 'Personal employee files & records'
+                                  : 'Official issued letters & requests';
 
-                                return CustomScreenHeader(
-                                  title: 'Documents',
-                                  subtitle: headerSubtitle,
-                                  actions: (isLettersTab && canRequest)
-                                      ? [
-                                          CustomScreenHeader.actionButton(
-                                            icon: Icons.add_rounded,
-                                            iconColor: AppColors.secondary,
-                                            onTap: () {
-                                              Get.bottomSheet(
-                                                const RequestLetterBottomSheet(),
-                                                isScrollControlled: true,
-                                              );
-                                            },
-                                          ),
-                                        ]
-                                      : null,
-                                );
-                              }),
-
-                              AppSpaces.vSpace14,
-
-                              // 3-Tab Capsule Switcher
-                              _buildTabSwitcher(),
+                      return CustomScreenHeader(
+                        title: 'Documents',
+                        subtitle: headerSubtitle,
+                        actions: (isLettersTab && canRequest)
+                            ? [
+                                CustomScreenHeader.actionButton(
+                                  icon: Icons.add_rounded,
+                                  iconColor: AppColors.secondary,
+                                  onTap: () {
+                                    Get.bottomSheet(
+                                      const RequestLetterBottomSheet(),
+                                      isScrollControlled: true,
+                                    );
+                                  },
+                                ),
+                              ]
+                            : null,
+                      );
+                    }),
+                  ),
+                  AppSpaces.vSpace14,
+                  Expanded(
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        return RefreshIndicator(
+                          onRefresh: () =>
+                              controller.loadAllDocuments(isRefresh: true),
+                          color: AppColors.secondary,
+                          child: SingleChildScrollView(
+                            physics: const AlwaysScrollableScrollPhysics(
+                              parent: BouncingScrollPhysics(),
+                            ),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 14.w,
+                              vertical: 4.h,
+                            ),
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                minHeight: constraints.maxHeight - 8.h,
+                              ),
+                              child: IntrinsicHeight(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // 3-Tab Capsule Switcher
+                                    _buildTabSwitcher(),
 
                               AppSpaces.vSpace14,
 
@@ -138,6 +142,9 @@ class DocumentsView extends GetView<DocumentController> {
                     ),
                   );
                 },
+              ),
+            ),
+                ],
               ),
             ),
           ],

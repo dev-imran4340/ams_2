@@ -28,41 +28,47 @@ class HelpdeskView extends GetView<HelpdeskController> {
             // 1. Signature Curved Ambient Header (215.h)
             EmployeeAmbientHeader(height: 215.h),
 
-            // 2. Main Scrollable Content
+            // 2. Sticky Header + Scrollable Body
             SafeArea(
               bottom: false,
-              child: RefreshIndicator(
-                onRefresh: () => controller.loadInitialData(isRefresh: true),
-                color: AppColors.secondary,
-                child: SingleChildScrollView(
-                  controller: controller.scrollController,
-                  physics: const AlwaysScrollableScrollPhysics(
-                    parent: BouncingScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(14.w, 8.h, 14.w, 0),
+                    child: CustomScreenHeader(
+                      title: 'HR Helpdesk',
+                      subtitle: 'Corporate inquiries & service desk',
+                      actions: [
+                        CustomScreenHeader.actionButton(
+                          icon: Icons.add_rounded,
+                          tooltip: 'Open Ticket',
+                          onTap: () =>
+                              CreateHelpdeskTicketBottomSheet.show(context),
+                        ),
+                      ],
+                    ),
                   ),
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 14.w,
-                    vertical: 8.h,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Header: Back Button, Title, Subtitle & "+ New Ticket" Action Pill
-                      CustomScreenHeader(
-                        title: 'HR Helpdesk',
-                        subtitle: 'Corporate inquiries & service desk',
-                        actions: [
-                          CustomScreenHeader.actionButton(
-                            icon: Icons.add_rounded,
-                            tooltip: 'Open Ticket',
-                            onTap: () => CreateHelpdeskTicketBottomSheet.show(context),
-                          ),
-                        ],
-                      ),
-
-                      AppSpaces.vSpace14,
-
-                      // Component 1: Telemetry Strip (Total, Open, In Progress, Resolved)
-                      _buildTelemetryStrip(),
+                  AppSpaces.vSpace14,
+                  Expanded(
+                    child: RefreshIndicator(
+                      onRefresh: () =>
+                          controller.loadInitialData(isRefresh: true),
+                      color: AppColors.secondary,
+                      child: SingleChildScrollView(
+                        controller: controller.scrollController,
+                        physics: const AlwaysScrollableScrollPhysics(
+                          parent: BouncingScrollPhysics(),
+                        ),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 14.w,
+                          vertical: 4.h,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Component 1: Telemetry Strip (Total, Open, In Progress, Resolved)
+                            _buildTelemetryStrip(),
 
                       AppSpaces.vSpace14,
 
@@ -85,6 +91,9 @@ class HelpdeskView extends GetView<HelpdeskController> {
                   ),
                 ),
               ),
+            ),
+                  ],
+                ),
             ),
           ],
         ),

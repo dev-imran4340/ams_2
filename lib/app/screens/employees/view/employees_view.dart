@@ -58,7 +58,7 @@ class DepartmentEmployeesView extends GetView<DepartmentEmployeesController> {
                     child: Obx(
                       () => CustomScreenHeader(
                         title: controller.isCompanyMode.value
-                            ? 'Staff Directory'
+                            ? 'Employees'
                             : 'Department Directory',
                         subtitle: controller.isCompanyMode.value
                             ? 'Company employees & organizational records'

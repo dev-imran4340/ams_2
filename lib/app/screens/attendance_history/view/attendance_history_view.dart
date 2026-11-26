@@ -33,74 +33,80 @@ class AttendanceHistoryView extends GetView<AttendanceHistoryController> {
             // 1. Signature Curved Ambient Gradient Header
             EmployeeAmbientHeader(height: 230.h),
 
-            // 2. Main Scrollable Content Overlapping Header
+            // 2. Sticky Header + Scrollable Body
             SafeArea(
-              child: RefreshIndicator(
-                onRefresh: controller.loadTimesheet,
-                color: AppColors.primary,
-                child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(
-                    parent: BouncingScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(14.w, 10.h, 14.w, 0),
+                    child: Obx(() {
+                      final isAudit = controller.isAuditMode;
+                      final empName = controller.targetEmployeeName.value;
+                      final title = isAudit
+                          ? (empName.isNotEmpty ? empName : 'Staff Attendance')
+                          : 'Attendance History';
+                      final subtitle = isAudit
+                          ? 'SCOPE: DEPARTMENT AUDIT'
+                          : 'Verified daily punches & activity logs';
+
+                      return CustomScreenHeader(
+                        title: title,
+                        subtitle: subtitle,
+                        actions: [
+                          if (!isAudit)
+                            CustomScreenHeader.actionButton(
+                              icon: Icons.more_time_rounded,
+                              onTap: () {
+                                HapticFeedback.lightImpact();
+                                Get.toNamed(Routes.CORRECTION);
+                              },
+                              tooltip: 'Request Correction',
+                            ),
+                          if (AppPreferences.hasModule('attendance') &&
+                              AppPreferences.hasPermission('attendance.view'))
+                            CustomScreenHeader.actionButton(
+                              icon: Icons.schedule_rounded,
+                              onTap: () {
+                                HapticFeedback.lightImpact();
+                                if (isAudit) {
+                                  Get.toNamed(
+                                    Routes.SCHEDULE,
+                                    arguments: {
+                                      'employeeId':
+                                          controller.targetEmployeeId.value,
+                                      'employeeName':
+                                          controller.targetEmployeeName.value,
+                                    },
+                                  );
+                                } else {
+                                  Get.toNamed(Routes.SCHEDULE);
+                                }
+                              },
+                              tooltip: 'Work Schedule & Rota',
+                            ),
+                        ],
+                      );
+                    }),
                   ),
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 14.w,
-                    vertical: 10.h,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Top Executive Navigation Header with Dynamic Sync Status
-                      Obx(() {
-                        final isAudit = controller.isAuditMode;
-                        final empName = controller.targetEmployeeName.value;
-                        final title = isAudit
-                            ? (empName.isNotEmpty ? empName : 'Staff Attendance')
-                            : 'Attendance History';
-                        final subtitle = isAudit
-                            ? 'SCOPE: DEPARTMENT AUDIT'
-                            : 'Verified daily punches & activity logs';
-
-                        return CustomScreenHeader(
-                          title: title,
-                          subtitle: subtitle,
-                          actions: [
-                            if (!isAudit)
-                              CustomScreenHeader.actionButton(
-                                icon: Icons.more_time_rounded,
-                                onTap: () {
-                                  HapticFeedback.lightImpact();
-                                  Get.toNamed(Routes.CORRECTION);
-                                },
-                                tooltip: 'Request Correction',
-                              ),
-                            if (AppPreferences.hasModule('attendance') &&
-                                AppPreferences.hasPermission('attendance.view'))
-                              CustomScreenHeader.actionButton(
-                                icon: Icons.schedule_rounded,
-                                onTap: () {
-                                  HapticFeedback.lightImpact();
-                                  if (isAudit) {
-                                    Get.toNamed(
-                                      Routes.SCHEDULE,
-                                      arguments: {
-                                        'employeeId': controller.targetEmployeeId.value,
-                                        'employeeName': controller.targetEmployeeName.value,
-                                      },
-                                    );
-                                  } else {
-                                    Get.toNamed(Routes.SCHEDULE);
-                                  }
-                                },
-                                tooltip: 'Work Schedule & Rota',
-                              ),
-                          ],
-                        );
-                      }),
-
-                      AppSpaces.vSpace14,
-
-                      // 1. Date Range & Month Selection Filter Bar (Always visible!)
-                      const AttendanceDateRangeBar(),
+                  AppSpaces.vSpace14,
+                  Expanded(
+                    child: RefreshIndicator(
+                      onRefresh: controller.loadTimesheet,
+                      color: AppColors.primary,
+                      child: SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(
+                          parent: BouncingScrollPhysics(),
+                        ),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 14.w,
+                          vertical: 4.h,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // 1. Date Range & Month Selection Filter Bar (Always visible!)
+                            const AttendanceDateRangeBar(),
 
                       AppSpaces.vSpace14,
 
@@ -202,6 +208,9 @@ class AttendanceHistoryView extends GetView<AttendanceHistoryController> {
                   ),
                 ),
               ),
+            ),
+                  ],
+                ),
             ),
           ],
         ),

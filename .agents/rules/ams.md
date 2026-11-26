@@ -104,6 +104,9 @@ CustomStateView.empty(...) aur CustomStateView.error(...) ko hamesha screen ya c
 
 Root Screen Container: UI root ko NetworkBoundaryWrapper se wrap karein.
 
+Sticky Screen Header & Scrollable Body Invariant (Strict):
+Har screen par top header (`CustomScreenHeader`) hamesha visible aur sticky (non-scrolling) rehna lazmi hai — sirf body (`Expanded` ke andar scrollable content) scroll karegi. Loading, empty, ya error states (`CustomStateView.empty(...)` / `CustomStateView.error(...)`) bhi hamesha `Expanded` body ke andar centered render hongi, kabhi bhi poori screen replace karke header ko hide nahi karengi (siwaye `NetworkBoundaryWrapper` ke offline state ke).
+
 5. Asynchronous Loading & Double-Tap Prevention
 
 Tamam await actions ko try-finally block mein wrap karna lazmi hai:

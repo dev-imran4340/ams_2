@@ -30,9 +30,13 @@ class ApiClient {
       'X-Client-Platform': defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android',
     };
 
-    final token = AppPreferences.token;
-    if (token != null && token.isNotEmpty) {
-      headers['Authorization'] = 'Bearer $token';
+    final userToken = AppPreferences.token;
+    final kioskToken = AppPreferences.kioskToken;
+    final effectiveToken = (userToken != null && userToken.isNotEmpty)
+        ? userToken
+        : kioskToken;
+    if (effectiveToken != null && effectiveToken.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $effectiveToken';
     }
 
     final deviceId = AppPreferences.deviceId;

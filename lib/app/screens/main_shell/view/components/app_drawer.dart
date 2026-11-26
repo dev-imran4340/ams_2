@@ -188,9 +188,9 @@ class AppDrawer extends StatelessWidget {
         );
 
       case 'assets':
-        if (!sessionController.hasModule('assets') &&
-            !sessionController.hasModule('onboarding') &&
-            !sessionController.hasPermission('assets.view')) {
+        if ((!sessionController.hasModule('assets') &&
+                !sessionController.hasModule('onboarding')) ||
+            !sessionController.hasPermission(AppPermissions.assetsView)) {
           return null;
         }
         return DrawerModuleCard(
@@ -202,9 +202,9 @@ class AppDrawer extends StatelessWidget {
         );
 
       case 'training':
-        if (!sessionController.hasModule('training') &&
-            !sessionController.hasModule('onboarding') &&
-            !sessionController.hasPermission('training.view')) {
+        if ((!sessionController.hasModule('training') &&
+                !sessionController.hasModule('onboarding')) ||
+            !sessionController.hasPermission(AppPermissions.trainingView)) {
           return null;
         }
         return DrawerModuleCard(

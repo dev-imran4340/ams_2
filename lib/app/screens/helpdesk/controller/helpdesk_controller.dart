@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import '../../../api/app_preferences.dart';
 import '../../../core/services/permission_service.dart';
 import '../../../core/utils/app_colors.dart';
+import '../../../core/widgets/custom_snackbar.dart';
 import '../model/helpdesk_model.dart';
 import '../repo/helpdesk_repo.dart';
 
@@ -250,28 +251,46 @@ class HelpdeskController extends GetxController {
     }
   }
 
-  /// Submits a new ticket with form validation
+  /// Submits a new ticket with form validation & auto-scroll/focus on error
   Future<bool> submitNewTicket() async {
-    if (createFormKey.currentState != null && !createFormKey.currentState!.validate()) {
-      if (subjectController.text.trim().isEmpty) {
+    if (createFormKey.currentState != null &&
+        !createFormKey.currentState!.validate()) {
+      if (subjectController.text.trim().isEmpty ||
+          subjectController.text.trim().length > 150) {
+        final ctx = subjectFocusNode.context;
+        if (ctx != null) {
+          Scrollable.ensureVisible(
+            ctx,
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeOut,
+          );
+        }
         subjectFocusNode.requestFocus();
-      } else if (descriptionController.text.trim().isEmpty) {
+      } else if (descriptionController.text.trim().isEmpty ||
+          descriptionController.text.trim().length > 5000) {
+        final ctx = descriptionFocusNode.context;
+        if (ctx != null) {
+          Scrollable.ensureVisible(
+            ctx,
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeOut,
+          );
+        }
         descriptionFocusNode.requestFocus();
       }
       return false;
     }
 
-    if (subjectController.text.trim().isEmpty || descriptionController.text.trim().isEmpty) {
+    if (subjectController.text.trim().isEmpty ||
+        descriptionController.text.trim().isEmpty) {
       return false;
     }
 
     final catId = selectedCategoryId.value;
-    if (catId == null) {
-      Get.snackbar(
-        'Category Required',
-        'Please select a category for your ticket.',
-        backgroundColor: AppColors.error.withValues(alpha: 0.1),
-        colorText: AppColors.error,
+    if (catId == null || catId.isEmpty) {
+      CustomSnackbar.showError(
+        title: 'Category Required',
+        message: 'Please select a category for your ticket.',
       );
       return false;
     }
@@ -296,14 +315,11 @@ class HelpdeskController extends GetxController {
         if (Get.isBottomSheetOpen == true || Get.isDialogOpen == true) {
           Get.back(); // Close modal
         }
-        if (Get.context != null) {
-          Get.snackbar(
-            'Ticket Created',
-            'Ticket #${created.reference} has been submitted to the HR Helpdesk.',
-            backgroundColor: AppColors.success.withValues(alpha: 0.1),
-            colorText: AppColors.success,
-          );
-        }
+        CustomSnackbar.showSuccess(
+          title: 'Ticket Created',
+          message:
+              'Ticket #${created.reference} has been submitted to the HR Helpdesk.',
+        );
         return true;
       }
       return false;

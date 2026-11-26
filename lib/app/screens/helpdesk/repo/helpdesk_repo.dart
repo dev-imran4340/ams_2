@@ -113,11 +113,10 @@ class HelpdeskRepo {
     final methodTag = '$_originTag -> createTicket(subject: $subject)';
     try {
       final payload = {
-        'category_id': categoryId,
+        'category': categoryId,
         'subject': subject,
-        'message': message,
+        'body': message,
         'priority': priority,
-        'is_confidential': isConfidential ? 1 : 0,
       };
 
       final response = await ApiClient.request(

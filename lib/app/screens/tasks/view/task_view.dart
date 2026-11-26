@@ -29,43 +29,47 @@ class TaskView extends GetView<TaskController> {
             // 1. Signature Curved Ambient Gradient Header (240.h)
             EmployeeAmbientHeader(height: 240.h),
 
-            // 2. Main Scrollable Content Overlapping the Header
+            // 2. Sticky Header + Scrollable Body
             SafeArea(
               bottom: false,
-              child: RefreshIndicator(
-                onRefresh: () => controller.loadTasks(isRefresh: true),
-                color: AppColors.secondary,
-                child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(
-                    parent: BouncingScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(14.w, 8.h, 14.w, 0),
+                    child: CustomScreenHeader(
+                      title: 'Task Operations',
+                      subtitle: 'Tasks, deliverables & checklists',
+                      actions: [
+                        if (controller.canManageTeamTasks)
+                          CustomScreenHeader.actionButton(
+                            icon: Icons.add_task_rounded,
+                            onTap: () {
+                              HapticFeedback.lightImpact();
+                              controller.openCreateTaskModal(context);
+                            },
+                            tooltip: 'New Task',
+                          ),
+                      ],
+                    ),
                   ),
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 14.w,
-                    vertical: 8.h,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Top Bar: Back Pill, Title/Subtitle Capsule
-                      CustomScreenHeader(
-                        title: 'Task Operations',
-                        subtitle: 'Tasks, deliverables & checklists',
-                        actions: [
-                          if (controller.canManageTeamTasks)
-                            CustomScreenHeader.actionButton(
-                              icon: Icons.add_task_rounded,
-                              onTap: () {
-                                HapticFeedback.lightImpact();
-                                controller.openCreateTaskModal(context);
-                              },
-                              tooltip: 'New Task',
-                            ),
-                        ],
-                      ),
-
-                      AppSpaces.vSpace14,
-
-                      // Component 1: Task Telemetry Strip
+                  AppSpaces.vSpace14,
+                  Expanded(
+                    child: RefreshIndicator(
+                      onRefresh: () => controller.loadTasks(isRefresh: true),
+                      color: AppColors.secondary,
+                      child: SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(
+                          parent: BouncingScrollPhysics(),
+                        ),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 14.w,
+                          vertical: 4.h,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Component 1: Task Telemetry Strip
                       const TaskTelemetryStrip(),
 
                       AppSpaces.vSpace14,
@@ -89,6 +93,9 @@ class TaskView extends GetView<TaskController> {
                   ),
                 ),
               ),
+            ),
+                  ],
+                ),
             ),
           ],
         ),

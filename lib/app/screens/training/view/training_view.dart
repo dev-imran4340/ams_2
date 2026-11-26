@@ -28,32 +28,36 @@ class TrainingView extends GetView<TrainingController> {
             // 1. Signature Curved Ambient Gradient Header (240.h)
             EmployeeAmbientHeader(height: 240.h),
 
-            // 2. Main Scrollable Content Overlapping the Header
+            // 2. Sticky Header + Scrollable Body
             SafeArea(
               bottom: false,
-              child: RefreshIndicator(
-                onRefresh: () => controller.loadTraining(isRefresh: true),
-                color: AppColors.secondary,
-                child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(
-                    parent: BouncingScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(14.w, 8.h, 14.w, 0),
+                    child: const CustomScreenHeader(
+                      title: 'Training & Development',
+                      subtitle: 'Compliance courses, skills & certifications',
+                    ),
                   ),
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 14.w,
-                    vertical: 8.h,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Top Bar: Back Pill, Title/Subtitle Capsule
-                      const CustomScreenHeader(
-                        title: 'Training & Development',
-                        subtitle: 'Compliance courses, skills & certifications',
-                      ),
-
-                      AppSpaces.vSpace14,
-
-                      // Component 1: Telemetry Metrics
+                  AppSpaces.vSpace14,
+                  Expanded(
+                    child: RefreshIndicator(
+                      onRefresh: () => controller.loadTraining(isRefresh: true),
+                      color: AppColors.secondary,
+                      child: SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(
+                          parent: BouncingScrollPhysics(),
+                        ),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 14.w,
+                          vertical: 4.h,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Component 1: Telemetry Metrics
                       const TrainingTelemetryStrip(),
 
                       AppSpaces.vSpace14,
@@ -90,6 +94,9 @@ class TrainingView extends GetView<TrainingController> {
                   ),
                 ),
               ),
+            ),
+                  ],
+                ),
             ),
           ],
         ),

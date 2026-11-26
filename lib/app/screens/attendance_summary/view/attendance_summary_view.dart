@@ -39,89 +39,131 @@ class AttendanceSummaryView extends GetView<AttendanceSummaryController> {
       onRetry: () => controller.loadSummary(controller.selectedMonth.value),
       child: Scaffold(
         backgroundColor: AppColors.backgroundColor,
-        body: Obx(() {
-          if (controller.isLoading.value && controller.summary.value == null) {
-            return Center(
-              child: CircularProgressIndicator(
-                color: AppColors.primary,
-                strokeWidth: 2.5.w,
-              ),
-            );
-          }
+        body: Stack(
+          children: [
+            // 1. Signature Curved Ambient Gradient Header
+            EmployeeAmbientHeader(height: 230.h),
 
-          final summary = controller.summary.value;
-          if (summary == null) {
-            return CustomStateView.empty(
-              title: 'No Summary Available',
-              message: 'Could not retrieve monthly attendance summary.',
-              buttonText: 'Retry',
-              onAction: () => controller.loadSummary(controller.selectedMonth.value),
-            );
-          }
-
-          final monthNum = controller.selectedMonth.value.month;
-          final yearNum = controller.selectedMonth.value.year;
-          final monthStr = '${months[monthNum - 1]} $yearNum';
-
-          return Stack(
-            children: [
-              // 1. Signature Curved Ambient Gradient Header
-              EmployeeAmbientHeader(height: 230.h),
-
-              // 2. Main Scrollable Content Overlapping Header
-              SafeArea(
-                child: RefreshIndicator(
-                  onRefresh: () => controller.loadSummary(controller.selectedMonth.value),
-                  color: AppColors.primary,
-                  child: SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(
-                      parent: BouncingScrollPhysics(),
-                    ),
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 14.w,
-                      vertical: 10.h,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Top Header with Back Navigation & Month Switcher
-                        CustomScreenHeader(
-                          title: 'Monthly Summary',
-                          subtitle: 'Analytics & Hours Compliance',
-                          actions: [
-                            _buildMonthSwitcher(monthStr),
-                          ],
-                        ),
-
-                        AppSpaces.vSpace14,
-
-                        // 1. Hero Performance & Attendance Score Card
-                        const AttendanceScoreHeroCard(),
-
-                        AppSpaces.vSpace14,
-
-                        // 2. Days Breakdown Grid (All 10 Categories)
-                        const DaysBreakdownGrid(),
-
-                        AppSpaces.vSpace14,
-
-                        // 3. Working Hours & Shift Targets Card
-                        const WorkingHoursSummaryCard(),
-
-                        AppSpaces.vSpace14,
-
-                        // 4. Policy Compliance, Deductions & Overtime Card
-                        const ComplianceAndOvertimeCard(),
-
-                        AppSpaces.vSpace24,
-                      ],
-                    ),
+            // 2. Sticky Header + Scrollable Body
+            SafeArea(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Sticky Top Header (always visible, never scrolls or hides on error/empty)
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(14.w, 10.h, 14.w, 0),
+                    child: Obx(() {
+                      final monthNum = controller.selectedMonth.value.month;
+                      final yearNum = controller.selectedMonth.value.year;
+                      final monthStr = '${months[monthNum - 1]} $yearNum';
+                      return CustomScreenHeader(
+                        title: 'Monthly Summary',
+                        subtitle: 'Analytics & Hours Compliance',
+                        actions: [
+                          _buildMonthSwitcher(monthStr),
+                        ],
+                      );
+                    }),
                   ),
-                ),
+
+                  AppSpaces.vSpace14,
+
+                  // Scrollable Body Content (Loading / Empty / Data)
+                  Expanded(
+                    child: Obx(() {
+                      if (controller.isLoading.value &&
+                          controller.summary.value == null) {
+                        return Center(
+                          child: CircularProgressIndicator(
+                            color: AppColors.secondary,
+                            strokeWidth: 2.5.w,
+                          ),
+                        );
+                      }
+
+                      final summary = controller.summary.value;
+                      if (summary == null) {
+                        return RefreshIndicator(
+                          onRefresh: () => controller.loadSummary(
+                            controller.selectedMonth.value,
+                          ),
+                          color: AppColors.secondary,
+                          child: LayoutBuilder(
+                            builder: (context, constraints) =>
+                                SingleChildScrollView(
+                                  physics: const AlwaysScrollableScrollPhysics(
+                                    parent: BouncingScrollPhysics(),
+                                  ),
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 14.w,
+                                  ),
+                                  child: ConstrainedBox(
+                                    constraints: BoxConstraints(
+                                      minHeight: constraints.maxHeight,
+                                    ),
+                                    child: Center(
+                                      child: CustomStateView.empty(
+                                        title: 'No Summary Available',
+                                        message:
+                                            'Could not retrieve monthly attendance summary.',
+                                        buttonText: 'Retry',
+                                        onAction: () => controller.loadSummary(
+                                          controller.selectedMonth.value,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                          ),
+                        );
+                      }
+
+                      return RefreshIndicator(
+                        onRefresh: () => controller.loadSummary(
+                          controller.selectedMonth.value,
+                        ),
+                        color: AppColors.secondary,
+                        child: SingleChildScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(
+                            parent: BouncingScrollPhysics(),
+                          ),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 14.w,
+                            vertical: 4.h,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // 1. Hero Performance & Attendance Score Card
+                              const AttendanceScoreHeroCard(),
+
+                              AppSpaces.vSpace14,
+
+                              // 2. Days Breakdown Grid (All 10 Categories)
+                              const DaysBreakdownGrid(),
+
+                              AppSpaces.vSpace14,
+
+                              // 3. Working Hours & Shift Targets Card
+                              const WorkingHoursSummaryCard(),
+
+                              AppSpaces.vSpace14,
+
+                              // 4. Policy Compliance, Deductions & Overtime Card
+                              const ComplianceAndOvertimeCard(),
+
+                              AppSpaces.vSpace24,
+                            ],
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
+                ],
               ),
-            ],
-          );
-        }),
+            ),
+          ],
+        ),
       ),
     );
   }

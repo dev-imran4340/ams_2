@@ -150,6 +150,7 @@ class KioskIdentifyResponseModel {
   final String requiresFace;
   final bool faceSaved;
   final String? consentText;
+  final bool isOfflineSession;
 
   const KioskIdentifyResponseModel({
     required this.person,
@@ -168,6 +169,7 @@ class KioskIdentifyResponseModel {
     this.requiresFace = 'off',
     this.faceSaved = false,
     this.consentText,
+    this.isOfflineSession = false,
   });
 
   bool get canCheckIn => allowedActions.contains('in');

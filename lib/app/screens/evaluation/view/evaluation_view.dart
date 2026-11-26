@@ -26,40 +26,45 @@ class EvaluationView extends GetView<EvaluationController> {
             // 1. Curved Ambient Gradient Header (240.h)
             EmployeeAmbientHeader(height: 240.h),
 
-            // 2. Main Scrollable Content Overlapping the Header
+            // 2. Sticky Header + Scrollable Body
             SafeArea(
               bottom: false,
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  return RefreshIndicator(
-                    onRefresh: () => controller.loadReviews(isRefresh: true),
-                    color: AppColors.secondary,
-                    child: SingleChildScrollView(
-                      physics: const AlwaysScrollableScrollPhysics(
-                        parent: BouncingScrollPhysics(),
-                      ),
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 14.w,
-                        vertical: 8.h,
-                      ),
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          minHeight: constraints.maxHeight - 16.h,
-                        ),
-                        child: IntrinsicHeight(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Top Bar: Back Pill, Title only
-                              const CustomScreenHeader(
-                                title: 'Evaluation',
-                                subtitle: "Performance cycle",
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(14.w, 8.h, 14.w, 0),
+                    child: const CustomScreenHeader(
+                      title: 'Evaluation',
+                      subtitle: "Performance cycle",
+                    ),
+                  ),
+                  AppSpaces.vSpace14,
+                  Expanded(
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        return RefreshIndicator(
+                          onRefresh: () =>
+                              controller.loadReviews(isRefresh: true),
+                          color: AppColors.secondary,
+                          child: SingleChildScrollView(
+                            physics: const AlwaysScrollableScrollPhysics(
+                              parent: BouncingScrollPhysics(),
+                            ),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 14.w,
+                              vertical: 4.h,
+                            ),
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                minHeight: constraints.maxHeight - 8.h,
                               ),
-
-                              AppSpaces.vSpace14,
-
-                              // Top Box Switcher: "My Evaluation" vs "To Review"
-                              _buildBoxSwitcher(),
+                              child: IntrinsicHeight(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // Top Box Switcher: "My Evaluation" vs "To Review"
+                                    _buildBoxSwitcher(),
 
                               AppSpaces.vSpace14,
 
@@ -113,6 +118,9 @@ class EvaluationView extends GetView<EvaluationController> {
                     ),
                   );
                 },
+              ),
+            ),
+                ],
               ),
             ),
           ],

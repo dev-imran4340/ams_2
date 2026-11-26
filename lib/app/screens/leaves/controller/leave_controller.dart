@@ -113,12 +113,18 @@ class LeaveController extends GetxController {
       AppPreferences.hasPermission(AppPermissions.leaveAdjust, AppPermissionScopes.department);
 
   /// Loads leave balances, leave types, and my leave requests (Phase 11)
+  bool get _isFromKiosk =>
+      AppPreferences.isKioskProvisioned &&
+      Get.arguments is Map &&
+      (Get.arguments as Map)['fromKiosk'] == true;
+
   Future<void> loadLeaveData() async {
     try {
       isLoading.value = true;
       isAccessRestricted.value = false;
       accessRestrictedMessage.value = '';
-      isLeaveModuleActive.value = AppPreferences.hasModule('leave');
+      isLeaveModuleActive.value =
+          _isFromKiosk || AppPreferences.hasModule('leave');
 
       if (!isLeaveModuleActive.value) {
         isAccessRestricted.value = true;
@@ -127,7 +133,8 @@ class LeaveController extends GetxController {
         return;
       }
 
-      if (!AppPreferences.hasPermission(AppPermissions.leaveView)) {
+      if (!_isFromKiosk &&
+          !AppPreferences.hasPermission(AppPermissions.leaveView)) {
         isAccessRestricted.value = true;
         accessRestrictedMessage.value =
             'You do not have permission to view leave balances or records.';

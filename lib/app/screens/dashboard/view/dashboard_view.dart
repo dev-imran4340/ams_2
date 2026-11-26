@@ -39,7 +39,8 @@ class DashboardView extends GetView<DashboardController> {
         backgroundColor: AppColors.backgroundColor,
         body: Obx(() {
           final isCurrentlyLoading = controller.isLoading.value;
-          final hasAttendance = (sessionController.hasModule('attendance') ||
+          final hasAttendance =
+              (sessionController.hasModule('attendance') ||
                   AppPreferences.hasModule('attendance')) &&
               (sessionController.hasPermission('attendance.view') ||
                   AppPreferences.hasPermission('attendance.view'));
@@ -50,7 +51,8 @@ class DashboardView extends GetView<DashboardController> {
           final data = controller.dashboardData.value;
           final meUser = sessionController.user.value;
           final String userName = meUser?.name ?? user?.name ?? 'Employee';
-          final String designation = AppPreferences.getProfileData()?['designation']?.toString() ??
+          final String designation =
+              AppPreferences.getProfileData()?['designation']?.toString() ??
               user?.designation ??
               'Staff';
 
@@ -59,30 +61,37 @@ class DashboardView extends GetView<DashboardController> {
               // 1. Curved Ambient Gradient Header (Always visible)
               EmployeeAmbientHeader(height: 230.h),
 
-              // 2. Main Scrollable Content Overlapping the Header
+              // 2. Sticky Top Header + Scrollable Body
               SafeArea(
-                child: RefreshIndicator(
-                  onRefresh: () async {
-                    await controller.loadDashboard();
-                  },
-                  color: AppColors.primary,
-                  child: SingleChildScrollView(
-                    physics: const ScrollPhysics(
-                      parent: AlwaysScrollableScrollPhysics(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Sticky Top Executive Header (Avatar, Name, Greeting, Notification Bell)
+                    Padding(
+                      padding: EdgeInsets.fromLTRB(14.w, 10.h, 14.w, 0),
+                      child: _buildTopHeader(userName, designation),
                     ),
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 14.w,
-                      vertical: 10.h,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Top Executive Header (Always visible: Avatar, Name, Greeting, Notification Bell)
-                        _buildTopHeader(userName, designation),
 
-                        AppSpaces.vSpace12,
+                    AppSpaces.vSpace12,
 
-                        if (isCurrentlyLoading ||
+                    Expanded(
+                      child: RefreshIndicator(
+                        onRefresh: () async {
+                          await controller.loadDashboard();
+                        },
+                        color: AppColors.primary,
+                        child: SingleChildScrollView(
+                          physics: const ScrollPhysics(
+                            parent: AlwaysScrollableScrollPhysics(),
+                          ),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 14.w,
+                            vertical: 4.h,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (isCurrentlyLoading ||
                             (hasAttendance &&
                                 data == null &&
                                 !controller.isAccessRestricted.value &&
@@ -108,16 +117,19 @@ class DashboardView extends GetView<DashboardController> {
 
                           // 3. Body Section: Permission Error / Empty / Today's Metrics
                           if (controller.isAccessRestricted.value) ...[
-                            AppSpaces.vSpace14,
+                            AppSpaces.vSpace30,
                             Center(
                               child: CustomStateView.error(
                                 title: 'Personal Attendance Restricted',
-                                message: controller
-                                        .accessRestrictedMessage.value.isNotEmpty
-                                    ? '${controller.accessRestrictedMessage.value}\nUse Staff Directory or Drawer modules for department access.'
-                                    : 'Personal attendance is not enabled for your role. Use Staff Directory for department access.',
+                                message:
+                                    controller
+                                        .accessRestrictedMessage
+                                        .value
+                                        .isNotEmpty
+                                    ? '${controller.accessRestrictedMessage.value}\nUse Employees or Drawer modules for department access.'
+                                    : 'Personal attendance is not enabled for your role. Use Employees for department access.',
                                 buttonText: hasEmployeesDirectory
-                                    ? 'Open Staff Directory'
+                                    ? 'Open Employees'
                                     : 'Refresh',
                                 onRetry: hasEmployeesDirectory
                                     ? () => Get.toNamed(Routes.EMPLOYEES)
@@ -129,8 +141,7 @@ class DashboardView extends GetView<DashboardController> {
                             Center(
                               child: CustomStateView.empty(
                                 title: 'No Attendance Data',
-                                message:
-                                    'No attendance records available for today.',
+                                message: 'No attendance records available for today.',
                                 buttonText: 'Refresh',
                                 onAction: controller.loadDashboard,
                               ),
@@ -157,6 +168,9 @@ class DashboardView extends GetView<DashboardController> {
                       ],
                     ),
                   ),
+                ),
+              ),
+                  ],
                 ),
               ),
             ],
@@ -367,8 +381,12 @@ class DashboardView extends GetView<DashboardController> {
                         ),
                         decoration: BoxDecoration(
                           color: AppColors.error,
-                          shape: count > 9 ? BoxShape.rectangle : BoxShape.circle,
-                          borderRadius: count > 9 ? BorderRadius.circular(10.r) : null,
+                          shape: count > 9
+                              ? BoxShape.rectangle
+                              : BoxShape.circle,
+                          borderRadius: count > 9
+                              ? BorderRadius.circular(10.r)
+                              : null,
                           border: Border.all(
                             color: AppColors.white,
                             width: 1.5.w,

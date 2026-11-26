@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -13,6 +14,7 @@ import '../../../api/exception_handler.dart';
 import '../../../core/services/permission_service.dart';
 import '../../../core/widgets/custom_snackbar.dart';
 import '../../../routes/app_routes.dart';
+import '../../../services/network_connectivity_service.dart';
 import '../../dashboard/view/components/selfie_punch_sheet.dart';
 import '../../verification/face_recognition/repo/face_recognition_repo.dart';
 import '../model/kiosk_model.dart';
@@ -63,9 +65,12 @@ class KioskController extends GetxController {
   final RxDouble faceMatchScore = 0.0.obs;
   File? capturedSelfieFile;
 
-  // Offline Kiosk Punch Queue
+  // Offline Kiosk Punch Queue & Connectivity State
+  final RxBool isOnline = true.obs;
   final RxInt offlineQueueCount = 0.obs;
   final RxBool isSyncingOffline = false.obs;
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
+  final Map<String, KioskIdentifyResponseModel> _cachedBadgeSessions = {};
 
   // Attendance Punch Result
   final Rxn<KioskPunchResultModel> lastPunchResult = Rxn<KioskPunchResultModel>();
@@ -114,6 +119,7 @@ class KioskController extends GetxController {
 
     // Start 1-second continuous digital clock for tablet kiosk station
     _startLiveClock();
+    _initConnectivityListener();
 
     loadKioskState();
   }
@@ -123,6 +129,7 @@ class KioskController extends GetxController {
     _clockTimer?.cancel();
     _ticketCountdownTimer?.cancel();
     _punchResetTimer?.cancel();
+    _connectivitySubscription?.cancel();
 
     pinController.dispose();
     confirmPinController.dispose();
@@ -143,13 +150,113 @@ class KioskController extends GetxController {
     super.onClose();
   }
 
+  int _reconnectTick = 0;
+  bool _isCheckingReconnect = false;
+
   void _startLiveClock() {
     _clockTimer?.cancel();
     _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       final now = DateTime.now();
       liveClock.value = now;
       _updateSessionElapsed(now);
+
+      // Periodic fallback probe when offline in case OS connectivity event was delayed
+      if (!isOnline.value) {
+        _reconnectTick++;
+        if (_reconnectTick >= 4) {
+          _reconnectTick = 0;
+          _checkReconnectAndSync();
+        }
+      } else {
+        _reconnectTick = 0;
+      }
     });
+  }
+
+  Future<void> _checkReconnectAndSync() async {
+    if (_isCheckingReconnect) return;
+    _isCheckingReconnect = true;
+    try {
+      NetworkConnectivityService.invalidateCache();
+      final connected = await NetworkConnectivityService.hasConnection();
+      if (connected) {
+        isOnline.value = true;
+        if (offlineQueueCount.value > 0) {
+          await syncOfflinePunches();
+        }
+        await _upgradeActiveOfflineSessionToOnline();
+      }
+    } finally {
+      _isCheckingReconnect = false;
+    }
+  }
+
+  void _initConnectivityListener() {
+    NetworkConnectivityService.hasConnection().then((connected) {
+      isOnline.value = connected;
+      if (connected && offlineQueueCount.value > 0) {
+        syncOfflinePunches();
+      }
+    });
+
+    _connectivitySubscription?.cancel();
+    _connectivitySubscription =
+        Connectivity().onConnectivityChanged.listen((results) async {
+      final hasRadio = !results.contains(ConnectivityResult.none) &&
+          results.isNotEmpty;
+      if (!hasRadio) {
+        isOnline.value = false;
+        NetworkConnectivityService.invalidateCache();
+        return;
+      }
+
+      NetworkConnectivityService.invalidateCache();
+      final connected = await NetworkConnectivityService.hasConnection();
+      isOnline.value = connected;
+      if (connected) {
+        if (offlineQueueCount.value > 0) {
+          await syncOfflinePunches();
+        }
+        await _upgradeActiveOfflineSessionToOnline();
+      }
+    });
+  }
+
+  /// If an employee is currently viewing an offline session when internet returns,
+  /// silently upgrades it to a live server session so OFFLINE switches to ONLINE.
+  Future<void> _upgradeActiveOfflineSessionToOnline() async {
+    final current = identifiedSession.value;
+    final badge = _lastScannedBadge;
+    if (current == null ||
+        !current.isOfflineSession ||
+        badge == null ||
+        badge.isEmpty ||
+        showSuccessCard.value) {
+      return;
+    }
+
+    try {
+      final liveSession = await repo.identifyEmployee(badge: badge);
+      if (liveSession != null) {
+        _cachedBadgeSessions[badge] = liveSession;
+        await _handleSuccessfulIdentification(liveSession);
+      }
+    } catch (e) {
+      if (e is ApiException && e.statusCode == 401) {
+        handleKioskStopped();
+      }
+    }
+  }
+
+  bool _isNetworkFailure(Object error) {
+    if (error is SocketException || error is TimeoutException) return true;
+    if (error is ApiException) {
+      return error.statusCode == null ||
+          error.errorCode == 'NO_INTERNET' ||
+          error.errorCode == 'TIMEOUT' ||
+          error.errorCode == 'CONNECTION_ERROR';
+    }
+    return false;
   }
 
   void _updateSessionElapsed(DateTime now) {
@@ -528,22 +635,39 @@ class KioskController extends GetxController {
       return false;
     }
 
+    final cleanBadge = badge.trim();
+
+    // 1. Check real internet availability first; if offline, open local offline session immediately
+    final connected = await NetworkConnectivityService.hasConnection();
+    isOnline.value = connected;
+    if (!connected) {
+      await _startOfflineBadgeSession(cleanBadge);
+      return true;
+    }
+
     try {
       isSubmitting.value = true;
-      final session = await repo.identifyEmployee(badge: badge.trim());
+      final session = await repo.identifyEmployee(badge: cleanBadge);
       if (session != null) {
-        _lastScannedBadge = badge.trim();
+        isOnline.value = true;
+        _lastScannedBadge = cleanBadge;
+        _cachedBadgeSessions[cleanBadge] = session;
         await _handleSuccessfulIdentification(session);
         return true;
       }
       idErrorMessage.value = 'Could not identify badge.';
       return false;
     } catch (e) {
+      if (e is ApiException && e.statusCode == 401) {
+        handleKioskStopped();
+        return false;
+      }
+      if (_isNetworkFailure(e)) {
+        isOnline.value = false;
+        await _startOfflineBadgeSession(cleanBadge);
+        return true;
+      }
       if (e is ApiException) {
-        if (e.statusCode == 401) {
-          handleKioskStopped();
-          return false;
-        }
         idErrorMessage.value = e.message;
       } else {
         idErrorMessage.value = 'Invalid or unrecognized badge code.';
@@ -552,6 +676,41 @@ class KioskController extends GetxController {
     } finally {
       isSubmitting.value = false;
     }
+  }
+
+  /// Creates/resumes a local offline identification session when internet or server is unavailable
+  Future<void> _startOfflineBadgeSession(String badge) async {
+    _lastScannedBadge = badge;
+    final cached = _cachedBadgeSessions[badge];
+    final shortCode = badge.length > 10 ? '${badge.substring(0, 10)}...' : badge;
+
+    final offlineSession = KioskIdentifyResponseModel(
+      person: cached?.person ??
+          KioskPersonModel(
+            id: badge,
+            name: 'Offline Employee',
+            employeeNumber: shortCode,
+          ),
+      ticket: '',
+      expiresIn: 120,
+      checkedIn: cached?.checkedIn ?? false,
+      onBreak: cached?.onBreak ?? false,
+      since: cached?.since,
+      sinceAt: cached?.sinceAt,
+      stateDate: cached?.stateDate,
+      usesBreaks: cached?.usesBreaks ?? true,
+      allowedActions: cached?.allowedActions.isNotEmpty == true
+          ? cached!.allowedActions
+          : const ['in'],
+      requiresPosition: false,
+      requiresPhoto: false,
+      requiresFace: 'off',
+      faceSaved: false,
+      isOfflineSession: true,
+    );
+
+    _cachedBadgeSessions[badge] = offlineSession;
+    await _handleSuccessfulIdentification(offlineSession);
   }
 
   /// Processes successful identification session and sets up countdown & verification
@@ -563,7 +722,8 @@ class KioskController extends GetxController {
     terminalPinController.clear();
     idErrorMessage.value = '';
 
-    // Initialize 120-second countdown timer
+    // Initialize 120-second countdown timer for both online and offline sessions
+    _ticketCountdownTimer?.cancel();
     ticketCountdown.value = session.expiresIn > 0 ? session.expiresIn : 120;
     _startTicketCountdown();
 
@@ -845,6 +1005,16 @@ class KioskController extends GetxController {
 
     try {
       isSubmitting.value = true;
+
+      // Offline Session or No Internet -> record locally in queue
+      final connected = !session.isOfflineSession &&
+          await NetworkConnectivityService.hasConnection();
+      isOnline.value = connected;
+      if (!connected) {
+        await _recordOfflinePunch(session: session, kind: kind);
+        return;
+      }
+
       final personSnippet = session.person.id.length >= 8
           ? session.person.id.substring(0, 8)
           : session.person.id;
@@ -862,32 +1032,7 @@ class KioskController extends GetxController {
       );
 
       if (result != null) {
-        // Update local timer state immediately based on punch kind
-        final personId = session.person.id;
-        final nowUtc = DateTime.now().toUtc();
-        final existing = _employeeTimers[personId];
-        if (kind == 'in') {
-          _employeeTimers[personId] = _KioskEmployeeTimerState(
-            accumulatedWorkSeconds: 0,
-            workSegmentStartUtc: nowUtc,
-          );
-        } else if (kind == 'break_start') {
-          final extra = existing?.workSegmentStartUtc != null
-              ? nowUtc.difference(existing!.workSegmentStartUtc!).inSeconds.clamp(0, 86400)
-              : 0;
-          _employeeTimers[personId] = _KioskEmployeeTimerState(
-            accumulatedWorkSeconds: (existing?.accumulatedWorkSeconds ?? 0) + extra,
-            breakStartUtc: nowUtc,
-          );
-        } else if (kind == 'break_end') {
-          _employeeTimers[personId] = _KioskEmployeeTimerState(
-            accumulatedWorkSeconds: existing?.accumulatedWorkSeconds ?? 0,
-            workSegmentStartUtc: nowUtc,
-          );
-        } else if (kind == 'out') {
-          _employeeTimers.remove(personId);
-        }
-
+        _applyLocalTimerTransition(personId: session.person.id, kind: kind);
         lastPunchResult.value = result;
         showSuccessCard.value = true;
 
@@ -902,6 +1047,11 @@ class KioskController extends GetxController {
         handleKioskStopped();
         return;
       }
+      if (_isNetworkFailure(e)) {
+        isOnline.value = false;
+        await _recordOfflinePunch(session: session, kind: kind);
+        return;
+      }
       CustomSnackbar.showError(
         title: 'Punch Failed',
         message: 'Could not record punch. Please retry.',
@@ -911,6 +1061,147 @@ class KioskController extends GetxController {
     }
   }
 
+  void _applyLocalTimerTransition({
+    required String personId,
+    required String kind,
+  }) {
+    final nowUtc = DateTime.now().toUtc();
+    final existing = _employeeTimers[personId];
+    if (kind == 'in') {
+      _employeeTimers[personId] = _KioskEmployeeTimerState(
+        accumulatedWorkSeconds: 0,
+        workSegmentStartUtc: nowUtc,
+      );
+    } else if (kind == 'break_start') {
+      final extra = existing?.workSegmentStartUtc != null
+          ? nowUtc.difference(existing!.workSegmentStartUtc!).inSeconds.clamp(0, 86400)
+          : 0;
+      _employeeTimers[personId] = _KioskEmployeeTimerState(
+        accumulatedWorkSeconds: (existing?.accumulatedWorkSeconds ?? 0) + extra,
+        breakStartUtc: nowUtc,
+      );
+    } else if (kind == 'break_end') {
+      _employeeTimers[personId] = _KioskEmployeeTimerState(
+        accumulatedWorkSeconds: existing?.accumulatedWorkSeconds ?? 0,
+        workSegmentStartUtc: nowUtc,
+      );
+    } else if (kind == 'out') {
+      _employeeTimers.remove(personId);
+    }
+  }
+
+  String _offlineRoleLabel(String kind) {
+    switch (kind) {
+      case 'in':
+        return 'Check In';
+      case 'out':
+        return 'Check Out';
+      case 'break_start':
+        return 'Break Start';
+      case 'break_end':
+        return 'Break End';
+      default:
+        return kind;
+    }
+  }
+
+  /// Records a punch into the offline queue, updates local badge state, and shows success card
+  Future<void> _recordOfflinePunch({
+    required KioskIdentifyResponseModel session,
+    required String kind,
+  }) async {
+    final badge = _lastScannedBadge;
+    if (badge == null || badge.isEmpty) {
+      CustomSnackbar.showError(
+        title: 'Offline Punch Failed',
+        message: 'Badge reference missing for offline queueing.',
+      );
+      return;
+    }
+
+    await queueOfflinePunch(
+      kind: kind,
+      badge: badge,
+      photoPath: capturedSelfieFile?.path,
+      faceMatch: isFaceVerificationRequired.value ? faceMatchStatus.value : null,
+      faceScore: isFaceVerificationRequired.value ? faceMatchScore.value : null,
+    );
+
+    final now = DateTime.now();
+    final hh = now.hour.toString().padLeft(2, '0');
+    final mm = now.minute.toString().padLeft(2, '0');
+    final sinceTime = '$hh:$mm';
+    final sinceAtIso = now.toUtc().toIso8601String();
+
+    bool nextCheckedIn = session.checkedIn;
+    bool nextOnBreak = session.onBreak;
+    List<String> nextAllowed = const ['in'];
+    String? nextSince = session.since;
+    String? nextSinceAt = session.sinceAt;
+
+    if (kind == 'in') {
+      nextCheckedIn = true;
+      nextOnBreak = false;
+      nextAllowed = const ['out', 'break_start'];
+      nextSince = sinceTime;
+      nextSinceAt = sinceAtIso;
+    } else if (kind == 'break_start') {
+      nextCheckedIn = true;
+      nextOnBreak = true;
+      nextAllowed = const ['break_end', 'out'];
+      nextSince = sinceTime;
+      nextSinceAt = sinceAtIso;
+    } else if (kind == 'break_end') {
+      nextCheckedIn = true;
+      nextOnBreak = false;
+      nextAllowed = const ['out', 'break_start'];
+      nextSince = sinceTime;
+      nextSinceAt = sinceAtIso;
+    } else if (kind == 'out') {
+      nextCheckedIn = false;
+      nextOnBreak = false;
+      nextAllowed = const ['in'];
+      nextSince = null;
+      nextSinceAt = null;
+    }
+
+    _cachedBadgeSessions[badge] = KioskIdentifyResponseModel(
+      person: session.person,
+      ticket: '',
+      expiresIn: 0,
+      checkedIn: nextCheckedIn,
+      onBreak: nextOnBreak,
+      since: nextSince,
+      sinceAt: nextSinceAt,
+      stateDate: session.stateDate,
+      usesBreaks: session.usesBreaks,
+      allowedActions: nextAllowed,
+      isOfflineSession: true,
+    );
+
+    _applyLocalTimerTransition(personId: session.person.id, kind: kind);
+
+    lastPunchResult.value = KioskPunchResultModel(
+      punchId: 'offline_${now.millisecondsSinceEpoch}',
+      time: sinceTime,
+      role: '${_offlineRoleLabel(kind)} (Offline Queued)',
+      source: 'kiosk_offline',
+      personId: session.person.id,
+      personName: session.person.name,
+    );
+    showSuccessCard.value = true;
+
+    CustomSnackbar.showInfo(
+      title: 'Saved Offline',
+      message: 'Punch queued locally and will auto-sync when internet returns.',
+    );
+
+    _punchResetTimer?.cancel();
+    _punchResetTimer = Timer(const Duration(seconds: 5), () {
+      resetToMainScreen();
+    });
+  }
+
   /// Queues a kiosk punch locally when the tablet is offline (max 24h old per doc/api.md)
   Future<void> queueOfflinePunch({
     required String kind,
@@ -918,6 +1209,8 @@ class KioskController extends GetxController {
     String? employeeNumber,
     String? pin,
     String? photoPath,
+    String? faceMatch,
+    double? faceScore,
   }) async {
     final now = DateTime.now();
     final offset = now.timeZoneOffset;
@@ -936,6 +1229,8 @@ class KioskController extends GetxController {
         'employee_number': employeeNumber,
       if (pin != null && pin.isNotEmpty) 'pin': pin,
       if (photoPath != null && photoPath.isNotEmpty) 'photo_path': photoPath,
+      if (faceMatch != null && faceMatch.isNotEmpty) 'face_match': faceMatch,
+      'face_score': ?faceScore,
     });
     await AppPreferences.setOfflineKioskPunches(queue);
     offlineQueueCount.value = queue.length;
@@ -947,14 +1242,22 @@ class KioskController extends GetxController {
     final queue = AppPreferences.offlineKioskPunches;
     if (queue.isEmpty) return;
 
+    final connected = await NetworkConnectivityService.hasConnection();
+    isOnline.value = connected;
+    if (!connected) return;
+
     try {
       isSyncingOffline.value = true;
+      int syncedCount = 0;
       final remaining = List<Map<String, dynamic>>.from(queue);
 
       for (final item in queue) {
         final photoPath = item['photo_path']?.toString();
-        final photoFile =
-            (photoPath != null && photoPath.isNotEmpty) ? File(photoPath) : null;
+        final photoFile = (photoPath != null &&
+                photoPath.isNotEmpty &&
+                File(photoPath).existsSync())
+            ? File(photoPath)
+            : null;
 
         final res = await repo.submitKioskPunch(
           kind: item['kind']?.toString() ?? 'in',
@@ -964,15 +1267,26 @@ class KioskController extends GetxController {
           pin: item['pin']?.toString(),
           punchedAt: item['punched_at']?.toString(),
           photo: photoFile,
+          faceMatch: item['face_match']?.toString(),
+          faceScore: (item['face_score'] as num?)?.toDouble(),
         );
 
         if (res != null) {
+          syncedCount++;
           remaining.removeAt(0);
           await AppPreferences.setOfflineKioskPunches(remaining);
           offlineQueueCount.value = remaining.length;
         } else {
           break;
         }
+      }
+
+      if (syncedCount > 0 && remaining.isEmpty) {
+        CustomSnackbar.showSuccess(
+          title: 'Offline Punches Synced',
+          message:
+              '$syncedCount queued attendance punch${syncedCount == 1 ? '' : 'es'} synced to server.',
+        );
       }
     } catch (e) {
       if (e is ApiException && e.statusCode == 401) {
@@ -1021,6 +1335,23 @@ class KioskController extends GetxController {
     if (reason != null && reason.isNotEmpty) {
       CustomSnackbar.showWarning(title: 'Session Ended', message: reason);
     }
+  }
+
+  /// Opens the existing employee self-service screen from Kiosk Mode,
+  /// passing kiosk arguments so screens can differentiate kiosk vs individual flow.
+  void onQuickActionTap({required String route, required String title}) {
+    if (isSubmitting.value) return;
+    final session = identifiedSession.value;
+    Get.toNamed(
+      route,
+      arguments: <String, dynamic>{
+        'fromKiosk': true,
+        'kioskTicket': session?.ticket,
+        'employeeId': session?.person.id,
+        'employeeName': session?.person.name,
+        'employeeNumber': session?.person.employeeNumber,
+      },
+    );
   }
 
   /// Resets kiosk completely to clean main screen

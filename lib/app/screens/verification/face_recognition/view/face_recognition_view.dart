@@ -25,6 +25,7 @@ class FaceRecognitionView extends GetView<FaceRecognitionController> {
         systemNavigationBarIconBrightness: Brightness.light,
       ),
       child: NetworkBoundaryWrapper(
+        allowOffline: true,
         child: Scaffold(
           backgroundColor: AppColors.primary,
           body: Stack(

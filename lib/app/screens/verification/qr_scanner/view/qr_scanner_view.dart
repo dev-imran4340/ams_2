@@ -26,6 +26,7 @@ class QRScannerView extends GetView<QRScanController> {
         systemNavigationBarIconBrightness: Brightness.light,
       ),
       child: NetworkBoundaryWrapper(
+        allowOffline: true,
         child: Scaffold(
           backgroundColor: AppColors.primary,
           body: Stack(

@@ -26,37 +26,48 @@ class CorrectionView extends GetView<CorrectionController> {
             // 1. Signature Curved Ambient Gradient Header
             EmployeeAmbientHeader(height: 230.h),
 
-            // 2. Main Scrollable Content Overlapping Header
+            // 2. Sticky Header + Scrollable Body
             SafeArea(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Top Executive Navigation Header with Back Button
-                    const CustomScreenHeader(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(14.w, 10.h, 14.w, 0),
+                    child: const CustomScreenHeader(
                       title: 'Attendance Correction',
                       subtitle: 'Submit punch timing correction request',
                     ),
+                  ),
+                  AppSpaces.vSpace14,
+                  Expanded(
+                    child: SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 14.w,
+                        vertical: 4.h,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Dynamic Body: Either the Form or the Post-Submission Action Card
+                          Obx(() {
+                            final reqId =
+                                controller.lastSubmittedRequestId.value;
 
-                    AppSpaces.vSpace14,
+                            if (reqId != null) {
+                              return _buildSubmissionSuccessCard(reqId);
+                            }
 
-                    // Dynamic Body: Either the Form or the Post-Submission Action Card
-                    Obx(() {
-                      final reqId = controller.lastSubmittedRequestId.value;
+                            return const MissedPunchFormCard();
+                          }),
 
-                      if (reqId != null) {
-                        return _buildSubmissionSuccessCard(reqId);
-                      }
-
-                      return const MissedPunchFormCard();
-                    }),
-
-                    // Bottom safe clearance
-                    SizedBox(height: 70.h),
-                  ],
-                ),
+                          // Bottom safe clearance
+                          SizedBox(height: 70.h),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],

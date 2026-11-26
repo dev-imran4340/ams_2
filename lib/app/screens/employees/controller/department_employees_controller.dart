@@ -47,12 +47,12 @@ class DepartmentEmployeesController extends GetxController {
     return AppPreferences.hasPermission('employees.sensitive.view', 'department');
   }
 
-  /// Manager/HR Scope: View Work Schedule Rota (Module: attendance && Permission: attendance.view)
+  /// Manager/HR Scope: View Work Schedule Rota (Module: attendance && Permission: schedules.view)
   bool canViewScheduleFor(DepartmentEmployeeModel emp) {
     if (!AppPreferences.hasModule('attendance')) return false;
     final isSelf = emp.id == AppPreferences.userId || emp.employeeCode == AppPreferences.employeeNumber;
-    if (isSelf) return AppPreferences.hasPermission('attendance.view', 'own');
-    return AppPreferences.hasPermission('attendance.view', 'department');
+    if (isSelf) return AppPreferences.hasPermission('schedules.view', 'own');
+    return AppPreferences.hasPermission('schedules.view', 'department');
   }
 
   /// Manager/HR Scope: Audit Employee Attendance Logs (GET /employees/{id}/attendance)

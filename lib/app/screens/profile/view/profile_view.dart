@@ -29,38 +29,42 @@ class ProfileView extends GetView<ProfileController> {
             // 1. Curved Ambient Gradient Header (Always visible)
             EmployeeAmbientHeader(height: 230.h),
 
-            // 2. Main Scrollable Content Overlapping the Header
+            // 2. Sticky Header + Scrollable Body
             SafeArea(
-              child: RefreshIndicator(
-                onRefresh: controller.loadProfile,
-                color: AppColors.primary,
-                child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(
-                    parent: BouncingScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(14.w, 10.h, 14.w, 0),
+                    child: CustomScreenHeader(
+                      title: 'Account & Settings',
+                      subtitle: 'Security, preferences & credentials',
+                      actions: [
+                        CustomScreenHeader.actionButton(
+                          icon: Icons.edit_outlined,
+                          onTap: controller.navigateToEditProfile,
+                          tooltip: 'Edit Profile',
+                        ),
+                      ],
+                    ),
                   ),
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 14.w,
-                    vertical: 10.h,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Top Bar with Back, Title, and Edit Profile Action (Always visible)
-                      CustomScreenHeader(
-                        title: 'Account & Settings',
-                        subtitle: 'Security, preferences & credentials',
-                        actions: [
-                          CustomScreenHeader.actionButton(
-                            icon: Icons.edit_outlined,
-                            onTap: controller.navigateToEditProfile,
-                            tooltip: 'Edit Profile',
-                          ),
-                        ],
-                      ),
-
-                      AppSpaces.vSpace14,
-
-                      Obx(() {
+                  AppSpaces.vSpace14,
+                  Expanded(
+                    child: RefreshIndicator(
+                      onRefresh: controller.loadProfile,
+                      color: AppColors.primary,
+                      child: SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(
+                          parent: BouncingScrollPhysics(),
+                        ),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 14.w,
+                          vertical: 4.h,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Obx(() {
                         if (controller.isLoading.value) {
                           return Padding(
                             padding: EdgeInsets.symmetric(vertical: 48.h),
@@ -131,6 +135,9 @@ class ProfileView extends GetView<ProfileController> {
                   ),
                 ),
               ),
+            ),
+                  ],
+                ),
             ),
           ],
         ),

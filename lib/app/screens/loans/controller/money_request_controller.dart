@@ -67,8 +67,19 @@ class MoneyRequestController extends GetxController {
     super.onClose();
   }
 
+  bool get _isFromKiosk =>
+      AppPreferences.isKioskProvisioned &&
+      Get.arguments is Map &&
+      (Get.arguments as Map)['fromKiosk'] == true;
+
   /// Verifies if 'loans_expenses' module is enabled in active subscription and money.view permission
   void _checkModuleGate() {
+    if (_isFromKiosk) {
+      isLoansModuleActive.value = true;
+      isAccessRestricted.value = false;
+      accessRestrictedMessage.value = '';
+      return;
+    }
     final hasModule = AppPreferences.hasModule('loans_expenses');
     final hasPermission = AppPreferences.hasPermission(AppPermissions.moneyView);
     isLoansModuleActive.value = hasModule && hasPermission;

@@ -91,94 +91,102 @@ class _ProfileDetailsViewState extends State<ProfileDetailsView> {
             // 1. Curved Ambient Gradient Header (Always visible)
             EmployeeAmbientHeader(height: 230.h),
 
-            // 2. Main Scrollable Content Overlapping the Header
+            // 2. Sticky Header + Scrollable Body
             SafeArea(
-              child: RefreshIndicator(
-                onRefresh: controller.refreshActiveProfile,
-                color: AppColors.primary,
-                child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(
-                    parent: BouncingScrollPhysics(),
-                  ),
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 14.w,
-                    vertical: 10.h,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Top Bar with Back (if route), Title, and Edit Profile Action (Always visible)
-                      CustomScreenHeader(
-                        title: '',
-                        showBackButton: !widget.isBottomNavTab,
-                        customTitleWidget: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Obx(() {
-                              final isOther =
-                                  controller.isViewingOtherEmployee.value;
-                              final name = controller.profile.value?.name;
-                              final title = isOther
-                                  ? (name != null && name.isNotEmpty
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(14.w, 10.h, 14.w, 0),
+                    child: CustomScreenHeader(
+                      title: '',
+                      showBackButton: !widget.isBottomNavTab,
+                      customTitleWidget: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Obx(() {
+                            final isOther =
+                                controller.isViewingOtherEmployee.value;
+                            final name = controller.profile.value?.name;
+                            final title = isOther
+                                ? (name != null && name.isNotEmpty
                                       ? name
                                       : 'Employee Profile')
-                                  : 'My Profile';
-                              return Text(
-                                title,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: AppTextStyles.text16.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.textColor,
-                                ),
-                              );
-                            }),
-                            AppSpaces.vSpace2,
-                            Obx(() {
-                              final isOther =
-                                  controller.isViewingOtherEmployee.value;
-                              final p = controller.profile.value;
-                              final desig = p?.designation ?? p?.job?.designation ?? '';
-                              final dept = p?.department ?? p?.job?.department ?? '';
-                              final parts = [
-                                if (desig.trim().isNotEmpty) desig.trim(),
-                                if (dept.trim().isNotEmpty) dept.trim(),
-                              ];
-                              final subtitle = isOther
-                                  ? (parts.isNotEmpty ? parts.join(' • ') : '')
-                                  : 'Employment credentials & service records';
-                              if (subtitle.isEmpty) return const SizedBox.shrink();
-                              return Text(
-                                subtitle,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: AppTextStyles.text10.copyWith(
-                                  color: AppColors.textColor
-                                      .withValues(alpha: 0.75),
-                                ),
-                              );
-                            }),
-                          ],
-                        ),
-                        actions: [
+                                : 'My Profile';
+                            return Text(
+                              title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTextStyles.text16.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textColor,
+                              ),
+                            );
+                          }),
+                          AppSpaces.vSpace2,
                           Obx(() {
-                            if (controller.isViewingOtherEmployee.value ||
-                                controller.isAccessRestricted.value) {
+                            final isOther =
+                                controller.isViewingOtherEmployee.value;
+                            final p = controller.profile.value;
+                            final desig =
+                                p?.designation ?? p?.job?.designation ?? '';
+                            final dept =
+                                p?.department ?? p?.job?.department ?? '';
+                            final parts = [
+                              if (desig.trim().isNotEmpty) desig.trim(),
+                              if (dept.trim().isNotEmpty) dept.trim(),
+                            ];
+                            final subtitle = isOther
+                                ? (parts.isNotEmpty ? parts.join(' • ') : '')
+                                : 'Employment credentials & service records';
+                            if (subtitle.isEmpty) {
                               return const SizedBox.shrink();
                             }
-                            return CustomScreenHeader.actionButton(
-                              icon: Icons.edit_outlined,
-                              onTap: controller.navigateToEditProfile,
-                              tooltip: 'Edit Profile',
+                            return Text(
+                              subtitle,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTextStyles.text10.copyWith(
+                                color: AppColors.textColor
+                                    .withValues(alpha: 0.75),
+                              ),
                             );
                           }),
                         ],
                       ),
-
-                      AppSpaces.vSpace14,
-
-                      Obx(() {
+                      actions: [
+                        Obx(() {
+                          if (controller.isViewingOtherEmployee.value ||
+                              controller.isAccessRestricted.value) {
+                            return const SizedBox.shrink();
+                          }
+                          return CustomScreenHeader.actionButton(
+                            icon: Icons.edit_outlined,
+                            onTap: controller.navigateToEditProfile,
+                            tooltip: 'Edit Profile',
+                          );
+                        }),
+                      ],
+                    ),
+                  ),
+                  AppSpaces.vSpace14,
+                  Expanded(
+                    child: RefreshIndicator(
+                      onRefresh: controller.refreshActiveProfile,
+                      color: AppColors.primary,
+                      child: SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(
+                          parent: BouncingScrollPhysics(),
+                        ),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 14.w,
+                          vertical: 4.h,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Obx(() {
                         if (controller.isLoading.value) {
                           return Padding(
                             padding: EdgeInsets.symmetric(vertical: 48.h),
@@ -270,6 +278,9 @@ class _ProfileDetailsViewState extends State<ProfileDetailsView> {
                   ),
                 ),
               ),
+            ),
+                  ],
+                ),
             ),
           ],
         ),

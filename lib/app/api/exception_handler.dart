@@ -272,6 +272,8 @@ class ExceptionHandler {
         !tag.contains('fetchKioskLocations');
     if (isKioskTokenRequest && statusCode == 401) {
       AppPreferences.clearKioskToken();
+    } else if (!AppPreferences.isLoggedIn && AppPreferences.isKioskProvisioned) {
+      // In Kiosk Mode without a personal user token: do not redirect to /login on 401.
     } else if ((statusCode == 401 && errorCode != 'invalid_credentials') ||
         (statusCode == 403 && errorCode == 'account_unavailable')) {
       AppPreferences.clearAuth();

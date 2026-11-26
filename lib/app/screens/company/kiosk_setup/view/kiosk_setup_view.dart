@@ -43,23 +43,15 @@ class KioskSetupView extends GetView<CompanyDashboardController> {
                   ],
                 ),
 
-                // 2. Main Scrollable Content
+                // 2. Sticky Header + Scrollable Body
                 SafeArea(
                   bottom: false,
-                  child: SingleChildScrollView(
-                    controller: controller.scrollController,
-                    physics: const AlwaysScrollableScrollPhysics(
-                      parent: BouncingScrollPhysics(),
-                    ),
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 14.w,
-                      vertical: 8.h,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Top Header matching all AMS 2 screens
-                        CustomScreenHeader(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: EdgeInsets.fromLTRB(14.w, 8.h, 14.w, 0),
+                        child: CustomScreenHeader(
                           titleColor: AppColors.white,
                           title: 'Kiosk Provisioning',
                           subtitle:
@@ -71,10 +63,22 @@ class KioskSetupView extends GetView<CompanyDashboardController> {
                             }
                           },
                         ),
-
-                        AppSpaces.vSpace14,
-
-                        if (!controller.canManageKiosks)
+                      ),
+                      AppSpaces.vSpace14,
+                      Expanded(
+                        child: SingleChildScrollView(
+                          controller: controller.scrollController,
+                          physics: const AlwaysScrollableScrollPhysics(
+                            parent: BouncingScrollPhysics(),
+                          ),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 14.w,
+                            vertical: 4.h,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (!controller.canManageKiosks)
                           Padding(
                             padding: EdgeInsets.symmetric(vertical: 40.h),
                             child: Center(
@@ -552,6 +556,9 @@ class KioskSetupView extends GetView<CompanyDashboardController> {
                           ),
                       ],
                     ),
+                  ),
+                ),
+                    ],
                   ),
                 ),
               ],

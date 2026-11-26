@@ -355,10 +355,10 @@ class EvaluationController extends GetxController {
     final details = selectedReview.value;
     if (details == null || isSubmitting.value) return false;
 
-    if (details.viewer.writesAs == 'manager' && !canManagePerformance) {
+    if (!details.can.save) {
       CustomSnackbar.showError(
-        title: 'Access Denied',
-        message: 'You do not have permission to submit manager evaluations.',
+        title: 'Action Not Allowed',
+        message: 'This evaluation cannot be saved right now.',
       );
       return false;
     }
@@ -387,10 +387,10 @@ class EvaluationController extends GetxController {
     final details = selectedReview.value;
     if (details == null || isSubmitting.value) return false;
 
-    if (details.viewer.writesAs == 'manager' && !canManagePerformance) {
+    if (!details.can.submit) {
       CustomSnackbar.showError(
-        title: 'Access Denied',
-        message: 'You do not have permission to submit manager evaluations.',
+        title: 'Action Not Allowed',
+        message: 'This evaluation cannot be submitted right now.',
       );
       return false;
     }

@@ -20,9 +20,15 @@ class AuthGuardMiddleware extends GetMiddleware {
 
   @override
   RouteSettings? redirect(String? route) {
-    // 0. Allow Kiosk hardware tablet routes when tablet is provisioned in Kiosk Mode
+    // 0. Allow Kiosk hardware tablet routes & kiosk self-service routes when provisioned in Kiosk Mode
     if (AppPreferences.isKioskProvisioned &&
-        (route == Routes.QR_SCANNER || route == Routes.FACE_RECOGNITION)) {
+        (route == Routes.QR_SCANNER ||
+            route == Routes.FACE_RECOGNITION ||
+            route == Routes.APPROVALS ||
+            route == Routes.LEAVE ||
+            route == Routes.LOANS ||
+            route == Routes.HELPDESK ||
+            route == Routes.HELPDESK_TICKET)) {
       return null;
     }
 

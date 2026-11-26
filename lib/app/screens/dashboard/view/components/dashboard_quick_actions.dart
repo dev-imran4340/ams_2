@@ -72,7 +72,7 @@ class DashboardQuickActions extends StatelessWidget {
       actions.add(
         _QuickActionItem(
           icon: Icons.groups_rounded,
-          title: 'Staff\nDirectory',
+          title: 'Employees',
           color: AppColors.primary,
           onTap: () {
             HapticFeedback.lightImpact();

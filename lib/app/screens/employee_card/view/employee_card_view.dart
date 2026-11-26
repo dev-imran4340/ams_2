@@ -26,30 +26,36 @@ class EmployeeCardView extends GetView<EmployeeCardController> {
             // 1. Signature Curved Ambient Gradient Header (220.h)
             EmployeeAmbientHeader(height: 230.h),
 
-            // 2. Main Scrollable Content Overlapping the Header
+            // 2. Sticky Header + Scrollable Body
             SafeArea(
               bottom: false,
-              child: RefreshIndicator(
-                onRefresh: controller.loadCardData,
-                color: AppColors.primary,
-                child: SingleChildScrollView(
-                  physics:NeverScrollableScrollPhysics(),
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 14.w,
-                    vertical: 8.h,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(14.w, 8.h, 14.w, 0),
+                    child: const CustomScreenHeader(
+                      title: 'Employee Card',
+                      subtitle: 'Digital ID & QR Access Pass',
+                    ),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Top Bar: Back Glass Pill, Title & Subtitle Capsule
-                      const CustomScreenHeader(
-                        title: 'Employee Card',
-                        subtitle: 'Digital ID & QR Access Pass',
-                      ),
-
-                      AppSpaces.vSpace16,
-
-                      // Dynamic Loading or Loaded Card View
+                  AppSpaces.vSpace16,
+                  Expanded(
+                    child: RefreshIndicator(
+                      onRefresh: controller.loadCardData,
+                      color: AppColors.primary,
+                      child: SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(
+                          parent: BouncingScrollPhysics(),
+                        ),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 14.w,
+                          vertical: 4.h,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Dynamic Loading or Loaded Card View
                       Obx(() {
                         if (controller.isLoading.value) {
                           return Container(
@@ -107,6 +113,9 @@ class EmployeeCardView extends GetView<EmployeeCardController> {
                   ),
                 ),
               ),
+            ),
+                  ],
+                ),
             ),
           ],
         ),

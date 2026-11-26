@@ -25,33 +25,37 @@ class JobDescriptionView extends GetView<JobDescriptionController> {
             // 1. Signature Ambient Header (Corporate Navy Gradient)
             EmployeeAmbientHeader(height: 220.h),
 
-            // 2. Main Content
+            // 2. Sticky Header + Scrollable Body
             SafeArea(
               bottom: false,
-              child: RefreshIndicator(
-                color: AppColors.secondary,
-                backgroundColor: AppColors.cardBackground,
-                onRefresh: controller.loadJobDescription,
-                child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(
-                    parent: BouncingScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(14.w, 8.h, 14.w, 0),
+                    child: const CustomScreenHeader(
+                      title: 'Job Description',
+                      subtitle: 'Role overview & terms of reference',
+                    ),
                   ),
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 14.w,
-                    vertical: 8.h,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Header: Back Pill, Title/Subtitle Capsule
-                      const CustomScreenHeader(
-                        title: 'Job Description',
-                        subtitle: 'Role overview & terms of reference',
-                      ),
-
-                      AppSpaces.vSpace20,
-
-                      // Body State or Content
+                  AppSpaces.vSpace14,
+                  Expanded(
+                    child: RefreshIndicator(
+                      color: AppColors.secondary,
+                      backgroundColor: AppColors.cardBackground,
+                      onRefresh: controller.loadJobDescription,
+                      child: SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(
+                          parent: BouncingScrollPhysics(),
+                        ),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 14.w,
+                          vertical: 4.h,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Body State or Content
                       Obx(() {
                         if (controller.isLoading.value) {
                           return SizedBox(
@@ -104,6 +108,9 @@ class JobDescriptionView extends GetView<JobDescriptionController> {
                   ),
                 ),
               ),
+            ),
+                  ],
+                ),
             ),
           ],
         ),

@@ -15,6 +15,7 @@ class NetworkBoundaryWrapper extends StatefulWidget {
   final Widget child;
   final Future<void> Function()? onRetry;
   final String offlineMessage;
+  final bool allowOffline;
 
   const NetworkBoundaryWrapper({
     super.key,
@@ -22,6 +23,7 @@ class NetworkBoundaryWrapper extends StatefulWidget {
     this.onRetry,
     this.offlineMessage =
         'No active internet connection. Please check your network.',
+    this.allowOffline = false,
   });
 
   @override
@@ -60,23 +62,46 @@ class _NetworkBoundaryWrapperState extends State<NetworkBoundaryWrapper> {
   }
 
   Future<void> _checkInitialConnectivity() async {
+    if (widget.allowOffline) return;
+
     // Fast hardware check (local, near-zero latency)
     try {
       final results = await Connectivity().checkConnectivity();
       final hasHardware =
           !results.contains(ConnectivityResult.none) && results.isNotEmpty;
       if (!hasHardware) {
-        if (mounted && _isConnected != false) {
-          setState(() {
-            _isConnected = false;
-          });
+        // Grace period for cold start / hot restart plugin initialization
+        await Future.delayed(const Duration(milliseconds: 600));
+        if (!mounted) return;
+        final retryResults = await Connectivity().checkConnectivity();
+        final retryHardware =
+            !retryResults.contains(ConnectivityResult.none) &&
+            retryResults.isNotEmpty;
+        if (!retryHardware) {
+          if (_isConnected != false) {
+            setState(() {
+              _isConnected = false;
+            });
+          }
+          return;
         }
-        return;
       }
     } catch (_) {}
 
     // Verify real packet connectivity (uses cached result if verified within 30s)
     final connected = await NetworkConnectivityService.hasConnection();
+    if (!connected) {
+      await Future.delayed(const Duration(milliseconds: 600));
+      if (!mounted) return;
+      NetworkConnectivityService.invalidateCache();
+      final retryConnected = await NetworkConnectivityService.hasConnection();
+      if (mounted && _isConnected != retryConnected) {
+        setState(() {
+          _isConnected = retryConnected;
+        });
+      }
+      return;
+    }
     if (mounted && _isConnected != connected) {
       setState(() {
         _isConnected = connected;
@@ -85,10 +110,18 @@ class _NetworkBoundaryWrapperState extends State<NetworkBoundaryWrapper> {
   }
 
   Future<void> _updateConnectionStatus(List<ConnectivityResult> results) async {
+    if (widget.allowOffline) return;
+
     final hasHardware =
         !results.contains(ConnectivityResult.none) && results.isNotEmpty;
     if (!hasHardware) {
-      if (mounted && _isConnected != false) {
+      await Future.delayed(const Duration(milliseconds: 600));
+      if (!mounted) return;
+      final retryResults = await Connectivity().checkConnectivity();
+      final retryHardware =
+          !retryResults.contains(ConnectivityResult.none) &&
+          retryResults.isNotEmpty;
+      if (!retryHardware && _isConnected != false) {
         setState(() {
           _isConnected = false;
         });
@@ -118,7 +151,7 @@ class _NetworkBoundaryWrapperState extends State<NetworkBoundaryWrapper> {
   @override
   Widget build(BuildContext context) {
     final Widget content;
-    if (!_isConnected) {
+    if (!_isConnected && !widget.allowOffline) {
       content = Scaffold(
         backgroundColor: AppColors.backgroundColor,
         body: SafeArea(

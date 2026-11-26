@@ -27,8 +27,11 @@ class KioskLivePunchCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Obx(() {
-      final isCheckedIn = session.checkedIn;
-      final isOnBreak = session.onBreak;
+      final activeSession = controller.identifiedSession.value ?? session;
+      final isOffline =
+          !controller.isOnline.value || activeSession.isOfflineSession;
+      final isCheckedIn = activeSession.checkedIn;
+      final isOnBreak = activeSession.onBreak;
       final countdown = controller.ticketCountdown.value;
       final reqFace = controller.isFaceVerificationRequired.value;
       final isFaceOk = controller.isFaceVerified.value;
@@ -122,23 +125,32 @@ class KioskLivePunchCard extends StatelessWidget {
                 Container(
                   padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
                   decoration: BoxDecoration(
-                    color:
-                        (countdown < 30 ? AppColors.error : AppColors.secondary)
-                            .withValues(alpha: 0.12),
+                    color: (isOffline
+                            ? AppColors.warning
+                            : (countdown < 30
+                                  ? AppColors.error
+                                  : AppColors.secondary))
+                        .withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(8.r),
                     border: Border.all(
-                      color: countdown < 30
-                          ? AppColors.error
-                          : AppColors.secondary,
+                      color: isOffline
+                          ? AppColors.warning
+                          : (countdown < 30
+                                ? AppColors.error
+                                : AppColors.secondary),
                     ),
                   ),
                   child: Text(
-                    '${countdown}s',
+                    isOffline
+                        ? 'OFFLINE • ${countdown}s'
+                        : '${countdown}s',
                     style: AppTextStyles.text10.copyWith(
                       fontWeight: FontWeight.bold,
                       color: countdown < 30
                           ? AppColors.error
-                          : AppColors.secondary,
+                          : (isOffline
+                                ? AppColors.warning
+                                : AppColors.secondary),
                     ),
                   ),
                 ),
