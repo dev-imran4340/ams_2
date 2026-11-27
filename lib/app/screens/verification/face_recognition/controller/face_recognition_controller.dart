@@ -100,9 +100,6 @@ class FaceRecognitionController extends GetxController
   int _consecutivePassFrames = 0;
   bool _registrationCooldown = false;
 
-  // Cached latest face for silent extraction
-  Face? _lastDetectedFace;
-
   @override
   void onInit() {
     super.onInit();
@@ -232,7 +229,6 @@ class FaceRecognitionController extends GetxController
         controllerToDispose.dispose();
       } catch (_) {}
     }
-    _lastDetectedFace = null;
     super.onClose();
   }
 
@@ -367,11 +363,27 @@ class FaceRecognitionController extends GetxController
         ResolutionPreset.medium,
         enableAudio: false,
         imageFormatGroup: Platform.isAndroid
-            ? ImageFormatGroup.nv21
+            ? ImageFormatGroup.yuv420
             : ImageFormatGroup.bgra8888,
       );
 
-      await cameraController!.initialize();
+      try {
+        await cameraController!.initialize();
+      } catch (e) {
+        if (Platform.isAndroid) {
+          // Fallback to low resolution preset on Android devices if medium fails (matching smart_attendance)
+          await cameraController?.dispose();
+          cameraController = CameraController(
+            frontCamera,
+            ResolutionPreset.low,
+            enableAudio: false,
+            imageFormatGroup: ImageFormatGroup.yuv420,
+          );
+          await cameraController!.initialize();
+        } else {
+          rethrow;
+        }
+      }
 
       // Disable screen flash/torch so screen does not turn white when taking pictures
       try {
@@ -517,10 +529,6 @@ class FaceRecognitionController extends GetxController
       }
 
       final faces = await _streamDetector!.processImage(inputImage);
-
-      if (faces.isNotEmpty) {
-        _lastDetectedFace = faces.first;
-      }
 
       if (_frameCounter % 15 == 0) {
         debugPrint('>>> [AI FACE STREAM] Frame $_frameCounter: ${faces.length} faces detected (${image.width}x${image.height})');
@@ -779,8 +787,7 @@ class FaceRecognitionController extends GetxController
       // Detect face with robust detector on authentic camera JPEG (orientation baked)
       final capturedBytes = await capturedFile.readAsBytes();
       final faces = await repo.getFacesFromUint8(capturedBytes);
-      final Face? detectedFace =
-          faces.isNotEmpty ? faces.first : _lastDetectedFace;
+      final Face? detectedFace = faces.isNotEmpty ? faces.first : null;
 
       if (detectedFace == null) {
         debugPrint(
@@ -813,16 +820,21 @@ class FaceRecognitionController extends GetxController
         return;
       }
 
-      // Save as reference face template locally using the face detected on captured photo
-      await repo.saveReferenceFace(
-        capturedFile,
-        detectedFace: detectedFace,
-      );
+      // Save as reference face template locally ONLY in personal Employee Mode
+      // (Never overwrite employee AppPreferences when operating as a shared Kiosk tablet)
+      if (!isKioskMode.value) {
+        await repo.saveReferenceFace(
+          capturedFile,
+          detectedFace: detectedFace,
+        );
+      }
 
       // If in Punch Mode:
-      // Return captured high-res photo to Dashboard so Dashboard handles punch submission & loading
+      // Return captured high-res photo to Dashboard/Kiosk so caller handles punch submission & loading
       if (isPunchMode.value) {
-        statusText.value = 'Face Captured! Returning to Dashboard...';
+        statusText.value = isKioskMode.value
+            ? 'Face Captured! Returning to Kiosk...'
+            : 'Face Captured! Returning to Dashboard...';
         isMatchSuccess.value = true;
         matchProgress.value = 1.0;
         pulseAnimationController.stop();
@@ -830,8 +842,10 @@ class FaceRecognitionController extends GetxController
 
         final resultPayload = {
           'photoFile': capturedFile,
-          'faceConsent': punchRequires?.faceSaved == false,
-          'faceScore': 100.0,
+          'faceConsent': isKioskMode.value
+              ? !kioskFaceSaved
+              : (punchRequires?.faceSaved == false),
+          'faceScore': isKioskMode.value ? 1.0 : 100.0,
           'faceMatch': 'matched',
         };
 

@@ -13,6 +13,7 @@ class ApiEndpoints {
   // 2. Identity, Dynamic Menu & Self-Service (Phase 7 Live Engine)
   static const String me = '/me';
   static const String meProfile = '/me/profile';
+  static const String mePhoto = '/me/photo';
   static const String meCard = '/me/card';
   static const String meDetailsChange = '/me/details-change';
 

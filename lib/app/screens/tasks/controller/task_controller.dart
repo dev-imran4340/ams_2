@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import '../../../api/app_preferences.dart';
 import '../../../core/services/permission_service.dart';
 import '../../../core/widgets/custom_snackbar.dart';
+import '../../employees/model/department_employee_model.dart';
 import '../model/task_model.dart';
 import '../repo/task_repo.dart';
 import '../view/components/create_task_bottom_sheet.dart';
@@ -44,11 +45,19 @@ class TaskController extends GetxController {
   final TextEditingController titleController = TextEditingController();
   final TextEditingController descriptionController = TextEditingController();
   final TextEditingController commentInputController = TextEditingController();
+  final TextEditingController teamSearchController = TextEditingController();
   final FocusNode titleFocusNode = FocusNode();
   final FocusNode descFocusNode = FocusNode();
 
   final RxString selectedPriority = 'normal'.obs; // 'low', 'normal', 'high'
   final Rxn<DateTime> selectedDueDate = Rxn<DateTime>();
+
+  // Assignable Team Members State (Manager / HR with tasks.manage)
+  final RxList<DepartmentEmployeeModel> teamMembers =
+      <DepartmentEmployeeModel>[].obs;
+  final RxBool isTeamLoading = false.obs;
+  final RxList<String> selectedAssigneeIds = <String>[].obs;
+  final RxString teamSearchQuery = ''.obs;
 
   /// Team scope is strictly restricted to users with tasks.manage permission (doc/api.md)
   bool get canManageTeamTasks => AppPreferences.hasPermission('tasks.manage');
@@ -71,6 +80,17 @@ class TaskController extends GetxController {
   /// Filtered tasks list for local reactive filtering if needed
   List<TaskModel> get filteredTasks => tasks;
 
+  /// Filtered team members for the Create Task assignee picker
+  List<DepartmentEmployeeModel> get filteredTeamMembers {
+    final q = teamSearchQuery.value.trim().toLowerCase();
+    if (q.isEmpty) return teamMembers;
+    return teamMembers.where((emp) {
+      return emp.name.toLowerCase().contains(q) ||
+          emp.employeeCode.toLowerCase().contains(q) ||
+          emp.department.toLowerCase().contains(q);
+    }).toList();
+  }
+
   @override
   void onInit() {
     super.onInit();
@@ -85,6 +105,7 @@ class TaskController extends GetxController {
     titleController.dispose();
     descriptionController.dispose();
     commentInputController.dispose();
+    teamSearchController.dispose();
     titleFocusNode.dispose();
     descFocusNode.dispose();
     createModalScrollController.dispose();
@@ -261,6 +282,35 @@ class TaskController extends GetxController {
     }
   }
 
+  /// Loads team members within manager's tasks.manage reach
+  Future<void> loadAssignableTeam() async {
+    if (!canManageTeamTasks) return;
+    try {
+      isTeamLoading.value = true;
+      final list = await repo.fetchAssignableEmployees();
+      teamMembers.assignAll(list);
+    } finally {
+      isTeamLoading.value = false;
+    }
+  }
+
+  /// Toggles an employee/user in the assignees list (1..50 per doc/api.md)
+  void toggleAssignee(String userId) {
+    if (userId.isEmpty) return;
+    HapticFeedback.selectionClick();
+    if (selectedAssigneeIds.contains(userId)) {
+      selectedAssigneeIds.remove(userId);
+    } else {
+      if (selectedAssigneeIds.length >= 50) {
+        CustomSnackbar.showInfo(
+          message: 'Maximum 50 assignees allowed per task.',
+        );
+        return;
+      }
+      selectedAssigneeIds.add(userId);
+    }
+  }
+
   /// Opens bottom sheet for creating a new task
   void openCreateTaskModal(BuildContext context) {
     if (!PermissionService.verifyAction(
@@ -272,8 +322,15 @@ class TaskController extends GetxController {
     HapticFeedback.lightImpact();
     titleController.clear();
     descriptionController.clear();
+    teamSearchController.clear();
+    teamSearchQuery.value = '';
+    selectedAssigneeIds.clear();
     selectedPriority.value = 'normal';
     selectedDueDate.value = DateTime.now().add(const Duration(days: 1));
+
+    if (canManageTeamTasks && teamMembers.isEmpty) {
+      loadAssignableTeam();
+    }
 
     Get.bottomSheet(
       const CreateTaskBottomSheet(),
@@ -331,6 +388,9 @@ class TaskController extends GetxController {
         description: descriptionController.text.trim(),
         priority: backendPriority,
         dueOn: dueFormatted,
+        assignees: selectedAssigneeIds.isNotEmpty
+            ? selectedAssigneeIds.toList()
+            : null,
       );
 
       if (created != null) {

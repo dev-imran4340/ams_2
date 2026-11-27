@@ -9,6 +9,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import '../../../../core/utils/app_colors.dart';
 import '../../../../core/utils/app_spaces.dart';
 import '../../../../core/utils/app_text_styles.dart';
+import '../../../index/controller/index_controller.dart';
 import '../../controller/employee_card_controller.dart';
 import '../../model/employee_card_model.dart';
 
@@ -20,6 +21,9 @@ class DigitalIdCardWidget extends GetView<EmployeeCardController> {
     return Obx(() {
       final card = controller.cardData.value;
       if (card == null) return const SizedBox.shrink();
+      final Uint8List? mePhotoBytes = Get.isRegistered<IndexController>()
+          ? Get.find<IndexController>().mePhotoBytes.value
+          : null;
 
       return Column(
         children: [
@@ -45,7 +49,7 @@ class DigitalIdCardWidget extends GetView<EmployeeCardController> {
                       ..rotateY(angle),
                     alignment: Alignment.center,
                     child: isFront
-                        ? _buildFrontFace(card)
+                        ? _buildFrontFace(card, mePhotoBytes)
                         : Transform(
                             transform: Matrix4.identity()..rotateY(math.pi),
                             alignment: Alignment.center,
@@ -176,7 +180,11 @@ class DigitalIdCardWidget extends GetView<EmployeeCardController> {
   }
 
   /// Front Face: Exact Vertical Portrait ID formatted with Corporate Theme matching official PDF
-  Widget _buildFrontFace(EmployeeCardDetails card) {
+  Widget _buildFrontFace(EmployeeCardDetails card, Uint8List? mePhotoBytes) {
+    final String fallbackLetter = card.name.trim().isNotEmpty
+        ? card.name.trim()[0].toUpperCase()
+        : (card.initials.isNotEmpty ? card.initials[0].toUpperCase() : 'E');
+    final bool hasMePhoto = mePhotoBytes != null && mePhotoBytes.isNotEmpty;
     return Container(
       width: 275.w,
       height: 450.h,
@@ -238,7 +246,7 @@ class DigitalIdCardWidget extends GetView<EmployeeCardController> {
                       children: [
                         AppSpaces.vSpace6,
 
-                        // Circular Avatar with Initials in Card Theme Color
+                        // Circular Avatar with /me/photo or First-Letter Fallback
                         Container(
                           width: 76.r,
                           height: 76.r,
@@ -258,13 +266,29 @@ class DigitalIdCardWidget extends GetView<EmployeeCardController> {
                             ],
                           ),
                           alignment: Alignment.center,
-                          child: Text(
-                            card.initials,
-                            style: AppTextStyles.text24.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.white,
-                            ),
-                          ),
+                          child: hasMePhoto
+                              ? ClipOval(
+                                  child: Image.memory(
+                                    mePhotoBytes,
+                                    width: 76.r,
+                                    height: 76.r,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, _, _) => Text(
+                                      fallbackLetter,
+                                      style: AppTextStyles.text24.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.white,
+                                      ),
+                                    ),
+                                  ),
+                                )
+                              : Text(
+                                  fallbackLetter,
+                                  style: AppTextStyles.text24.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.white,
+                                  ),
+                                ),
                         ),
 
                         AppSpaces.vSpace10,

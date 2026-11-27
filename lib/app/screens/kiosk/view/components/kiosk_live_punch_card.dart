@@ -6,7 +6,6 @@ import 'package:get/get.dart';
 import 'package:ams_2/app/core/utils/app_colors.dart';
 import 'package:ams_2/app/core/utils/app_spaces.dart';
 import 'package:ams_2/app/core/utils/app_text_styles.dart';
-import 'package:ams_2/app/core/widgets/custom_button.dart';
 import 'package:ams_2/app/core/widgets/custom_card.dart';
 import 'package:ams_2/app/core/widgets/custom_snackbar.dart';
 import '../../controller/kiosk_controller.dart';
@@ -33,8 +32,6 @@ class KioskLivePunchCard extends StatelessWidget {
       final isCheckedIn = activeSession.checkedIn;
       final isOnBreak = activeSession.onBreak;
       final countdown = controller.ticketCountdown.value;
-      final reqFace = controller.isFaceVerificationRequired.value;
-      final isFaceOk = controller.isFaceVerified.value;
 
       final Color statusColor = isOnBreak
           ? AppColors.warning
@@ -198,79 +195,10 @@ class KioskLivePunchCard extends StatelessWidget {
               isOnBreak: isOnBreak,
             ),
 
-            // 4. First-Time Face Enrollment Consent (if required)
-            if (controller.isFaceConsentRequired.value) ...[
-              AppSpaces.vSpace12,
-              Container(
-                width: double.infinity,
-                padding: EdgeInsets.all(10.r),
-                decoration: BoxDecoration(
-                  color: AppColors.secondary.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(12.r),
-                  border: Border.all(
-                    color: AppColors.secondary.withValues(alpha: 0.4),
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Face Enrollment Consent',
-                      style: AppTextStyles.text12.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textColor,
-                      ),
-                    ),
-                    AppSpaces.vSpace4,
-                    Text(
-                      controller.faceConsentText.value,
-                      style: AppTextStyles.text10.copyWith(
-                        color: AppColors.subTextColor,
-                      ),
-                    ),
-                    CheckboxListTile(
-                      contentPadding: EdgeInsets.zero,
-                      dense: true,
-                      activeColor: AppColors.secondary,
-                      value: controller.faceConsentAccepted.value,
-                      onChanged: (val) =>
-                          controller.faceConsentAccepted.value = val ?? false,
-                      title: Text(
-                        'I agree to save my photo for attendance verification',
-                        style: AppTextStyles.text12.copyWith(
-                          color: AppColors.textColor,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-
-            // 5. Face Verification Button (if required & not yet verified)
-            if ((reqFace || controller.isFaceConsentRequired.value) &&
-                (!isFaceOk ||
-                    (controller.capturedSelfieFile == null &&
-                        controller.isFaceConsentRequired.value))) ...[
-              AppSpaces.vSpace12,
-              CustomButton(
-                text: 'Complete Face Verification',
-                isGradient: true,
-                isLoading: controller.isVerifyingFace.value,
-                icon: Icon(
-                  Icons.camera_front_rounded,
-                  size: 18.sp,
-                  color: AppColors.white,
-                ),
-                onPressed: controller.isVerifyingFace.value
-                    ? null
-                    : () => controller.verifyLiveFace(),
-              ),
-            ],
-
             AppSpaces.vSpace12,
 
-            // 6. Interactive Swipe-to-Confirm Slider (matching AttendanceSliderButton)
+            // 4. Interactive Swipe-to-Confirm Slider (matching AttendanceSliderButton)
+            // Face verification / selfie capture runs automatically on punch tap/swipe (same as Employee flow).
             _KioskAttendanceSlider(
               controller: controller,
               session: session,
@@ -486,8 +414,12 @@ class KioskLivePunchCard extends StatelessWidget {
     final String label = isOnBreak ? 'STOP' : 'BREAK';
     final IconData icon = isOnBreak ? Icons.stop_rounded : Icons.coffee_rounded;
 
+    final String breakKind = isOnBreak ? 'break_end' : 'break_start';
+
     return Obx(() {
       final isSubmitting = controller.isSubmitting.value;
+      final isBreakLoading =
+          isSubmitting && controller.activePunchKind.value == breakKind;
       return Material(
         color: AppColors.transparent,
         child: InkWell(
@@ -519,21 +451,32 @@ class KioskLivePunchCard extends StatelessWidget {
                 width: 2.w,
               ),
             ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(icon, color: ringColor, size: 22.sp),
-                AppSpaces.vSpace2,
-                Text(
-                  label,
-                  style: AppTextStyles.text10.copyWith(
-                    color: ringColor,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 9.sp,
+            child: isBreakLoading
+                ? Center(
+                    child: SizedBox(
+                      width: 20.r,
+                      height: 20.r,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.2.w,
+                        color: ringColor,
+                      ),
+                    ),
+                  )
+                : Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(icon, color: ringColor, size: 22.sp),
+                      AppSpaces.vSpace2,
+                      Text(
+                        label,
+                        style: AppTextStyles.text10.copyWith(
+                          color: ringColor,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 9.sp,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ],
-            ),
           ),
         ),
       );
@@ -599,7 +542,11 @@ class _KioskAttendanceSliderState extends State<_KioskAttendanceSlider>
 
         return Obx(() {
           final isCheckedIn = widget.session.checkedIn;
-          final isPunching = widget.controller.isSubmitting.value;
+          final swipeKind = isCheckedIn ? 'out' : 'in';
+          final isAnySubmitting = widget.controller.isSubmitting.value;
+          final isSwipeLoading =
+              isAnySubmitting &&
+              widget.controller.activePunchKind.value == swipeKind;
           final bool canPunch = isCheckedIn
               ? widget.session.canCheckOut
               : widget.session.canCheckIn;
@@ -679,14 +626,14 @@ class _KioskAttendanceSliderState extends State<_KioskAttendanceSlider>
                         }
                       },
                       onHorizontalDragUpdate: (details) {
-                        if (!canPunch || isPunching) return;
+                        if (!canPunch || isAnySubmitting) return;
                         setState(() {
                           _dragPosition = (_dragPosition + details.delta.dx)
                               .clamp(0.0, maxDrag);
                         });
                       },
                       onHorizontalDragEnd: (details) async {
-                        if (!canPunch || isPunching) return;
+                        if (!canPunch || isAnySubmitting) return;
                         if (_dragPosition >= maxDrag * 0.75) {
                           setState(() {
                             _dragPosition = maxDrag;
@@ -718,7 +665,7 @@ class _KioskAttendanceSliderState extends State<_KioskAttendanceSlider>
                           ],
                         ),
                         child: Center(
-                          child: isPunching
+                          child: isSwipeLoading
                               ? SizedBox(
                                   width: 18.r,
                                   height: 18.r,

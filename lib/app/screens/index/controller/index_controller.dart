@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -59,6 +61,7 @@ class IndexController extends GetxController with WidgetsBindingObserver {
   // Identity & Session Observables (from GET /me)
   final RxBool isLoadingMe = false.obs;
   final Rxn<MeResponseModel> meData = Rxn<MeResponseModel>();
+  final Rxn<Uint8List> mePhotoBytes = Rxn<Uint8List>();
   final RxString userId = ''.obs;
   final RxString userName = ''.obs;
   final RxString userEmail = ''.obs;
@@ -89,6 +92,7 @@ class IndexController extends GetxController with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     loadCachedSession();
     fetchMe();
+    unawaited(fetchMePhotoInBackground());
   }
 
   @override
@@ -96,6 +100,15 @@ class IndexController extends GetxController with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) {
       Get.log('📱 [IndexController] App returned to foreground: refreshing /me');
       fetchMe();
+      unawaited(fetchMePhotoInBackground());
+    }
+  }
+
+  /// Fetches GET /me/photo silently in background without blocking UI or /me hydration
+  Future<void> fetchMePhotoInBackground() async {
+    final bytes = await repo.fetchMePhoto();
+    if (bytes != null && bytes.isNotEmpty) {
+      mePhotoBytes.value = bytes;
     }
   }
 

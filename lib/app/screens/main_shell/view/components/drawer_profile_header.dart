@@ -14,15 +14,6 @@ import '../../controller/session_me_controller.dart';
 class DrawerProfileHeader extends StatelessWidget {
   const DrawerProfileHeader({super.key});
 
-  String _extractInitials(String name) {
-    if (name.trim().isEmpty) return 'MM';
-    final parts = name.trim().split(' ').where((p) => p.isNotEmpty).toList();
-    if (parts.length == 1) {
-      return parts[0].substring(0, parts[0].length >= 2 ? 2 : 1).toUpperCase();
-    }
-    return '${parts[0][0]}${parts[parts.length - 1][0]}'.toUpperCase();
-  }
-
   void _openProfileScreen() {
     HapticFeedback.lightImpact();
     Get.back(); // Dismiss drawer smoothly
@@ -69,7 +60,12 @@ class DrawerProfileHeader extends StatelessWidget {
           ? company.code
           : (AppPreferences.companyCode ?? '');
 
-      final String initials = _extractInitials(fullName);
+      final String fallbackLetter =
+          fullName.trim().isNotEmpty ? fullName.trim()[0].toUpperCase() : 'E';
+      final Uint8List? mePhotoBytes = Get.isRegistered<IndexController>()
+          ? Get.find<IndexController>().mePhotoBytes.value
+          : null;
+      final bool hasMePhoto = mePhotoBytes != null && mePhotoBytes.isNotEmpty;
       final bool hasCompanyInfo =
           companyName.isNotEmpty || companyCode.isNotEmpty;
       final String companyLabel = [
@@ -137,14 +133,31 @@ class DrawerProfileHeader extends StatelessWidget {
                         ],
                       ),
                       alignment: Alignment.center,
-                      child: Text(
-                        initials,
-                        style: AppTextStyles.text18.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.white,
-                          letterSpacing: 0.8,
-                        ),
-                      ),
+                      child: hasMePhoto
+                          ? ClipOval(
+                              child: Image.memory(
+                                mePhotoBytes,
+                                width: 52.r,
+                                height: 52.r,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, _, _) => Text(
+                                  fallbackLetter,
+                                  style: AppTextStyles.text18.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.white,
+                                    letterSpacing: 0.8,
+                                  ),
+                                ),
+                              ),
+                            )
+                          : Text(
+                              fallbackLetter,
+                              style: AppTextStyles.text18.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.white,
+                                letterSpacing: 0.8,
+                              ),
+                            ),
                     ),
 
                     AppSpaces.hSpace12,

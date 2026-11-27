@@ -243,23 +243,9 @@ class FaceRecognitionRepo {
       debugPrint('>>> [AI FACE] Pass 3 rotation error: $e');
     }
 
-    // Pass 4: Fallback synthetic face rectangle centered in upper-middle of photo
-    final decoded = img.decodeImage(rawBytes);
-    final w = decoded?.width ?? 288;
-    final h = decoded?.height ?? 352;
-    final faceW = w * 0.50;
-    final faceH = h * 0.45;
-    final faceLeft = (w - faceW) / 2.0;
-    final faceTop = h * 0.22;
-    debugPrint('>>> [AI FACE] Pass 4: Using calibrated facial center region (${faceW.round()}x${faceH.round()} at $faceLeft, $faceTop)');
-    final fallbackBox = Rect.fromLTWH(faceLeft, faceTop, faceW, faceH);
-    return [
-      Face(
-        boundingBox: fallbackBox,
-        landmarks: const {},
-        contours: const {},
-      ),
-    ];
+    // Pass 4: No face detected — return empty list (never fabricate a synthetic box)
+    debugPrint('>>> [AI FACE] No face detected across all passes.');
+    return [];
   }
 
   /// Real-time detector for camera stream (ultra-fast)
@@ -407,19 +393,24 @@ class FaceRecognitionRepo {
     return null;
   }
 
-  /// Retrieves the saved 192-dimensional biometric embedding vector if present
+  /// Retrieves the saved 192-dimensional biometric embedding vector if present (v2+ only)
   Future<List<double>?> getSavedFaceEmbedding() async {
-    final prefEmbedding = AppPreferences.enrolledFaceEmbedding;
-    if (prefEmbedding != null && prefEmbedding.length == 192) {
-      return prefEmbedding;
-    }
-
     try {
       final path = await getReferenceEmbeddingPath();
       final file = File(path);
       if (await file.exists() && (await file.length()) > 0) {
         final content = await file.readAsString();
         final Map<String, dynamic> data = jsonDecode(content);
+        if (data['version'] != 2) {
+          // Purge stale pre-fix v1 embedding so it re-extracts cleanly
+          debugPrint('>>> [AI FACE] Stale v1 face cache detected — ignoring old embedding.');
+          if (await file.exists()) await file.delete();
+          return null;
+        }
+        final prefEmbedding = AppPreferences.enrolledFaceEmbedding;
+        if (prefEmbedding != null && prefEmbedding.length == 192) {
+          return prefEmbedding;
+        }
         if (data['embedding'] is List) {
           final list = (data['embedding'] as List)
               .map((e) => (e as num).toDouble())
@@ -799,71 +790,46 @@ class FaceRecognitionRepo {
     final targetPath = await getReferenceFacePath();
     final targetFile = File(targetPath);
 
-    // 1. Decode source image and bake orientation
+    // 1. Decode source image and bake EXIF orientation upright
     final bytes = await sourceImage.readAsBytes();
+    Uint8List uprightBytes = bytes;
     img.Image? decoded = img.decodeImage(bytes);
     if (decoded != null) {
       decoded = img.bakeOrientation(decoded);
+      uprightBytes = img.encodeJpg(decoded, quality: 95);
     }
 
-    // 2. Detect face using robust multi-pass profile detector if not already supplied
+    // 2. Detect face on orientation-baked image using ML Kit (matching smart_attendance)
     Face? face = detectedFace;
     if (face == null) {
-      try {
-        final faces = await detectProfilePhotoFaces(bytes);
-        if (faces.isNotEmpty) {
-          face = faces.first;
-        }
-      } catch (_) {}
+      final faces = await detectProfilePhotoFaces(uprightBytes);
+      if (faces.isNotEmpty) {
+        face = faces.first;
+      }
+    }
+    if (face == null) {
+      throw Exception('No face detected in reference photo. Please try again.');
     }
 
-    // 3. Strict Face-Only Cropping (Eyes, Nose, Lips - Zero Background) & Resize to 112x112
-    img.Image croppedFace;
-    if (decoded != null) {
-      croppedFace = cropFaceFromImage(
-        sourceImage: decoded,
-        boundingBox: face?.boundingBox,
-        detectedFace: face,
-        margin: cropPaddingRatio,
-        targetWidth: targetFaceSize,
-        targetHeight: targetFaceSize,
-      );
-    } else {
-      croppedFace = img.Image(width: targetFaceSize, height: targetFaceSize);
-    }
+    // 3. Save upright reference image (keep full context so ML Kit can re-detect if needed)
+    await targetFile.writeAsBytes(uprightBytes, flush: true);
 
-    // 4. Save cropped 112x112 face image to disk
-    final jpgBytes = img.encodeJpg(croppedFace, quality: 95);
-    await targetFile.writeAsBytes(jpgBytes, flush: true);
-
-    // 5. Extract normalized 192-dimensional facial embedding vector
+    // 4. Extract 192-dimensional MobileFaceNet TFLite embedding
     List<double> vector192;
     if (enrolledVectorDirect != null && enrolledVectorDirect.length == 192) {
       vector192 = List<double>.from(enrolledVectorDirect);
       faceNet.setReferenceEmbedding(vector192);
       debugPrint('>>> [AI FaceNet] Enrolled directly using live stream vector embedding.');
     } else {
-      try {
-        if (!faceNet.isModelLoaded) {
-          await faceNet.loadModel();
-        }
-        if (faceNet.isModelLoaded && face != null) {
-          vector192 = faceNet.extractEmbeddingFromUint8List(bytes, face);
-          faceNet.setReferenceEmbedding(vector192);
-          debugPrint('>>> [AI FaceNet] MobileFaceNet 192-dim embedding generated successfully.');
-        } else {
-          vector192 = extract192DimEmbedding(
-            croppedFace112: croppedFace,
-            detectedFace: face,
-          );
-        }
-      } catch (e) {
-        debugPrint('>>> [AI FaceNet] MobileFaceNet fallback to geometric: $e');
-        vector192 = extract192DimEmbedding(
-          croppedFace112: croppedFace,
-          detectedFace: face,
-        );
+      if (!faceNet.isModelLoaded) {
+        await faceNet.loadModel();
       }
+      if (!faceNet.isModelLoaded) {
+        throw Exception('FaceNet TFLite model could not be loaded.');
+      }
+      vector192 = faceNet.extractEmbeddingFromUint8List(uprightBytes, face);
+      faceNet.setReferenceEmbedding(vector192);
+      debugPrint('>>> [AI FaceNet] MobileFaceNet 192-dim embedding generated successfully.');
     }
 
     // 6. Serialize and save to AppPreferences (Central storage authority)
@@ -876,12 +842,11 @@ class FaceRecognitionRepo {
     final embedPath = await getReferenceEmbeddingPath();
     final embedFile = File(embedPath);
     final embedData = {
-      'version': 1,
+      'version': 2,
       'vector_length': vector192.length,
       'embedding': vector192,
       'enrolled_at': DateTime.now().toIso8601String(),
-      'cropped_dimensions': '${targetFaceSize}x$targetFaceSize',
-      'background_dropped': true,
+      'background_dropped': false,
     };
     await embedFile.writeAsString(jsonEncode(embedData), flush: true);
 
@@ -1021,12 +986,11 @@ class FaceRecognitionRepo {
     final embedPath = await getReferenceEmbeddingPath();
     final embedFile = File(embedPath);
     final embedData = {
-      'version': 1,
+      'version': 2,
       'vector_length': vector192.length,
       'embedding': vector192,
       'enrolled_at': DateTime.now().toIso8601String(),
-      'cropped_dimensions': '${targetFaceSize}x$targetFaceSize',
-      'background_dropped': true,
+      'background_dropped': false,
     };
     await embedFile.writeAsString(jsonEncode(embedData), flush: true);
 
@@ -1169,9 +1133,18 @@ class FaceRecognitionRepo {
     bool ignoreSavedEmbedding = false,
   }) async {
     try {
-      // 0. Ensure FaceNet is loaded
+      // 0. Ensure FaceNet TFLite model is loaded (no geometric fallback)
       if (!faceNet.isModelLoaded) {
         await faceNet.loadModel();
+      }
+      if (!faceNet.isModelLoaded) {
+        return FaceComparisonReport(
+          matched: false,
+          score: 0.0,
+          statusLog: 'ERROR',
+          message: 'Face recognition model is not ready. Please try again.',
+          timestamp: DateTime.now(),
+        );
       }
 
       // 1. Retrieve enrolled reference embedding (skip saved employee embedding in kiosk mode)
@@ -1192,42 +1165,20 @@ class FaceRecognitionRepo {
           );
         }
 
-        if (faceNet.isModelLoaded) {
-          try {
-            refVector = faceNet.extractEmbeddingFromUint8List(refBytes, refFaces.first);
-            if (!ignoreSavedEmbedding) {
-              faceNet.setReferenceEmbedding(refVector);
-            }
-          } catch (_) {}
-        }
-
-        if (refVector == null || refVector.length != 192) {
-          img.Image? refDecoded = img.decodeImage(refBytes);
-          if (refDecoded != null) refDecoded = img.bakeOrientation(refDecoded);
-
-          final croppedRef = cropFaceFromImage(
-            sourceImage: refDecoded ?? img.Image(width: targetFaceSize, height: targetFaceSize),
-            boundingBox: refFaces.first.boundingBox,
-            detectedFace: refFaces.first,
-          );
-          refVector = extract192DimEmbedding(
-            croppedFace112: croppedRef,
-            detectedFace: refFaces.first,
-          );
+        refVector = faceNet.extractEmbeddingFromUint8List(refBytes, refFaces.first);
+        if (!ignoreSavedEmbedding) {
+          faceNet.setReferenceEmbedding(refVector);
         }
       }
 
-      // 2. Process Live Selfie: Use direct vector if available, or extract from live image
+      // 2. Process Live Selfie: Detect face on captured JPEG and extract TFLite embedding (matching smart_attendance)
       List<double>? liveVector = (liveVectorDirect != null && liveVectorDirect.length == 192)
           ? liveVectorDirect
           : null;
-      List<double>? liveFlippedVector;
 
       if (liveVector == null) {
         final liveBytes = await liveSelfieFile.readAsBytes();
-        // Always run profile face detection directly on liveBytes so bounding boxes
-        // perfectly match liveSelfieFile's dimensions and orientation.
-        final List<Face> liveFaces = await detectProfilePhotoFaces(liveBytes);
+        final List<Face> liveFaces = await getFacesFromUint8(liveBytes);
 
         if (liveFaces.isEmpty) {
           debugPrint('>>> [AI FACE] No face detected in live captured selfie');
@@ -1240,74 +1191,21 @@ class FaceRecognitionRepo {
           );
         }
 
-        final liveFace = liveFaces.first;
-
-        if (faceNet.isModelLoaded) {
-          try {
-            liveVector = faceNet.extractEmbeddingFromUint8List(liveBytes, liveFace);
-            liveFlippedVector = faceNet.extractEmbeddingFromUint8List(
-              liveBytes,
-              liveFace,
-              flipHorizontal: true,
-            );
-          } catch (e) {
-            debugPrint('>>> [AI FaceNet] Live vector extraction failed: $e');
-          }
-        }
-
-        if (liveVector == null || liveVector.length != 192) {
-          img.Image? liveDecoded = img.decodeImage(liveBytes);
-          if (liveDecoded != null) liveDecoded = img.bakeOrientation(liveDecoded);
-
-          final croppedLive = cropFaceFromImage(
-            sourceImage: liveDecoded ?? img.Image(width: targetFaceSize, height: targetFaceSize),
-            boundingBox: liveFace.boundingBox,
-            detectedFace: liveFace,
-          );
-
-          liveVector = extract192DimEmbedding(
-            croppedFace112: croppedLive,
-            detectedFace: liveFace,
-          );
-        }
+        liveVector = faceNet.extractEmbeddingFromUint8List(liveBytes, liveFaces.first);
       }
 
-      // 3. Dual Matching Engine:
-      // First check FaceNet Euclidean Distance (calibrated distance <= 1.0)
-      bool isMatch = false;
-      double score = 0.0;
-      if (faceNet.isModelLoaded) {
-        final distNormal = faceNet.euclideanDistance(refVector, liveVector);
-        double dist = distNormal;
-        if (liveFlippedVector != null) {
-          final distFlipped = faceNet.euclideanDistance(refVector, liveFlippedVector);
-          dist = math.min(distNormal, distFlipped);
-          debugPrint('>>> [AI FaceNet Comparison] Normal: ${distNormal.toStringAsFixed(4)}, Flipped: ${distFlipped.toStringAsFixed(4)} -> Best: ${dist.toStringAsFixed(4)}, Threshold: ${faceNet.threshold}');
-        } else {
-          debugPrint('>>> [AI FaceNet Comparison] Euclidean: ${dist.toStringAsFixed(4)}, Threshold: ${faceNet.threshold}');
-        }
+      // 3. Strict MobileFaceNet Euclidean Distance (threshold <= 1.0, identical to smart_attendance)
+      final double dist = faceNet.euclideanDistance(refVector, liveVector);
+      faceNet.lastDistance = dist;
+      final bool isMatch = dist <= faceNet.threshold;
+      final double score = isMatch
+          ? (1.0 - (dist / 2.0)).clamp(0.50, 1.0)
+          : (1.0 - (dist / 2.0)).clamp(0.0, 0.49);
 
-        final bool faceNetMatched = dist <= faceNet.threshold;
-        debugPrint('>>> [AI FaceNet Comparison] Match: $faceNetMatched');
-        if (faceNetMatched) {
-          isMatch = true;
-          score = (1.0 - (dist / 2.0)).clamp(0.50, 1.0);
-        }
-      }
-
-      // Also compute Cosine Similarity as secondary/fallback assurance
-      final double cosineNormal = computeCosineSimilarity(refVector, liveVector);
-      double cosineScore = cosineNormal;
-      if (liveFlippedVector != null) {
-        final double cosineFlipped = computeCosineSimilarity(refVector, liveFlippedVector);
-        cosineScore = math.max(cosineNormal, cosineFlipped);
-      }
-      if (!isMatch && cosineScore >= matchThreshold) {
-        isMatch = true;
-        score = cosineScore;
-      } else if (!isMatch) {
-        score = cosineScore;
-      }
+      debugPrint(
+        '>>> [AI FaceNet Comparison] Euclidean: ${dist.toStringAsFixed(4)}, '
+        'Threshold: ${faceNet.threshold}, Match: $isMatch',
+      );
 
       final String statusLog = isMatch ? 'OK' : 'MISMATCH';
       final String resultVerdict = isMatch ? 'OK (MATCHED)' : 'FAILED (MISMATCH)';

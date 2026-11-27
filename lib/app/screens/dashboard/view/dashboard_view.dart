@@ -253,6 +253,11 @@ class DashboardView extends GetView<DashboardController> {
     final greeting = hour < 12
         ? 'Good Morning'
         : (hour < 17 ? 'Good Afternoon' : 'Good Evening');
+    final Uint8List? mePhotoBytes = Get.isRegistered<IndexController>()
+        ? Get.find<IndexController>().mePhotoBytes.value
+        : null;
+    final String fallbackLetter =
+        name.trim().isNotEmpty ? name.trim()[0].toUpperCase() : 'E';
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -280,13 +285,29 @@ class DashboardView extends GetView<DashboardController> {
                       ],
                     ),
                     alignment: Alignment.center,
-                    child: Text(
-                      name.isNotEmpty ? name[0].toUpperCase() : 'M',
-                      style: AppTextStyles.text18.copyWith(
-                        color: AppColors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    child: (mePhotoBytes != null && mePhotoBytes.isNotEmpty)
+                        ? ClipOval(
+                            child: Image.memory(
+                              mePhotoBytes,
+                              width: 46.r,
+                              height: 46.r,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, _, _) => Text(
+                                fallbackLetter,
+                                style: AppTextStyles.text18.copyWith(
+                                  color: AppColors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          )
+                        : Text(
+                            fallbackLetter,
+                            style: AppTextStyles.text18.copyWith(
+                              color: AppColors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                   ),
                   Positioned(
                     bottom: 1.r,

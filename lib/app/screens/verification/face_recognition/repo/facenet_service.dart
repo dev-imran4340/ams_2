@@ -17,7 +17,7 @@ class FaceNetService {
   }
 
   FaceNetService._internal() {
-    threshold = 1.0; // Calibrated MobileFaceNet Euclidean distance threshold matching smart_attendance
+    threshold = 0.85; // Strict MobileFaceNet Euclidean distance threshold to prevent false positives
   }
 
   static const String modelAssetPath = 'assets/models/mobilefacenet.tflite';
@@ -98,12 +98,10 @@ class FaceNetService {
 
   void _runInterpreter(List input, List output) {
     final interpreter = _interpreter;
-    if (interpreter == null || !_isModelLoaded) return;
-    try {
-      interpreter.run(input, output);
-    } catch (e) {
-      debugPrint('>>> [AI FaceNet] Inference failed: $e');
+    if (interpreter == null || !_isModelLoaded) {
+      throw StateError('FaceNet interpreter is not loaded');
     }
+    interpreter.run(input, output);
   }
 
   /// Extracts 192-dimensional MobileFaceNet embedding from raw image bytes and detected Face

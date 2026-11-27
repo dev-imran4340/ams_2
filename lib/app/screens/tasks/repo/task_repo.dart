@@ -5,6 +5,7 @@ import '../../../api/api_client.dart';
 import '../../../api/api_endpoints.dart';
 import '../../../api/app_preferences.dart';
 import '../../../api/exception_handler.dart';
+import '../../employees/model/department_employee_model.dart';
 import '../model/task_model.dart';
 
 class TaskRepo {
@@ -365,6 +366,52 @@ class TaskRepo {
         showToast: true,
       );
       return false;
+    }
+  }
+
+  /// GET /employees?per_page=100
+  /// Fetches server-filtered team members within the manager's tasks.manage reach
+  Future<List<DepartmentEmployeeModel>> fetchAssignableEmployees({
+    String? search,
+  }) async {
+    final methodTag = '$_tag -> fetchAssignableEmployees()';
+    try {
+      final queryParams = <String, dynamic>{
+        'per_page': '100',
+      };
+      if (search != null && search.trim().isNotEmpty) {
+        queryParams['search'] = search.trim();
+      }
+
+      final response = await ApiClient.request(
+        endpoint: ApiEndpoints.employees,
+        method: HttpMethod.get,
+        queryParameters: queryParams,
+        tag: methodTag,
+        showToastOnError: false,
+      );
+
+      if (response != null && response is Map<String, dynamic>) {
+        final rawData = response['data'];
+        if (rawData is List) {
+          return rawData
+              .whereType<Map>()
+              .map(
+                (e) => DepartmentEmployeeModel.fromJson(
+                  Map<String, dynamic>.from(e),
+                ),
+              )
+              .toList();
+        }
+      }
+      return <DepartmentEmployeeModel>[];
+    } catch (e, stackTrace) {
+      ExceptionHandler.handle(
+        ApiException(message: 'Failed to load team members: $e'),
+        tag: '$methodTag [${stackTrace.toString().split('\n').first}]',
+        showToast: false,
+      );
+      return <DepartmentEmployeeModel>[];
     }
   }
 }

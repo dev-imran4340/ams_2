@@ -319,7 +319,7 @@ class KioskRepo {
         if (ticket != null && ticket.isNotEmpty) fields['ticket'] = ticket;
         if (faceMatch != null) fields['face_match'] = faceMatch;
         if (faceScore != null) fields['face_score'] = faceScore.toStringAsFixed(4);
-        if (faceConsent != null) fields['face_consent'] = faceConsent.toString();
+        if (faceConsent != null) fields['face_consent'] = faceConsent ? '1' : '0';
         if (badge != null) fields['badge'] = badge;
         if (employeeNumber != null) fields['employee_number'] = employeeNumber;
         if (pin != null) fields['pin'] = pin;

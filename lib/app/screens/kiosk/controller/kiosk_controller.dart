@@ -28,6 +28,7 @@ class KioskController extends GetxController {
   // Loading & State Observables
   final RxBool isLoading = false.obs;
   final RxBool isSubmitting = false.obs;
+  final RxnString activePunchKind = RxnString();
   final RxBool isPinConfigured = false.obs;
   final RxBool isKioskProvisioned = false.obs;
   final Rxn<KioskConfigModel> activeKioskConfig = Rxn<KioskConfigModel>();
@@ -638,7 +639,8 @@ class KioskController extends GetxController {
     final cleanBadge = badge.trim();
 
     // 1. Check real internet availability first; if offline, open local offline session immediately
-    final connected = await NetworkConnectivityService.hasConnection();
+    final connected =
+        Get.testMode ? true : await NetworkConnectivityService.hasConnection();
     isOnline.value = connected;
     if (!connected) {
       await _startOfflineBadgeSession(cleanBadge);
@@ -783,6 +785,30 @@ class KioskController extends GetxController {
     // In production UI (no pre-captured file & not in headless unit test mode):
     // Launch the shared Employee FaceRecognitionView in isolated Kiosk Mode
     if (livePhoto == null && !Get.testMode) {
+      if (isFaceVerificationRequired.value &&
+          (referenceFaceBytes.value == null ||
+              referenceFaceBytes.value!.isEmpty)) {
+        try {
+          referenceFaceBytes.value = await repo.fetchKioskFace(
+            ticket: session.ticket,
+          );
+        } catch (e) {
+          if (e is ApiException && e.statusCode == 401) {
+            handleKioskStopped();
+            return false;
+          }
+        }
+        if (referenceFaceBytes.value == null ||
+            referenceFaceBytes.value!.isEmpty) {
+          CustomSnackbar.showError(
+            title: 'Reference Missing',
+            message:
+                'Saved face reference could not be loaded from server. Please try again.',
+          );
+          return false;
+        }
+      }
+
       final result = await Get.toNamed(
         Routes.FACE_RECOGNITION,
         arguments: {
@@ -994,6 +1020,20 @@ class KioskController extends GetxController {
       return;
     }
 
+    // Verify selfie/face photo is captured if required by server policy (online mode)
+    if (!session.isOfflineSession &&
+        !Get.testMode &&
+        (session.requiresPhoto ||
+            session.requiresFace == 'photo' ||
+            session.requiresFace == 'match') &&
+        capturedSelfieFile == null) {
+      CustomSnackbar.showWarning(
+        title: 'Photo Required',
+        message: 'Please capture your attendance photo before punching.',
+      );
+      return;
+    }
+
     // Check if kind is allowed by state.allowed
     if (!session.allowedActions.contains(kind)) {
       CustomSnackbar.showError(
@@ -1005,10 +1045,11 @@ class KioskController extends GetxController {
 
     try {
       isSubmitting.value = true;
+      activePunchKind.value = kind;
 
       // Offline Session or No Internet -> record locally in queue
       final connected = !session.isOfflineSession &&
-          await NetworkConnectivityService.hasConnection();
+          (Get.testMode ? true : await NetworkConnectivityService.hasConnection());
       isOnline.value = connected;
       if (!connected) {
         await _recordOfflinePunch(session: session, kind: kind);
@@ -1058,6 +1099,7 @@ class KioskController extends GetxController {
       );
     } finally {
       isSubmitting.value = false;
+      activePunchKind.value = null;
     }
   }
 
@@ -1242,7 +1284,8 @@ class KioskController extends GetxController {
     final queue = AppPreferences.offlineKioskPunches;
     if (queue.isEmpty) return;
 
-    final connected = await NetworkConnectivityService.hasConnection();
+    final connected =
+        Get.testMode ? true : await NetworkConnectivityService.hasConnection();
     isOnline.value = connected;
     if (!connected) return;
 

@@ -310,7 +310,14 @@ class CreateTaskBottomSheet extends GetView<TaskController> {
                 ],
               ),
 
-              AppSpaces.vSpace20,
+              AppSpaces.vSpace14,
+
+              // 6. Assign Team Members (Only shown if user has tasks.manage permission)
+              if (controller.canManageTeamTasks) ...[
+                _buildTeamAssigneesSection(),
+                AppSpaces.vSpace16,
+              ] else
+                AppSpaces.vSpace6,
 
               // 7. Submit Action Button
               Obx(
@@ -346,6 +353,196 @@ class CreateTaskBottomSheet extends GetView<TaskController> {
     ),
     ),
     ),
+    );
+  }
+
+  Widget _buildTeamAssigneesSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Assign To Team (Optional)',
+              style: AppTextStyles.text12.copyWith(
+                fontWeight: FontWeight.bold,
+                color: AppColors.textColor,
+              ),
+            ),
+            Obx(() {
+              final count = controller.selectedAssigneeIds.length;
+              return Container(
+                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
+                decoration: BoxDecoration(
+                  color: AppColors.secondary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+                child: Text(
+                  count == 0 ? 'Self (Default)' : '$count selected',
+                  style: AppTextStyles.text10.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.secondary,
+                  ),
+                ),
+              );
+            }),
+          ],
+        ),
+        AppSpaces.vSpace8,
+        TextField(
+          controller: controller.teamSearchController,
+          onChanged: (v) => controller.teamSearchQuery.value = v,
+          style: AppTextStyles.text12.copyWith(color: AppColors.textColor),
+          decoration: InputDecoration(
+            hintText: 'Search team member by name or code...',
+            hintStyle: AppTextStyles.text12.copyWith(
+              color: AppColors.subTextColor,
+            ),
+            prefixIcon: Icon(
+              Icons.search_rounded,
+              size: 18.sp,
+              color: AppColors.secondary,
+            ),
+            isDense: true,
+            filled: true,
+            fillColor: AppColors.inputFill,
+            contentPadding: EdgeInsets.symmetric(
+              horizontal: 12.w,
+              vertical: 10.h,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10.r),
+              borderSide: BorderSide(color: AppColors.borderColor, width: 1.w),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10.r),
+              borderSide: BorderSide(color: AppColors.borderColor, width: 1.w),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10.r),
+              borderSide: BorderSide(color: AppColors.secondary, width: 1.2.w),
+            ),
+          ),
+        ),
+        AppSpaces.vSpace8,
+        Container(
+          constraints: BoxConstraints(maxHeight: 160.h),
+          decoration: BoxDecoration(
+            color: AppColors.inputFill,
+            borderRadius: BorderRadius.circular(12.r),
+            border: Border.all(color: AppColors.borderColor, width: 1.w),
+          ),
+          child: Obx(() {
+            if (controller.isTeamLoading.value) {
+              return Padding(
+                padding: EdgeInsets.symmetric(vertical: 20.h),
+                child: Center(
+                  child: SizedBox(
+                    width: 22.r,
+                    height: 22.r,
+                    child: const CircularProgressIndicator(
+                      color: AppColors.secondary,
+                      strokeWidth: 2.2,
+                    ),
+                  ),
+                ),
+              );
+            }
+
+            final members = controller.filteredTeamMembers;
+            if (members.isEmpty) {
+              return Padding(
+                padding: EdgeInsets.symmetric(vertical: 16.h, horizontal: 12.w),
+                child: Center(
+                  child: Text(
+                    controller.teamMembers.isEmpty
+                        ? 'No team members available. Task will be assigned to you.'
+                        : 'No matching team member found.',
+                    textAlign: TextAlign.center,
+                    style: AppTextStyles.text10.copyWith(
+                      color: AppColors.subTextColor,
+                    ),
+                  ),
+                ),
+              );
+            }
+
+            return ListView.separated(
+              shrinkWrap: true,
+              padding: EdgeInsets.symmetric(vertical: 4.h),
+              itemCount: members.length,
+              separatorBuilder: (_, _) => Divider(
+                height: 1.h,
+                color: AppColors.borderColor.withValues(alpha: 0.5),
+              ),
+              itemBuilder: (context, index) {
+                final emp = members[index];
+                return Obx(() {
+                  final isSelected =
+                      controller.selectedAssigneeIds.contains(emp.id);
+                  return InkWell(
+                    onTap: () => controller.toggleAssignee(emp.id),
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 10.w,
+                        vertical: 8.h,
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            isSelected
+                                ? Icons.check_box_rounded
+                                : Icons.check_box_outline_blank_rounded,
+                            size: 18.sp,
+                            color: isSelected
+                                ? AppColors.secondary
+                                : AppColors.subTextColor,
+                          ),
+                          AppSpaces.hSpace10,
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  emp.name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: AppTextStyles.text12.copyWith(
+                                    fontWeight: isSelected
+                                        ? FontWeight.w600
+                                        : FontWeight.normal,
+                                    color: AppColors.textColor,
+                                  ),
+                                ),
+                                if (emp.designation.isNotEmpty ||
+                                    emp.employeeCode.isNotEmpty)
+                                  Text(
+                                    [
+                                      if (emp.employeeCode.isNotEmpty)
+                                        emp.employeeCode,
+                                      if (emp.designation.isNotEmpty)
+                                        emp.designation,
+                                    ].join(' • '),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: AppTextStyles.text10.copyWith(
+                                      color: AppColors.subTextColor,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                });
+              },
+            );
+          }),
+        ),
+      ],
     );
   }
 

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -9,6 +10,7 @@ import '../../../../core/utils/app_colors.dart';
 import '../../../../core/utils/app_spaces.dart';
 import '../../../../core/utils/app_text_styles.dart';
 import '../../../../core/widgets/custom_card.dart';
+import '../../../index/controller/index_controller.dart';
 import '../../../main_shell/controller/session_me_controller.dart';
 import '../../controller/profile_controller.dart';
 
@@ -36,10 +38,20 @@ class ProfileHeaderCard extends GetView<ProfileController> {
       final location = p?.workLocation ?? p?.job?.workLocation;
       final tenure = p?.tenureYears ?? p?.job?.lengthOfService;
       final stage = p?.stageLabel ?? p?.stage;
-      final initials = p?.initials ?? (name.isNotEmpty ? name[0] : 'E');
+      final String fallbackLetter = name.trim().isNotEmpty
+          ? name.trim()[0].toUpperCase()
+          : (p?.initials.isNotEmpty == true
+                ? p!.initials[0].toUpperCase()
+                : 'E');
       final avatarPath = p?.avatarPath;
       final hasLocalAvatar =
           !isOther && avatarPath != null && File(avatarPath).existsSync();
+      final Uint8List? mePhotoBytes =
+          (!isOther && Get.isRegistered<IndexController>())
+          ? Get.find<IndexController>().mePhotoBytes.value
+          : null;
+      final hasMePhoto = mePhotoBytes != null && mePhotoBytes.isNotEmpty;
+      final hasAvatar = hasLocalAvatar || hasMePhoto;
 
       // Subtitle parts: employeeId and location
       final subtitleParts = <String>[];
@@ -91,7 +103,7 @@ class ProfileHeaderCard extends GetView<ProfileController> {
                       width: 60.r,
                       height: 60.r,
                       decoration: BoxDecoration(
-                        gradient: !hasLocalAvatar
+                        gradient: !hasAvatar
                             ? const LinearGradient(
                                 colors: [
                                   AppColors.primary,
@@ -123,8 +135,22 @@ class ProfileHeaderCard extends GetView<ProfileController> {
                                 height: 60.r,
                                 fit: BoxFit.cover,
                               )
+                            : hasMePhoto
+                            ? Image.memory(
+                                mePhotoBytes,
+                                width: 60.r,
+                                height: 60.r,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, _, _) => Text(
+                                  fallbackLetter,
+                                  style: AppTextStyles.text20.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.white,
+                                  ),
+                                ),
+                              )
                             : Text(
-                                initials,
+                                fallbackLetter,
                                 style: AppTextStyles.text20.copyWith(
                                   fontWeight: FontWeight.bold,
                                   color: AppColors.white,
